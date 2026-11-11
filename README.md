@@ -36,3 +36,13 @@ All V43 art effects are generated locally; there is no background music or track
 - Residual water continues to reduce tyre grip after the rain stops; rain grip is not multiplied twice.
 - The bounded sunlight shadow camera follows the player, with up to 150 nearby building casters. Sun direction remains consistent when city time updates.
 - Environment reflections dim with daylight so metallic vehicles do not retain midday brightness at night. WebGL-only lighting enhancements preserve the software fallback.
+
+### V45 — Cairo graphics and atmosphere
+
+- Procedural sky dome with a daylight-to-night gradient, soft cloud bands and a directional sun glow; follows the camera without downloading images.
+- Upgraded facade response to lighting and batched, selectively illuminated apartment windows after dark.
+- The Nile uses an animated fine-ripple PBR water material with subtle reflections and weather-sensitive roughness.
+- Up to three nearby street lamps provide pooled real-time light spill. Balanced mode skips their dynamic light cost.
+- Weather-dependent atmospheric fog. Existing V44 travelling shadows, V43 graphics presets and all gameplay systems remain in place.
+
+V45 is a **visual improvement, not photorealism**. Its effects require desktop WebGL, and may cost additional GPU time on older computers.
