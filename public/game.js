@@ -6,8 +6,19 @@ import { createStreetEvents } from './street-events.js';
 import { createCareerSystem } from './street-careers.js';
 import { createFuelSystem, PETROL_STATIONS } from './realistic-fuel.js';
 import { createCityLife } from './city-life-v5.js';
+import { createWorldSave, GAME_KEYS_V55 } from './game-save-v55.js';
+import { createAutoDriver } from './auto-drive-v55.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
 import { stickFromPointer, footDirection, steeringFromStick, blendHeading } from './controls-v3.js';
+// A deliberate "new game" clears only Egypt Street keys before systems are constructed.
+let freshStartV55=false;
+try{
+ if(window.sessionStorage?.getItem('egypt-street-start-fresh-v55')==='1'){
+  window.sessionStorage.removeItem('egypt-street-start-fresh-v55');
+  for(const key of GAME_KEYS_V55)window.localStorage?.removeItem(key);
+  freshStartV55=true;
+ }
+}catch(e){}
 const $=id=>document.getElementById(id),scene=new T.Scene();scene.background=new T.Color('#b9d0cf');scene.fog=new T.Fog('#b9d0cf',65,190);let renderer;try{renderer=new T.WebGLRenderer({canvas:$('world'),antialias:true})}catch(e){const old=$('world'),c=old.cloneNode();old.replaceWith(c);const ctx=c.getContext('2d');let sw=0,sh=0;renderer={setPixelRatio(){},setSize(w,h){sw=c.width=w;sh=c.height=h},render(scene,camera){scene.updateMatrixWorld();camera.updateMatrixWorld();const view=new T.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse),faces=[];ctx.fillStyle=scene.background?.getHexString?'#'+scene.background.getHexString():'#b9d0cf';ctx.fillRect(0,0,sw,sh);scene.traverse(o=>{if(!o.isMesh||!o.visible||!o.parent.visible||o.userData.skipFallback)return;for(let ancestor=o.parent;ancestor;ancestor=ancestor.parent)if(!ancestor.visible)return;const center=new T.Vector3().setFromMatrixPosition(o.matrixWorld);if(center.distanceTo(camera.position)>95)return;const m=new T.Matrix4().multiplyMatrices(view,o.matrixWorld),pos=o.geometry.attributes.position,idx=o.geometry.index;const verts=[];for(let i=0;i<pos.count;i++)verts.push(new T.Vector3().fromBufferAttribute(pos,i).applyMatrix4(m));for(let i=0;i<(idx?idx.count:pos.count);i+=3){const a=verts[idx?idx.getX(i):i],b=verts[idx?idx.getX(i+1):i+1],d=verts[idx?idx.getX(i+2):i+2];if([a,b,d].some(v=>v.z>1||v.z< -1))continue;if((b.x-a.x)*(d.y-a.y)-(b.y-a.y)*(d.x-a.x)<0)continue;let color=o.material.color||new T.Color('#647b72');faces.push({a,b,d,z:(a.z+b.z+d.z)/3,color:'#'+color.getHexString()})}});faces.sort((a,b)=>b.z-a.z);for(let f of faces){ctx.fillStyle=f.color;ctx.beginPath();ctx.moveTo((f.a.x+1)*sw/2,(1-f.a.y)*sh/2);ctx.lineTo((f.b.x+1)*sw/2,(1-f.b.y)*sh/2);ctx.lineTo((f.d.x+1)*sw/2,(1-f.d.y)*sh/2);ctx.fill()}}};}renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));const camera=new T.PerspectiveCamera(62,1,.1,240);const ambient=new T.HemisphereLight(0xffe9c8,0x637278,2.6);scene.add(ambient);const sun=new T.DirectionalLight(0xffd7a1,2.6);sun.position.set(-30,70,20);scene.add(sun);const solids=[];const mat=c=>new T.MeshLambertMaterial({color:c});const materials=new Map();function box(x,y,z,w,h,d,c,parent=scene){if(!materials.has(c))materials.set(c,mat(c));let m=new T.Mesh(new T.BoxGeometry(w,h,d),materials.get(c));m.position.set(x,y,z);parent.add(m);return m}box(0,-.2,0,460,.3,460,'#baa88a');
 const roads=[-60,-30,0,30,60];for(const n of roads){box(n,.01,0,11,.1,170,'#555e60');box(0,.01,n,170,.1,11,'#555e60');for(let k=-80;k<85;k+=8){box(n,.08,k,.16,.02,3,'#d6cba1');box(k,.08,n,3,.02,.16,'#d6cba1')}}
 function sign(text,x,y,z,w=5){const c=document.createElement('canvas');c.width=512;c.height=128;let q=c.getContext('2d');q.fillStyle='#174747';q.fillRect(0,0,512,128);q.fillStyle='#ffe3a9';q.font='bold 54px Arial';q.textAlign='center';q.fillText(text,256,84);let m=new T.Mesh(new T.PlaneGeometry(w,w/4),new T.MeshBasicMaterial({map:new T.CanvasTexture(c),side:T.DoubleSide}));m.position.set(x,y,z);scene.add(m)}
@@ -168,6 +179,8 @@ jumpButton.onpointerdown=e=>{e.preventDefault();if(!driving)jumpRequested=true;j
 jumpButton.onpointerup=jumpButton.onpointercancel=()=>{};
 $('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;brakePedal=false;reverseKeyHeld=false;jumpRequested=false;keys={};resetPad();sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;
 const walletStorage=(()=>{try{return window.localStorage}catch(e){return null}})();
+const worldSave=createWorldSave({storage:walletStorage});
+const previousWorld=worldSave.load();
 let hasSavedWallet=false;
 try{
  const data=JSON.parse(walletStorage?.getItem('egypt-street-wallet-v4')||'null');
@@ -232,8 +245,97 @@ const cityLife=createCityLife({
  ui:{time:$('cityTime'),weather:$('cityWeather'),fines:$('cityLaw'),
    nightBtn:$('cityNight'),weatherBtn:$('cityWeatherBtn')}
 });
+const autoDriver=createAutoDriver({
+ signalStop:car=>cityLife.trafficMustBrake(car),
+ onStatus:message=>toast(message)
+});
+function updateAutoPilotLabel(){
+ $('autoPilot').textContent=autoDriver.getState().enabled?'🤖 أوقف القيادة الذاتية':'🤖 شغّل القيادة الذاتية';
+}
+$('autoPilot').onclick=()=>{
+ if(!driving)return;
+ autoDriver.toggle(vehicleState);
+ if(autoDriver.getState().enabled&&!fuelSystem.getState().auto&&fuelSystem.getState().fuel>.01)fuelSystem.toggle();
+ updateAutoPilotLabel();saveWorld(true);
+};
+function worldSnapshot(){
+ return {
+  player:{x:player.position.x,z:player.position.z,yaw:player.rotation.y},
+  taxi:{x:taxi.position.x,z:taxi.position.z,yaw:taxi.rotation.y},
+  driving,cameraYaw,cameraPitch,money:cash,
+  mission:{completed,target:{x:target.x,z:target.z}},
+  fuel:fuelSystem.getState(),career:career.getStats(),
+  sideEvent:streetEvents.snapshot(),autopilot:autoDriver.getState()
+ };
+}
+function saveWorld(force=false){
+ if(!active)return false;
+ if(force)saveWallet();
+ return worldSave.save(worldSnapshot(),force);
+}
+function restoreWorld(state){
+ if(!state)return false;
+ // The stand-alone wallet key is updated immediately after purchases and rewards.
+ if(!hasSavedWallet)cash=state.money;
+ $('money').textContent='ج.م '+Math.round(cash);
+ player.position.set(state.player.x,0,state.player.z);
+ player.rotation.y=state.player.yaw;
+ taxi.position.set(state.taxi.x,0,state.taxi.z);
+ taxi.rotation.y=state.taxi.yaw;
+ Object.assign(vehicleState,createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.yaw));
+ completed=state.mission.completed;
+ target.set(state.mission.target.x,0,state.mission.target.z);
+ $('task').textContent=completed?
+   'تم توصيل '+completed+' طلب • المهمة الجاية عند العلامة الدهبية.':
+   'وصل الطلب للعلامة الدهبية عشان تكسب ١٥٠ جنيه.';
+ cameraYaw=state.cameraYaw;cameraPitch=state.cameraPitch;
+ driving=!!state.driving;
+ if(driving){
+  player.visible=false;player.position.copy(taxi.position);
+  document.body.classList.add('driving');
+  fuelSystem.enter();
+  $('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
+  $('controlsHint').textContent='🚗 قيادة ذاتية أو دريكسيون يدوي';
+ }else{
+  player.visible=true;document.body.classList.remove('driving');
+  $('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
+ }
+ fuelSystem.restore(state.fuel);
+ career.restore(state.career);
+ streetEvents.restore(state.sideEvent);
+ autoDriver.restore(state.autopilot,vehicleState);
+ updateAutoPilotLabel();
+ return true;
+}
+function beginV55(restoreSave=false){
+ if(active)return;
+ sound.start();active=true;$('intro').style.display='none';
+ streetEvents.start();
+ if(restoreSave&&previousWorld)restoreWorld(previousWorld);
+ else saveWorld(true);
+ if(driving)toast('✅ رجعت لنفس العربية والمكان. القيادة الذاتية جاهزة.');
+ else toast(restoreSave?'✅ رجعت لنفس المكان وتقدمك محفوظ.':'🇪🇬 أهلاً بيك في شوارع مصر! قرب من العربية أو قدّم على شغل.');
+}
 $('interact').onclick=()=>career.interact()||streetEvents.interact();
-$('start').onclick=()=>{sound.start();active=true;$('intro').style.display='none';streetEvents.start();toast('قرب من العربية الصفرا واضغط اركب • فيه أحداث ومهام جانبية في الحي')};function enter(){
+$('start').onclick=()=>beginV55(false);
+$('continueGame').onclick=()=>beginV55(true);
+$('skipIntro').onclick=()=>beginV55(!!previousWorld);
+$('newGame').onclick=()=>{
+ worldSave.clear();
+ try{window.sessionStorage?.setItem('egypt-street-start-fresh-v55','1')}catch(e){}
+ if(typeof window.location?.reload==='function')window.location.reload();
+ else beginV55(false);
+};
+if(previousWorld&&!freshStartV55){
+ $('savePreview').textContent='💾 فيه تقدم محفوظ: '+previousWorld.mission.completed+
+  ' توصيلات • '+Math.round(previousWorld.money)+' جنيه • آخر مكان محفوظ';
+ $('continueGame').style.display='block';$('start').style.display='none';
+}else{
+ $('savePreview').textContent='🎮 مفيش حفظ سابق — تقدر تبدأ قصة جديدة في شوارع مصر.';
+ $('continueGame').style.display='none';$('start').style.display='block';
+}
+if(freshStartV55)beginV55(false);
+function enter(){
  if(driving){
   if(Math.abs(vehicleState.speed)>1.1){toast('وقف العربية الأول عشان تنزل بأمان');return}
   const side=3.4, sin=Math.sin(vehicleState.yaw),cos=Math.cos(vehicleState.yaw);
@@ -244,14 +346,16 @@ $('start').onclick=()=>{sound.start();active=true;$('intro').style.display='none
   if(!safe){toast('حرّك العربية شوية عشان تلاقي مكان تنزل فيه');return}
   driving=false;player.visible=true;player.position.set(safe[0],0,safe[1]);
   speed=0;onFoot.vx=onFoot.vz=0;onFoot.vy=onFoot.y=0;onFoot.grounded=true;jumpRequested=false;vehicleState.speed=0;vehicleState.lateralSpeed=0;vehicleState.yawRate=0;
-  fuelSystem.exit();document.body.classList.remove('driving');pedal=0;brakePedal=false;reverseKeyHeld=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
+  autoDriver.stop();fuelSystem.exit();document.body.classList.remove('driving');pedal=0;brakePedal=false;reverseKeyHeld=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
  }else if(player.position.distanceTo(taxi.position)<6){
   driving=true;player.visible=false;
   Object.assign(vehicleState,createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y));
   yaw=taxi.rotation.y;cameraYaw=yaw;cameraFreeUntil=0;speed=0;brakePedal=false;reverseKeyHeld=false;jumpRequested=false;resetPad();
-  document.body.classList.add('driving');fuelSystem.enter();$('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
+  document.body.classList.add('driving');fuelSystem.enter();autoDriver.start(vehicleState.x,vehicleState.z);
+  updateAutoPilotLabel();$('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
   $('controlsHint').textContent='تلقائي: سرعة ٦٠ كم/س • العصاية للدريكسيون';
-  toast('🚗 البنزين تلقائي. حرّك العصاية للتوجيه، استخدم فرامل للوقوف، وفوّل من بنزينة.');
+  toast('🤖 العربية بتسوق لوحدها. حرك العصاية للتوجيه اليدوي أو دوس فرامل.');
+  saveWorld(true);
  }else toast('قرب من العربية الصفرا الأول')
 } $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;jumpRequested=false;keys={};resetPad();sprint=false};
 const pad=$('joy'),knob=$('knob'),worldCanvas=$('world');
@@ -354,6 +458,11 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
  }
  map.fillStyle='#fff';map.font='bold 10px Arial';map.fillText('N',9,14);
 }
+let saveClockV55=0;
+window.addEventListener?.('pagehide',()=>saveWorld(true));
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden)saveWorld(true);
+});
 function frame(t){
  requestAnimationFrame(frame);
  const dt=last?Math.min((t-last)/1000,.04):1/60;last=t;
@@ -365,18 +474,29 @@ function frame(t){
   f=Math.max(-1,Math.min(1,f));turn=Math.max(-1,Math.min(1,turn));
   if(driving){
    // Right on screen steers right. Swiping the world now moves the camera only.
-   const steer=steeringFromStick(joy.x,(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0));
+   const manualSteer=steeringFromStick(joy.x,(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0));
+   if(autoDriver.getState().enabled&&Math.abs(manualSteer)>.24){
+    autoDriver.stop();updateAutoPilotLabel();
+   }
+   const autopilot=autoDriver.controls(vehicleState,traffic,walkers,dt);
+   const steer=autopilot.active?autopilot.steer:manualSteer;
    const braking=brakePedal||sprint||keys.shift||keys[' ']||
-      $('jobsPanel').style.display==='block';
+      $('jobsPanel').style.display==='block'||autopilot.brake;
    const reverseKeyDown=Boolean(keys.s||keys.arrowdown);
    if(reverseKeyDown&&!reverseKeyHeld&&Math.abs(vehicleState.speed)<1.4){
      reverseKeyHeld=fuelSystem.reverse();
    }
    if(!reverseKeyDown)reverseKeyHeld=false;
-   const throttle=fuelSystem.throttle({
-     reverse:pedal<0||reverseKeyHeld,
-     brake:braking,manual:(keys.w||keys.arrowup)?1:0
-   });
+   if((pedal<0||reverseKeyHeld)&&autoDriver.getState().enabled){
+     autoDriver.stop();updateAutoPilotLabel();
+   }
+   const throttle=autopilot.active?
+      (braking||fuelSystem.getState().fuel<=.01||!fuelSystem.getState().auto?
+        0:Math.min(fuelSystem.throttle({manual:1}),autopilot.throttle)):
+     fuelSystem.throttle({
+       reverse:pedal<0||reverseKeyHeld,
+       brake:braking,manual:(keys.w||keys.arrowup)?1:0
+     });
    const oldPos={x:vehicleState.x,z:vehicleState.z};
    const result=stepVehiclePhysics(vehicleState,{
      throttle,steer,brake:braking,
@@ -501,6 +621,10 @@ function frame(t){
  $('speed').innerHTML=Math.round(Math.abs(speed)*3.6)+'<small>كم / س</small>';
  minimap(p);
  if(active&&Math.round(t/1200)%2===0)$('toast').dataset.district=cairo.district(p.x,p.z);
+ if(active&&!paused){
+  saveClockV55+=dt;
+  if(saveClockV55>=2.5){saveClockV55=0;saveWorld(true)}
+ }
  sound.tick({active,paused,driving,speed,traffic,p,dt});renderer.render(scene,camera);
 }
 requestAnimationFrame(frame);
