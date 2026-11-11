@@ -1,0 +1,22 @@
+{
+  "id": "./",
+  "name": "شوارع مصر — Egypt Streets",
+  "short_name": "شوارع مصر",
+  "description": "عالم مفتوح في القاهرة — قيادة ومهمات وجراج وسباقات",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0c1725",
+  "theme_color": "#0c2232",
+  "icons": [
+    {
+      "src": "./egypt-streets-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
