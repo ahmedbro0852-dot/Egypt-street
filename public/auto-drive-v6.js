@@ -80,16 +80,10 @@ export function createAutoDriver({signalStop=()=>false,onStatus=()=>{}}={}){
   arrived=!!state.arrived&&!!goal;
   enabled=!!state.enabled;
  }
+ // Autonomous mode still respects actual stop signals and waypoint corners,
+ // but no longer automatically brakes solely because a person or car is near.
  function avoid(vehicle,traffic,walkers){
-  const vx=Math.sin(vehicle.yaw),vz=Math.cos(vehicle.yaw),speed=Math.max(0,vehicle.speed);
-  const safeGap=Math.max(7,speed*1.45+speed*speed/12);
-  const ahead=(obstacle,width)=>{
-   const dx=obstacle.position.x-vehicle.x,dz=obstacle.position.z-vehicle.z;
-   const forward=dx*vx+dz*vz,lateral=Math.abs(dx*vz-dz*vx);
-   return forward>0&&forward<safeGap&&lateral<width;
-  };
-  for(const c of traffic)if(ahead(c,2.2))return true;
-  for(const p of walkers)if(ahead(p,1.5))return true;
+  const vx=Math.sin(vehicle.yaw),vz=Math.cos(vehicle.yaw);
   const axis=Math.abs(vx)>Math.abs(vz)?'x':'z';
   const d=axis==='x'?(vx>=0?1:-1):(vz>=0?1:-1);
   return signalStop({position:{x:vehicle.x,z:vehicle.z},userData:{axis,direction:d}});
@@ -134,7 +128,7 @@ export function createAutoDriver({signalStop=()=>false,onStatus=()=>{}}={}){
   if(remaining<9)desired=Math.min(desired,3.8);
   let danger=avoid(vehicle,traffic,walkers);
   const speed=Math.max(0,vehicle.speed);
-  if(danger&&!hazardShown){hazardShown=true;onStatus('🚦 ببطّأ عشان في عائق أو إشارة قدّامنا.')}
+  if(danger&&!hazardShown){hazardShown=true;onStatus('🚦 بنقف عند إشارة المرور.')}
   if(!danger)hazardShown=false;
   const brake=danger||speed>desired+.85;
   const throttle=brake?0:clamp(.15+(desired-speed)*.20,0,.95);
