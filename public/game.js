@@ -47,9 +47,16 @@ function car(color){
  }
  // Soft contact shadow, no expensive shadow maps on mobile.
  const cv=document.createElement('canvas');cv.width=cv.height=64;const ctx=cv.getContext('2d'),grad=ctx.createRadialGradient(32,32,8,32,32,32);grad.addColorStop(0,'rgba(0,0,0,.5)');grad.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=grad;ctx.fillRect(0,0,64,64);let shadow=part(new T.PlaneGeometry(3.5,5.8),new T.MeshBasicMaterial({map:new T.CanvasTexture(cv),transparent:true,depthWrite:false}),0,.105,0);shadow.rotation.x=-Math.PI/2;shadow.userData.skipFallback=true;
- g.userData.wheels=wheels;scene.add(g);return g;
+ // Chassis moves on its springs while the tyres stay planted on the asphalt.
+ const chassis=new T.Group();
+ for(const child of [...g.children])if(child!==shadow&&!wheels.includes(child)){
+   g.remove(child);chassis.add(child)
+ }
+ g.add(chassis);
+ g.userData.wheels=wheels;g.userData.chassis=chassis;
+ scene.add(g);return g;
 }
-const taxi=car('#d7a52f');taxi.position.set(2,0,8);box(0,1.72,0,.52,.20,.32,'#fff1c8',taxi);
+const taxi=car('#d7a52f');taxi.position.set(2,0,8);box(0,1.72,0,.52,.20,.32,'#fff1c8',taxi.userData.chassis);
 function motorcycle(color){
  const g=new T.Group();g.userData.wheels=[];
  box(0,.52,0,.26,.13,1.22,'#35383b',g);box(0,.85,-.25,.40,.13,.68,'#25272b',g);
@@ -85,13 +92,25 @@ function makeHero(){
  for(const leg of [leftLeg,rightLeg]){ell(leg,0,-.74,.055,.112,.085,.20,shoe);ell(leg,0,-.79,.055,.116,.025,.205,mat('#b5ae9f'))}
  root.userData={rig,leftArm,rightArm,leftLeg,rightLeg};return root;
 }
-function animateHero(hero,phase,amount){const r=hero.userData;r.leftLeg.rotation.x=Math.sin(phase)*.65*amount;r.rightLeg.rotation.x=-Math.sin(phase)*.65*amount;r.leftArm.rotation.x=-Math.sin(phase)*.5*amount;r.rightArm.rotation.x=Math.sin(phase)*.5*amount;r.rig.position.y=Math.abs(Math.sin(phase))*.035*amount;}
+function animateHero(hero,phase,amount){
+ const r=hero.userData;
+ const strength=Math.min(1.5,Math.max(0,amount));
+ const stride=Math.sin(phase),contact=Math.max(0,Math.sin(phase*2));
+ r.leftLeg.rotation.x=stride*.54*strength;
+ r.rightLeg.rotation.x=-stride*.54*strength;
+ r.leftArm.rotation.x=-stride*.41*strength;
+ r.rightArm.rotation.x=stride*.41*strength;
+ // Opposing shoulder/hip motion, heel-lift and damped weight transfer.
+ r.rig.rotation.y=Math.sin(phase)*.035*strength;
+ r.rig.rotation.z=Math.sin(phase)*.021*strength;
+ r.rig.position.y=contact*.035*strength;
+}
 const player=makeHero();scene.add(player);player.position.set(0,0,12);
 const crowd=createEgyptianCrowd(T,scene,(x,z)=>blocked(x,z,.38));
 const walkers=crowd.people; // Forty unique residents
 
 const target=new T.Vector3(62,0,-50);let beacon=new T.Mesh(new T.CylinderGeometry(2,2,.12,32),new T.MeshBasicMaterial({color:0xffcd68,transparent:true,opacity:.7}));scene.add(beacon);let pillar=new T.Mesh(new T.CylinderGeometry(.25,.25,13,12),new T.MeshBasicMaterial({color:0xffd57e,transparent:true,opacity:.45}));scene.add(pillar);
-const sound=createStreetAudio();let pedal=0;for(const [id,value] of [['accelerate',1],['reverse',-1]]){const b=$(id);b.onpointerdown=e=>{pedal=value;b.setPointerCapture(e.pointerId);sound.start()};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>pedal=0;} $('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;keys={};joy.x=joy.y=0;sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;const vehicleState=createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y);let dragSteer=0,bumpCooldown=0;let toastTimer;function toast(s){$('toast').textContent=s;clearTimeout(toastTimer);$('toast').style.opacity=1;toastTimer=setTimeout(()=>$('toast').style.opacity=.15,4500)}$('start').onclick=()=>{sound.start();active=true;$('intro').style.display='none';toast('قرب من العربية الصفرا واضغط اركب')};function enter(){
+const sound=createStreetAudio();let pedal=0;for(const [id,value] of [['accelerate',1],['reverse',-1]]){const b=$(id);b.onpointerdown=e=>{pedal=value;b.setPointerCapture(e.pointerId);sound.start()};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>pedal=0;} $('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;keys={};joy.x=joy.y=0;sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;const vehicleState=createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y);const onFoot={vx:0,vz:0};let dragSteer=0,bumpCooldown=0;let toastTimer;function toast(s){$('toast').textContent=s;clearTimeout(toastTimer);$('toast').style.opacity=1;toastTimer=setTimeout(()=>$('toast').style.opacity=.15,4500)}$('start').onclick=()=>{sound.start();active=true;$('intro').style.display='none';toast('قرب من العربية الصفرا واضغط اركب')};function enter(){
  if(driving){
   if(Math.abs(vehicleState.speed)>1.1){toast('وقف العربية الأول عشان تنزل بأمان');return}
   const side=3.4, sin=Math.sin(vehicleState.yaw),cos=Math.cos(vehicleState.yaw);
@@ -101,11 +120,11 @@ const sound=createStreetAudio();let pedal=0;for(const [id,value] of [['accelerat
   const safe=exits.find(([x,z])=>!blocked(x,z,.55));
   if(!safe){toast('حرّك العربية شوية عشان تلاقي مكان تنزل فيه');return}
   driving=false;player.visible=true;player.position.set(safe[0],0,safe[1]);
-  speed=0;vehicleState.speed=0;vehicleState.yawRate=0;taxi.rotation.z=0;
+  speed=0;onFoot.vx=onFoot.vz=0;vehicleState.speed=0;vehicleState.lateralSpeed=0;vehicleState.yawRate=0;
   document.body.classList.remove('driving');pedal=0;$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
  }else if(player.position.distanceTo(taxi.position)<6){
   driving=true;player.visible=false;
-  Object.assign(vehicleState,{x:taxi.position.x,z:taxi.position.z,yaw:taxi.rotation.y,speed:0,steer:0,yawRate:0});
+  Object.assign(vehicleState,createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y));
   yaw=taxi.rotation.y;speed=0;dragSteer=0;
   document.body.classList.add('driving');$('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
   toast('حرّك العصاية لقدّام للتسارع، واسحب يمين أو شمال للتوجيه، واضغط فرامل للتوقف');
@@ -163,12 +182,15 @@ function frame(t){
    dragSteer*=Math.exp(-1.9*dt);
    const steer=Math.max(-1,Math.min(1,turn+dragSteer));
    const result=stepVehiclePhysics(vehicleState,{
-    throttle:f,steer:-steer,brake:sprint||keys.shift||keys[' ']
+    throttle:f,steer,brake:sprint||keys.shift||keys[' ']
    },dt,carCollision);
    taxi.position.x=vehicleState.x;taxi.position.z=vehicleState.z;
    taxi.rotation.y=vehicleState.yaw;yaw=vehicleState.yaw;speed=vehicleState.speed;
-   taxi.rotation.z=-vehicleState.steer*Math.min(Math.abs(speed)/18,1)*.08;
-   taxi.rotation.x=Math.max(-.04,Math.min(.04,-result.acceleration*.004));
+   // Visual suspension: natural lateral roll, braking dive and tiny road vibrations.
+   const chassis=taxi.userData.chassis;
+   chassis.position.y=vehicleState.heave;
+   chassis.rotation.z=vehicleState.roll;
+   chassis.rotation.x=vehicleState.pitch;
    player.position.copy(taxi.position);
    for(const wheel of taxi.userData.wheels){
     wheel.rotation.x+=speed*dt/.405;
@@ -179,15 +201,29 @@ function frame(t){
     bumpCooldown=t+1700;
    }
   }else{
-   yaw-=turn*dt*2.3;
-   // Acceleration and stopping inertia also apply to the walking character.
-   const desired=f*(sprint||keys.shift?7.5:4.3);
-   speed=T.MathUtils.damp(speed,desired,desired?9:13,dt);
-   const nx=p.x+Math.sin(yaw)*speed*dt,nz=p.z+Math.cos(yaw)*speed*dt;
-   const npcNear=(x,z)=>walkers.some(w=>Math.hypot(x-w.position.x,z-w.position.z)<.85);
-   if(!blocked(nx,p.z,.43)&&!traffic.some(c=>Math.hypot(nx-c.position.x,p.z-c.position.z)<1.15)&&!npcNear(nx,p.z))p.x=nx;else speed*=.23;
-   if(!blocked(p.x,nz,.43)&&!traffic.some(c=>Math.hypot(p.x-c.position.x,nz-c.position.z)<1.15)&&!npcNear(p.x,nz))p.z=nz;else speed*=.23;
-   player.rotation.y=yaw;
+   // Third-person motion: walk/strafe relative to camera rather than rotate like a tank.
+   const desiredLen=Math.min(1,Math.hypot(f,turn));
+   const forward=Math.sin(yaw)*f+Math.cos(yaw)*turn;
+   const across=Math.cos(yaw)*f-Math.sin(yaw)*turn;
+   const len=Math.hypot(forward,across);
+   const pace=sprint||keys.shift?6.2:3.6;
+   const tx=len>.001?forward/len*pace*desiredLen:0;
+   const tz=len>.001?across/len*pace*desiredLen:0;
+   const response=1-Math.exp(-(desiredLen>.05?8.5:13)*dt);
+   onFoot.vx+=(tx-onFoot.vx)*response;
+   onFoot.vz+=(tz-onFoot.vz)*response;
+   const nearPerson=(x,z)=>walkers.some(w=>Math.hypot(x-w.position.x,z-w.position.z)<.76);
+   const footBlocked=(x,z)=>blocked(x,z,.46)||
+     traffic.some(c=>Math.hypot(x-c.position.x,z-c.position.z)<1.22)||nearPerson(x,z);
+   const nx=p.x+onFoot.vx*dt,nz=p.z+onFoot.vz*dt;
+   if(!footBlocked(nx,p.z))p.x=nx;else onFoot.vx=0;
+   if(!footBlocked(p.x,nz))p.z=nz;else onFoot.vz=0;
+   speed=Math.hypot(onFoot.vx,onFoot.vz);
+   if(speed>.12){
+     const targetHeading=Math.atan2(onFoot.vx,onFoot.vz);
+     const shortest=Math.atan2(Math.sin(targetHeading-player.rotation.y),Math.cos(targetHeading-player.rotation.y));
+     player.rotation.y+=shortest*Math.min(1,dt*(6+speed*.6));
+   }
   }
   // Existing ambient traffic, pedestrians and delivery tasks remain active.
   for(const c of traffic){
@@ -216,9 +252,11 @@ function frame(t){
  pillar.position.set(target.x,6.5,target.z);
  beacon.scale.setScalar(1+Math.sin(t*.003)*.12);
  const angle=active?yaw:.55;
- const dist=driving?(cameraNear?6:10):(cameraNear?4:7);
- const cp=new T.Vector3(p.x-Math.sin(angle)*dist,driving?6:5,p.z-Math.cos(angle)*dist);
- camera.position.lerp(cp,1-Math.exp(-dt*5));camera.lookAt(p.x,1.5,p.z);
+ const distance=driving?(cameraNear?6.5:10.5)+Math.min(3,Math.abs(speed)*.10):(cameraNear?4:7);
+ const cp=new T.Vector3(p.x-Math.sin(angle)*distance,driving?5.1+Math.min(1.2,Math.abs(speed)*.052):4.5,p.z-Math.cos(angle)*distance);
+ camera.position.lerp(cp,1-Math.exp(-dt*(driving?4.5:6.5)));
+ const lookAhead=driving?Math.min(3.5,Math.abs(speed)*.15):.55;
+ camera.lookAt(p.x+Math.sin(angle)*lookAhead,driving?1.5:1.42,p.z+Math.cos(angle)*lookAhead);
  $('speed').innerHTML=Math.round(Math.abs(speed)*3.6)+'<small>كم / س</small>';
  minimap(p);
  if(active&&Math.round(t/1200)%2===0)$('toast').dataset.district=cairo.district(p.x,p.z);
