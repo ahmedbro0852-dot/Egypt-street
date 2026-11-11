@@ -45,11 +45,10 @@ for(const z of [-115,113])for(let i=0;i<8;i++){
 for(const z of [-153,153])for(let i=0;i<5;i++)building(-116+i*41,z,i+4);
 for(const z of [-133,-93,93,133]){
  box(-17,.015,z,265,.11,10.8,'#525a5b');
- for(let x=-145;x<110;x+=14)box(x,.09,z,.16,.018,3,'#dcd2ae');
+ // Lane stripes are now batched by the road realism module.
 }
 for(const x of [-139,-95,84]){
  box(x,.015,0,10,.11,340,'#50595b');
- for(let z=-166;z<166;z+=14)box(x,.09,z,.14,.018,3,'#d9d0b7');
 }
 // Nile water and both paved riverbank promenades.
 box(131,-.025,0,52,.12,366,'#236b81');
@@ -62,7 +61,7 @@ for(const z of [-60,0,60]){
  box(132,.22,z,91,.36,11.5,'#8b8580');
  for(const dz of [-5.5,5.5])box(132,.60,z+dz,91,.60,.3,'#d4c9b5');
  for(const x of [113,133,154])box(x,-2.35,z,3.8,5.2,3.8,'#a9a096');
- for(let x=92;x<173;x+=12)box(x,.43,z,.14,.016,3.4,'#efe2bb');
+ // Bridge lane paint is supplied by the merged road layer.
 }
 const wood=material('#7e7059'),green=material('#608365'),metal=material('#606969');
 function tree(x,z){
@@ -100,10 +99,7 @@ for(const x of [-124,-100]){
 for(const [x,z,r] of [[-175,-155,16],[-199,-165,10]]){
  const p=new T.Mesh(new T.ConeGeometry(r,r*1.28,4),material('#bda77d'));p.position.set(x,r*.64,z);p.rotation.y=Math.PI/4;scene.add(p);
 }
-// Crosswalks, shop stalls and signs.
-for(const x of [-60,-30,0,30,60])for(const z of [-60,0,60])for(let j=-3;j<=3;j++){
- box(x+j*1.10,.11,z+4.6,.64,.014,1.7,'#e2dbce');
-}
+// Crosswalks are placed ahead of signals by the dedicated road module.
 for(const [x,z] of [[-42,91],[-20,91],[18,93],[50,91],[-78,-94]]){
  box(x,1,z,6.1,1.8,3.0,'#bda47e');box(x,2.17,z,7.1,.17,3.6,'#b76d55');
 }
