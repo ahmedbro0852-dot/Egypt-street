@@ -72,7 +72,10 @@ function build(T,scene,batch,material){
  geometry.setAttribute('uv',new T.Float32BufferAttribute(batch.uv,2));
  geometry.computeVertexNormals();
  const mesh=new T.Mesh(geometry,material);
- mesh.frustumCulled=true;mesh.userData.isRoadRealism=true;
+ mesh.frustumCulled=true;
+ mesh.userData.isRoadRealism=true;
+ // Software 2D fallback has no GPU batching and must skip thousands of microtriangles.
+ mesh.userData.skipFallback=true;
  scene.add(mesh);
  return mesh;
 }
@@ -231,21 +234,24 @@ export function createRealisticRoads({T,scene,enableWet=true}={}){
   if(pondMesh)pondMesh.visible=pondMat.opacity>.02;
  }
  function surfaceAt(x,z){
-  if(!Number.isFinite(x)||!Number.isFinite(z))return {grip:1,bump:0,onRoad:false};
-  const lane=roads.find(r=>(r.axis==='z'?
+  if(!Number.isFinite(x)||!Number.isFinite(z))return {grip:1,bump:0,onRoad:false,height:0};
+  const covers=r=>(r.axis==='z'?
     Math.abs(x-r.value)<r.width*.55&&z>=r.min&&z<=r.max:
-    Math.abs(z-r.value)<r.width*.55&&x>=r.min&&x<=r.max));
+    Math.abs(z-r.value)<r.width*.55&&x>=r.min&&x<=r.max);
+  // Bridge decking overrides the lower Corniche road surface at the crossing.
+  const lane=roads.find(r=>r.kind==='bridge'&&covers(r))||roads.find(covers);
   let grip=1,bump=0;
   for(const b of speedBumps){
    const down=b.axis==='z'?Math.abs(z-b.z):Math.abs(x-b.x);
    const side=b.axis==='z'?Math.abs(x-b.x):Math.abs(z-b.z);
    if(down<1.6&&side<5.3){
-    bump=Math.max(bump,(1-down/1.6)*clamp(Math.abs(x)+Math.abs(z)>0?1:1,0,1));
+    bump=Math.max(bump,1-down/1.6);
     grip=Math.min(grip,.96);
    }
   }
   if(patches.some(p=>Math.abs(x-p.x)<1.9&&Math.abs(z-p.z)<2.6))grip=Math.min(grip,.93);
-  return {grip,bump,onRoad:!!lane,wet:lastWet,roadType:lane?.kind||'unpaved'};
+  return {grip,bump,onRoad:!!lane,wet:lastWet,
+    roadType:lane?.kind||'unpaved',height:lane?.kind==='bridge'?.36:0};
  }
  update();
  return {update,surfaceAt,stats:()=>({
