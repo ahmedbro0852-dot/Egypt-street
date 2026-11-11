@@ -7,7 +7,7 @@ const MU=.96,MAX_FORWARD=41.0,MAX_REVERSE=10.0;
 export function createVehiclePhysics(x=0,z=0,yaw=0){
  return {x,z,yaw,speed:0,lateralSpeed:0,steer:0,yawRate:0,
  roll:0,rollVelocity:0,pitch:0,pitchVelocity:0,heave:0,heaveVelocity:0,
- wheelSpin:0,acceleration:0,lateralAcceleration:0,impact:0,collision:false,skid:0,absActive:0};
+ wheelSpin:0,acceleration:0,lateralAcceleration:0,impact:0,collision:false,skid:0,absActive:0,driftAngle:0,drifting:false};
 }
 function spring(p,posKey,velKey,target,stiffness,dt){
  let v=p[velKey];v+=(stiffness*(target-p[posKey])-2*Math.sqrt(stiffness)*.85*v)*dt;
@@ -48,6 +48,7 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
  const steps=Math.max(1,Math.ceil(dt/(1/120))),h=dt/steps;
  for(let i=0;i<steps;i++){
    const speed=Math.abs(p.speed);
+   const driftBrake=!!input.driftBrake&&speed>5&&Math.abs(steering)>.12&&!braking;
    // V33: wider wheel lock and much faster response, while the lock tapers
    // with speed so a quick high-speed input still feels controlled.
    p.steer=damp(p.steer,steering*steerScale*.70/(1+speed*.022),17,h);
@@ -68,14 +69,16 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
    const drag=(Math.abs(p.speed)>.03?Math.sign(p.speed):0)*
      (190+.48*speed*speed+(Math.abs(throttle)<.06?560:0)+(1-grip)*800)*dragScale;
    fx-=drag;
+   // V34: rear handbrake slows the car but never replaces the normal brake.
+   if(driftBrake)fx-=Math.sign(p.speed)*Math.min(brakeForce*.21,mass*G*grip*.26);
    if(braking)fx=clamp(fx,-effectiveBrake,effectiveBrake);
    const usedGrip=clamp(Math.abs(fx)/(MU*mass*G*grip),0,.995);
    const fg=MU*frontLoad*grip*Math.sqrt(1-usedGrip*usedGrip*.65);
-   const rg=MU*rearLoad*grip*Math.sqrt(1-usedGrip*usedGrip*.85);
+   const rg=MU*rearLoad*grip*Math.sqrt(1-usedGrip*usedGrip*.85)*(driftBrake?.41:1);
    const weight=clamp((speed-2)/3,0,1),direction=p.speed>=0?1:-1;
    const aFront=Math.atan2(p.lateralSpeed+lf*p.yawRate,Math.max(speed,1.8))-p.steer*direction;
    const aRear=Math.atan2(p.lateralSpeed-lr*p.yawRate,Math.max(speed,1.8));
-   const fFront=clamp(-cf*aFront,-fg,fg),fRear=clamp(-cr*aRear,-rg,rg);
+   const fFront=clamp(-cf*aFront,-fg,fg),fRear=clamp(-cr*aRear*(driftBrake?.66:1),-rg,rg);
    maxSlip=Math.max(maxSlip,Math.abs(aFront),Math.abs(aRear));
    const longAcc=fx/mass+p.lateralSpeed*p.yawRate;
    let u=p.speed+longAcc*h;
@@ -93,12 +96,13 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
    // This makes fast turns actually rotate the car, not just slide its tyres.
    const maxYaw=clamp(9.6/Math.max(5,speed),.22,1.28)*clamp(grip,.55,1.10);
    const turnAssist=clamp(Number.isFinite(tuning.turnAssist)?tuning.turnAssist:3.8,0,7.5);
-   const targetYaw=clamp((u/wheelbase)*Math.tan(p.steer),-maxYaw,maxYaw);
+   const targetYaw=clamp((u/wheelbase)*Math.tan(p.steer)*(driftBrake?1.28:1),-maxYaw,maxYaw);
    p.yawRate=damp(p.yawRate,targetYaw,turnAssist*clamp(grip,.6,1.12),h);
    p.yawRate=clamp(p.yawRate,-maxYaw,maxYaw);
    p.lateralSpeed+=latAcc*h*weight;
    p.lateralSpeed*=Math.exp(-h*(8*(1-weight)+.30*weight));
-   p.lateralSpeed=clamp(p.lateralSpeed,-5,5);
+   p.lateralSpeed=clamp(p.lateralSpeed,driftBrake?-6.4:-5,driftBrake?6.4:5);
+   p.drifting=driftBrake;
    if(speed<1&&Math.abs(throttle)<.06){
      p.yawRate*=Math.exp(-h*9);p.lateralSpeed*=Math.exp(-h*12);
    }
@@ -140,6 +144,7 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
  p.collision=collision;p.impact=impact;
  p.acceleration=(p.speed-oldSpeed)/Math.max(dt,1e-5);
  p.lateralAcceleration=sideAccel;
- p.skid=damp(p.skid,clamp((maxSlip-.13)*1.3,0,1),5,dt);
+ p.skid=damp(p.skid,Math.max(p.drifting?.54:0,clamp((maxSlip-.13)*1.3,0,1)),5,dt);
+ p.driftAngle=Math.atan2(p.lateralSpeed,Math.max(1.8,Math.abs(p.speed)));
  return {collision,impact,contact,acceleration:p.acceleration,lateralAcceleration:sideAccel,skid:p.skid,absActive:p.absActive};
 }
