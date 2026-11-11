@@ -31,7 +31,11 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
  const lf=wheelbase*(1-frontShare),lr=wheelbase*frontShare;
  const iz=BASE_IZ*(mass/BASE_MASS)*(wheelbase/BASE_WHEELBASE)**2*
     clamp(Number.isFinite(tuning.inertiaScale)?tuning.inertiaScale:1,.4,1.7);
- const frontLoad=mass*G*frontShare,rearLoad=mass*G*(1-frontShare);
+ // Longitudinal load transfer: braking loads the front axle, acceleration the rear.
+ const cgHeight=clamp(Number.isFinite(tuning.cgHeight)?tuning.cgHeight:.52,.3,.85);
+ const transferred=clamp((p.acceleration||0)*cgHeight/(G*wheelbase),-.15,.15);
+ const loadedFront=clamp(frontShare-transferred,.27,.77);
+ const frontLoad=mass*G*loadedFront,rearLoad=mass*G*(1-loadedFront);
  const cf=50000*(mass/BASE_MASS)*clamp(tuning.tyreStiffness||1,.65,1.5);
  const cr=54000*(mass/BASE_MASS)*clamp(tuning.tyreStiffness||1,.65,1.5);
  const engineForce=clamp(Number.isFinite(tuning.engineForce)?tuning.engineForce:7350,900,17000);
@@ -48,20 +52,23 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
    p.steer=damp(p.steer,steering*steerScale*.63/(1+speed*.029),10.5,h);
    const engine=throttle>0?throttle*engineForce*Math.max(.43,1-.013*speed):
                 throttle<0?throttle*engineForce*.48:0;
-   let fx=engine*engineScale;
+   const changingDirection=throttle*p.speed<-.18;
+   let fx=changingDirection?-Math.sign(p.speed)*brakeForce*.65:engine*engineScale;
+   // Engine torque cannot exceed the driven tyres' available grip.
+   if(!braking)fx=clamp(fx,-MU*rearLoad*grip,MU*rearLoad*grip);
    // V21 ABS: brake hydraulic demand is capped by available tyre-road friction.
    // On wet roads ABS regulates pressure instead of fully locking the wheels.
    const brakeDemand=brakeForce*brakeScale;
    const tyreBrakeCapacity=MU*mass*G*grip*.94;
    const absPulsing=braking&&!!input.absEnabled&&speed>1.35&&brakeDemand>tyreBrakeCapacity;
-   const effectiveBrake=absPulsing?tyreBrakeCapacity:brakeForce*grip*brakeScale;
+   const effectiveBrake=Math.min(brakeDemand,tyreBrakeCapacity)*(braking&&!input.absEnabled&&brakeDemand>tyreBrakeCapacity?.82:1);
    p.absActive=absPulsing?clamp(1-tyreBrakeCapacity/Math.max(1,brakeDemand),0,1):0;
    if(braking)fx=-Math.sign(p.speed)*Math.min(effectiveBrake,Math.abs(p.speed)*mass/h);
    const drag=(Math.abs(p.speed)>.03?Math.sign(p.speed):0)*
      (190+.48*speed*speed+(Math.abs(throttle)<.06?560:0)+(1-grip)*800)*dragScale;
    fx-=drag;
    if(braking)fx=clamp(fx,-effectiveBrake,effectiveBrake);
-   const usedGrip=clamp(Math.abs(fx)/(MU*mass*G),0,.92);
+   const usedGrip=clamp(Math.abs(fx)/(MU*mass*G*grip),0,.995);
    const fg=MU*frontLoad*grip*Math.sqrt(1-usedGrip*usedGrip*.65);
    const rg=MU*rearLoad*grip*Math.sqrt(1-usedGrip*usedGrip*.85);
    const weight=clamp((speed-2)/3,0,1),direction=p.speed>=0?1:-1;
@@ -74,6 +81,7 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
    if(!braking&&throttle>0&&p.speed>=topSpeed)u=Math.min(u,p.speed);
    if(!braking&&throttle<0&&p.speed<=-MAX_REVERSE)u=Math.max(u,p.speed);
    if(braking&&(p.speed===0||Math.sign(u)!==Math.sign(p.speed)))u=0;
+   if((Math.abs(throttle)<.05||changingDirection)&&Math.sign(u)!==Math.sign(p.speed))u=0;
    if(Math.abs(throttle)<.05&&Math.abs(u)<.03)u=0;
    u=clamp(u,-MAX_REVERSE,topSpeed);
    const latAcc=(fFront*Math.cos(p.steer)+fRear)/mass-p.speed*p.yawRate;
@@ -117,7 +125,7 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
      p.pitchVelocity+=clamp(impact*.018,0,.26)*Math.sign(u||1);
    }else{p.x=nx;p.z=nz;p.yaw=nyaw;p.speed=u}
    p.wheelSpin+=p.speed*h/.405;
-   sideAccel=clamp(latAcc,-MU*G*grip,MU*G*grip);
+   sideAccel=clamp((fFront*Math.cos(p.steer)+fRear)/mass,-MU*G*grip,MU*G*grip);
    const texture=clamp((Math.sin(p.z*.8)*Math.sin(p.x*1.1)+Math.sin(p.z*2.8+p.x*.6)*.23)*.010,-.013,.013);
    spring(p,'pitch','pitchVelocity',clamp(-longAcc*.008*suspensionTravel/.115,-.14,.14),pitchSpring,h);
    spring(p,'roll','rollVelocity',clamp(-sideAccel*.012*suspensionTravel/.115,-.20,.20),rollSpring,h);
