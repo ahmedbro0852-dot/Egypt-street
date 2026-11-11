@@ -1,15 +1,16 @@
-// Egypt Streets V31 — Cairo race championships (offline, mobile-first, no backend).
+// Egypt Streets V32 — Cairo championships now take place at an empty dedicated racetrack.
+import { createRaceArenaV32, RACE_CIRCUIT_V32 } from './race-arena-v32.js';
 // Sequential checkpoints prohibit shortcut victories; NPCs race on actual road-grid segments.
 export const CAIRO_RACES_V31=[
  {id:'formula',name:'فورملا القاهرة',icon:'🏎️',laps:2,reward:900,kind:'formula',difficulty:'محترفين',
   color:0xffc85e,speed:17.5,
-  points:[[0,30],[0,60],[30,60],[60,60],[60,30],[60,0],[60,-30],[30,-30],[0,-30],[-30,-30],[-60,-30],[-60,0],[-60,30],[-30,30]]},
+  points:RACE_CIRCUIT_V32},
  {id:'street',name:'كأس شوارع القاهرة',icon:'🚗',laps:1,reward:550,kind:'street',difficulty:'متوسط',
   color:0x6fe0f1,speed:14.2,
-  points:[[0,30],[0,0],[30,0],[60,0],[60,-30],[60,-60],[30,-60],[0,-60],[-30,-60],[-60,-60],[-60,-30],[-60,0],[-30,0],[0,0]]},
+  points:RACE_CIRCUIT_V32},
  {id:'moto',name:'بطولة الموتوسيكلات',icon:'🏍️',laps:2,reward:700,kind:'moto',difficulty:'مهارة',
   color:0xc5f39c,speed:16.3,
-  points:[[0,30],[30,30],[30,0],[30,-30],[0,-30],[-30,-30],[-30,0],[-60,0],[-60,30],[-30,30]]}
+  points:RACE_CIRCUIT_V32}
 ];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -169,6 +170,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   const s=Math.max(0,seconds);return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0')+'.'+String(Math.floor(s%1*10));
  };
  const pointsById=Object.fromEntries(CAIRO_RACES_V31.map(r=>[r.id,toPoints(r)]));
+ const raceArena=createRaceArenaV32({T,scene});
  function renderPanel(){
   summary.textContent='🏅 انتصارات: '+history.wins+' • سباقات: '+history.races+
     ' • أرباح مسابقات: '+history.earned+' ج.م';
@@ -178,7 +180,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    const b=make('strong','',c);b.textContent=course.icon+' '+course.name;
    const small=make('small','',c);
    const best=history.best[course.id];
-   small.textContent='🔁 '+course.laps+' لفة • 👥 3 منافسين • ⭐ '+course.difficulty+
+   small.textContent='🏟️ في الحلبة الفاضية بعيد عن زحمة المدينة • 🔁 '+course.laps+' لفة • 👥 3 منافسين • ⭐ '+course.difficulty+
      ' • 🏆 الأول +'+course.reward+' جنيه • أفضل زمن: '+fmt(best);
    const btn=make('button','',c);
    btn.type='button';btn.className='start';btn.textContent='🏁 ابدأ السباق';
@@ -240,6 +242,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   const pts=pointsById[id],first=pts[0],second=pts[1];
   const yaw=Math.atan2(second.x-first.x,second.z-first.z);
   if(prepareCar(course,{x:first.x,z:first.z,yaw})===false)return false;
+  raceArena.show();
   configureModels(course.kind);
   const enemies=models.map((model,i)=>{
    model.position.set(first.x+[-2.7,2.7,0][i],0,first.z-(i+1)*4.8);
@@ -260,7 +263,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   if(course.kind==='formula')formulaPlayer.visible=true;
   if(course.kind==='moto')motoPlayer.visible=true;
   updateMarker();lastCountdown=0;
-  notify('🏁 '+course.name+' — استعد! سباق '+course.laps+' لفة');
+  notify('🏁 وصلت حلبة السباق الفاضية! '+course.name+' — '+course.laps+' لفة');
   updateHud(true);return true;
  }
  function updateHud(force=false){
@@ -298,7 +301,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
      ' • أسرع لفة '+fmt(a.bestLap)+' • المكافأة +'+amount+' جنيه';
    notify('🏆 خلصت '+course.name+' • المركز '+rank+'/4 • +'+amount+' جنيه');
   }else{podium.hidden=true;notify('⛔ خرجت من سباق '+course.name)}
-  active=null;resetModels();restoreCar(course);
+  active=null;resetModels();raceArena.hide();restoreCar(course);
   hud.hidden=true;countdown.hidden=true;document.body.classList.remove('racingActive');
   onFinish(course,completed,rank);
   renderPanel();
@@ -396,6 +399,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    id:active.id,phase:active.phase,steps:active.steps,lap:active.lap,rank:active.rank,
    elapsed:active.elapsed,waypoint:active.points[(active.steps+1)%active.points.length]
   }:null,
+  getArena:()=>raceArena,
   isFormula:()=>active?.id==='formula',
   getPlayerRaceModel:kind=>kind==='moto'?motoPlayer:formulaPlayer,
   getPlayerFormula:()=>formulaPlayer,
