@@ -29,6 +29,12 @@ export function createCareerSystem({
  let earned=Number.isFinite(saved.earned)&&saved.earned>=0?Math.min(1e7,saved.earned):0;
  let shifts=Number.isFinite(saved.shifts)&&saved.shifts>=0?Math.min(100000,saved.shifts):0;
  let active=null,elapsed=0;
+ if(saved.active&&JOBS.some(j=>j.id===saved.active.jobId)){
+  const j=JOBS.find(j=>j.id===saved.active.jobId);
+  const step=Math.max(0,Math.min(j.stops.length-1,Math.floor(Number.isFinite(saved.active.step)?saved.active.step:0)));
+  active={jobId:j.id,step};
+  hired.add(j.id);
+ }
  const green=new T.MeshBasicMaterial({color:0x76f2b9,transparent:true,opacity:.9}),
        light=new T.MeshBasicMaterial({color:0xfdf5b6});
  const marker=new T.Group();
@@ -40,7 +46,7 @@ export function createCareerSystem({
  beam.position.y=1.7;marker.add(beam);
  marker.visible=false;scene.add(marker);
  function persist(){
-  try{storage?.setItem(STORAGE_KEY,JSON.stringify({hired:[...hired],earned,shifts}))}catch(e){}
+  try{storage?.setItem(STORAGE_KEY,JSON.stringify({hired:[...hired],earned,shifts,active}))}catch(e){}
  }
  function job(){return active?JOBS.find(j=>j.id===active.jobId):null;}
  function waypoint(){
@@ -91,14 +97,14 @@ export function createCareerSystem({
    notify('🎉 مبروك! اتقبلت في شغل '+j.name+'. اضغط «ابدأ وردية» عشان تشتغل.');
    return true;
   }
-  active={jobId:id,step:0};
+  active={jobId:id,step:0};persist();
   setVisible(false);render();
   notify('بدأت وردية '+j.name+'! روح للنقطة الخضرا على الخريطة.');
   return true;
  }
  function cancel(){
   if(!active)return;
-  const j=job();active=null;render();
+  const j=job();active=null;persist();render();
   notify('وقفت وردية '+j.name+' — تقدر تبدأ واحدة جديدة من قائمة الشغل.');
  }
  function complete(){
@@ -115,6 +121,7 @@ export function createCareerSystem({
   const [x,z,label]=j.stops[active.step];
   active.step++;
   if(active.step>=j.stops.length)return complete();
+  persist();
   notify('تمام! '+label+' ✓ — روح لمكان المهمة اللي بعدها.');
   render();return true;
  }
@@ -154,6 +161,17 @@ export function createCareerSystem({
  return {
   apply,cancel,interact,update,waypoint,
   getStats:()=>({hired:[...hired],earned,shifts,active:active?{...active}:null}),
-  getJobs:()=>JOBS,close:()=>setVisible(false)
+  getJobs:()=>JOBS,close:()=>setVisible(false),
+  restore:snapshot=>{
+   if(!snapshot||typeof snapshot!=='object')return false;
+   if(Array.isArray(snapshot.hired))for(const id of snapshot.hired)if(JOBS.some(j=>j.id===id))hired.add(id);
+   if(Number.isFinite(snapshot.earned))earned=Math.max(earned,Math.min(1e7,snapshot.earned));
+   if(Number.isFinite(snapshot.shifts))shifts=Math.max(shifts,Math.min(100000,snapshot.shifts));
+   if(snapshot.active){
+    const j=JOBS.find(j=>j.id===snapshot.active.jobId);
+    active=j?{jobId:j.id,step:Math.max(0,Math.min(j.stops.length-1,Math.floor(snapshot.active.step||0)))}:null;
+   }else active=null;
+   persist();render();return true;
+  }
  };
 }
