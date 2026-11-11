@@ -162,18 +162,19 @@ const walkers=crowd.people; // Forty unique residents
 
 const target=new T.Vector3(62,0,-50);let beacon=new T.Mesh(new T.CylinderGeometry(2,2,.12,32),new T.MeshBasicMaterial({color:0xffcd68,transparent:true,opacity:.7}));scene.add(beacon);let pillar=new T.Mesh(new T.CylinderGeometry(.25,.25,13,12),new T.MeshBasicMaterial({color:0xffd57e,transparent:true,opacity:.45}));scene.add(pillar);
 const sound=createStreetAudio();
-let pedal=0,brakePedal=false,jumpRequested=false,reverseKeyHeld=false,parkingBrake=false;
+let pedal=0,brakePedal=false,jumpRequested=false,reverseKeyHeld=false,reversePressed=false,parkingBrake=false;
 // Speed+ is a tap: the engine holds the new target speed by itself.
 // Reverse is only accepted from a near-stop and automatically disengages cruise.
 $('accelerate').onclick=()=>fuelSystem.changeSpeed(15);
 const reverseButton=$('reverse');
 reverseButton.onpointerdown=e=>{
  e.preventDefault();
- if(fuelSystem.reverse()){
-  pedal=-1;reverseButton.setPointerCapture(e.pointerId);
- }else pedal=0;
+ reversePressed=true;
+ reverseButton.setPointerCapture(e.pointerId);
 };
-reverseButton.onpointerup=reverseButton.onpointercancel=reverseButton.onlostpointercapture=()=>{pedal=0};
+reverseButton.onpointerup=reverseButton.onpointercancel=reverseButton.onlostpointercapture=()=>{
+ reversePressed=false;reverseKeyHeld=false;pedal=0;
+};
 
 // Genuine independently held mobile brake. Lost capture never leaves the pedal pressed.
 const brakeButton=$('brakePedal');
@@ -196,7 +197,7 @@ updateParkingUi();
 const jumpButton=$('jump');
 jumpButton.onpointerdown=e=>{e.preventDefault();if(!driving)jumpRequested=true;jumpButton.setPointerCapture(e.pointerId)};
 jumpButton.onpointerup=jumpButton.onpointercancel=()=>{};
-$('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;brakePedal=false;reverseKeyHeld=false;jumpRequested=false;keys={};resetPad();sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;
+$('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;keys={};resetPad();sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;
 const walletStorage=(()=>{try{return window.localStorage}catch(e){return null}})();
 const worldSave=createWorldSave({storage:walletStorage});
 const previousWorld=worldSave.load();
@@ -384,18 +385,18 @@ function enter(){
   if(!safe){toast('حرّك العربية شوية عشان تلاقي مكان تنزل فيه');return}
   driving=false;player.visible=true;player.position.set(safe[0],0,safe[1]);
   speed=0;onFoot.vx=onFoot.vz=0;onFoot.vy=onFoot.y=0;onFoot.grounded=true;jumpRequested=false;vehicleState.speed=0;vehicleState.lateralSpeed=0;vehicleState.yawRate=0;
-  autoDriver.stop();parkingBrake=false;updateParkingUi();fuelSystem.exit();document.body.classList.remove('driving');pedal=0;brakePedal=false;reverseKeyHeld=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
+  autoDriver.stop();parkingBrake=false;updateParkingUi();fuelSystem.exit();document.body.classList.remove('driving');pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
  }else if(player.position.distanceTo(taxi.position)<6){
   driving=true;player.visible=false;
   Object.assign(vehicleState,createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y));
-  yaw=taxi.rotation.y;cameraYaw=yaw;cameraFreeUntil=0;speed=0;brakePedal=false;reverseKeyHeld=false;jumpRequested=false;resetPad();
+  yaw=taxi.rotation.y;cameraYaw=yaw;cameraFreeUntil=0;speed=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;resetPad();
   document.body.classList.add('driving');parkingBrake=false;updateParkingUi();fuelSystem.enter();autoDriver.start(vehicleState.x,vehicleState.z);
   updateAutoPilotLabel();$('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
   $('controlsHint').textContent='🧭 GPS للمهمات • العصاية للتحكم اليدوي';
   toast('🤖 العربية بتسوق لوحدها. حرك العصاية للتوجيه اليدوي أو دوس فرامل.');
   saveWorld(true);
  }else toast('قرب من العربية الصفرا الأول')
-} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click();if(k==='g'&&!e.repeat)$('gpsBtn').click();if(k==='p'&&!e.repeat)$('handbrake').click()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;jumpRequested=false;keys={};resetPad();sprint=false};
+} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click();if(k==='g'&&!e.repeat)$('gpsBtn').click();if(k==='p'&&!e.repeat)$('handbrake').click()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;keys={};resetPad();sprint=false};
 const pad=$('joy'),knob=$('knob'),worldCanvas=$('world');
 function resetPad(){joy.x=0;joy.y=0;if(knob)knob.style.transform='translate(0px,0px)'}
 function stickMove(e){
@@ -521,28 +522,30 @@ function frame(t){
   let turn=joy.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
   f=Math.max(-1,Math.min(1,f));turn=Math.max(-1,Math.min(1,turn));
   if(driving){
-   // Right on screen steers right. Swiping the world now moves the camera only.
+   // Right on screen means right turn; the camera is an independent gesture.
+   const reverseDemand=reversePressed||Boolean(keys.s||keys.arrowdown);
+   // Brake first, then engage reverse only at a near-stop.
+   if(reverseDemand&&autoDriver.getState().enabled){
+     autoDriver.stop();updateAutoPilotLabel();
+   }
+   if(reverseDemand&&!reverseKeyHeld&&Math.abs(vehicleState.speed)<.85){
+     reverseKeyHeld=fuelSystem.reverse();
+   }
+   if(!reverseDemand)reverseKeyHeld=false;
+   const reverseBraking=reverseDemand&&!reverseKeyHeld&&vehicleState.speed>.55;
    const manualSteer=steeringFromStick(joy.x,(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0));
    if(autoDriver.getState().enabled&&Math.abs(manualSteer)>.24){
-    autoDriver.stop();updateAutoPilotLabel();
+     autoDriver.stop();updateAutoPilotLabel();
    }
    const autopilot=autoDriver.controls(vehicleState,traffic,walkers,dt,{cruiseKmh:fuelSystem.getState().target});
    const steer=autopilot.active?autopilot.steer:manualSteer;
    const braking=brakePedal||sprint||keys.shift||keys[' ']||
-      $('jobsPanel').style.display==='block'||autopilot.brake||parkingBrake;
-   const reverseKeyDown=Boolean(keys.s||keys.arrowdown);
-   if(reverseKeyDown&&!reverseKeyHeld&&Math.abs(vehicleState.speed)<1.4){
-     reverseKeyHeld=fuelSystem.reverse();
-   }
-   if(!reverseKeyDown)reverseKeyHeld=false;
-   if((pedal<0||reverseKeyHeld)&&autoDriver.getState().enabled){
-     autoDriver.stop();updateAutoPilotLabel();
-   }
+      $('jobsPanel').style.display==='block'||autopilot.brake||parkingBrake||reverseBraking;
    const throttle=autopilot.active?
       (braking||fuelSystem.getState().fuel<=.01||!fuelSystem.getState().auto?
         0:Math.min(fuelSystem.throttle({manual:1}),autopilot.throttle)):
      fuelSystem.throttle({
-       reverse:pedal<0||reverseKeyHeld,
+       reverse:reverseKeyHeld,
        brake:braking,manual:(keys.w||keys.arrowup)?1:0
      });
    const oldPos={x:vehicleState.x,z:vehicleState.z};
