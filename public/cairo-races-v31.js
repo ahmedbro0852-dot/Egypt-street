@@ -245,7 +245,11 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   raceArena.show();
   configureModels(course.kind);
   const enemies=models.map((model,i)=>{
-   model.position.set(first.x+[-2.7,2.7,0][i],0,first.z-(i+1)*4.8);
+   // Real starting grid: competitors are staged ahead on the actual asphalt,
+   // not in the unpaved infield or outside the circuit.
+   const gap=(i+1)*5.8,side=[-1.8,1.8,0][i];
+   model.position.set(first.x+Math.sin(yaw)*gap+Math.cos(yaw)*side,0,
+    first.z+Math.cos(yaw)*gap-Math.sin(yaw)*side);
    model.rotation.y=yaw;
    return {model,name:['الأزرق','الأحمر','الذهبي'][i],steps:0,
     segment:0,seconds:0,finished:false,finishTime:Infinity,
