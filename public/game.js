@@ -5,9 +5,10 @@ import { createEgyptianCrowd } from './egyptian-crowd.js';
 import { createStreetEvents } from './street-events.js';
 import { createCareerSystem } from './street-careers.js';
 import { createFuelSystem, PETROL_STATIONS } from './realistic-fuel.js';
+import { createCityLife } from './city-life-v5.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
 import { stickFromPointer, footDirection, steeringFromStick, blendHeading } from './controls-v3.js';
-const $=id=>document.getElementById(id),scene=new T.Scene();scene.background=new T.Color('#b9d0cf');scene.fog=new T.Fog('#b9d0cf',65,190);let renderer;try{renderer=new T.WebGLRenderer({canvas:$('world'),antialias:true})}catch(e){const old=$('world'),c=old.cloneNode();old.replaceWith(c);const ctx=c.getContext('2d');let sw=0,sh=0;renderer={setPixelRatio(){},setSize(w,h){sw=c.width=w;sh=c.height=h},render(scene,camera){scene.updateMatrixWorld();camera.updateMatrixWorld();const view=new T.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse),faces=[];ctx.fillStyle='#b9d0cf';ctx.fillRect(0,0,sw,sh);scene.traverse(o=>{if(!o.isMesh||!o.visible||!o.parent.visible||o.userData.skipFallback)return;for(let ancestor=o.parent;ancestor;ancestor=ancestor.parent)if(!ancestor.visible)return;const center=new T.Vector3().setFromMatrixPosition(o.matrixWorld);if(center.distanceTo(camera.position)>95)return;const m=new T.Matrix4().multiplyMatrices(view,o.matrixWorld),pos=o.geometry.attributes.position,idx=o.geometry.index;const verts=[];for(let i=0;i<pos.count;i++)verts.push(new T.Vector3().fromBufferAttribute(pos,i).applyMatrix4(m));for(let i=0;i<(idx?idx.count:pos.count);i+=3){const a=verts[idx?idx.getX(i):i],b=verts[idx?idx.getX(i+1):i+1],d=verts[idx?idx.getX(i+2):i+2];if([a,b,d].some(v=>v.z>1||v.z< -1))continue;if((b.x-a.x)*(d.y-a.y)-(b.y-a.y)*(d.x-a.x)<0)continue;let color=o.material.color||new T.Color('#647b72');faces.push({a,b,d,z:(a.z+b.z+d.z)/3,color:'#'+color.getHexString()})}});faces.sort((a,b)=>b.z-a.z);for(let f of faces){ctx.fillStyle=f.color;ctx.beginPath();ctx.moveTo((f.a.x+1)*sw/2,(1-f.a.y)*sh/2);ctx.lineTo((f.b.x+1)*sw/2,(1-f.b.y)*sh/2);ctx.lineTo((f.d.x+1)*sw/2,(1-f.d.y)*sh/2);ctx.fill()}}};}renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));const camera=new T.PerspectiveCamera(62,1,.1,240);scene.add(new T.HemisphereLight(0xffe9c8,0x637278,2.6));const sun=new T.DirectionalLight(0xffd7a1,2.6);sun.position.set(-30,70,20);scene.add(sun);const solids=[];const mat=c=>new T.MeshLambertMaterial({color:c});const materials=new Map();function box(x,y,z,w,h,d,c,parent=scene){if(!materials.has(c))materials.set(c,mat(c));let m=new T.Mesh(new T.BoxGeometry(w,h,d),materials.get(c));m.position.set(x,y,z);parent.add(m);return m}box(0,-.2,0,460,.3,460,'#baa88a');
+const $=id=>document.getElementById(id),scene=new T.Scene();scene.background=new T.Color('#b9d0cf');scene.fog=new T.Fog('#b9d0cf',65,190);let renderer;try{renderer=new T.WebGLRenderer({canvas:$('world'),antialias:true})}catch(e){const old=$('world'),c=old.cloneNode();old.replaceWith(c);const ctx=c.getContext('2d');let sw=0,sh=0;renderer={setPixelRatio(){},setSize(w,h){sw=c.width=w;sh=c.height=h},render(scene,camera){scene.updateMatrixWorld();camera.updateMatrixWorld();const view=new T.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse),faces=[];ctx.fillStyle=scene.background?.getHexString?'#'+scene.background.getHexString():'#b9d0cf';ctx.fillRect(0,0,sw,sh);scene.traverse(o=>{if(!o.isMesh||!o.visible||!o.parent.visible||o.userData.skipFallback)return;for(let ancestor=o.parent;ancestor;ancestor=ancestor.parent)if(!ancestor.visible)return;const center=new T.Vector3().setFromMatrixPosition(o.matrixWorld);if(center.distanceTo(camera.position)>95)return;const m=new T.Matrix4().multiplyMatrices(view,o.matrixWorld),pos=o.geometry.attributes.position,idx=o.geometry.index;const verts=[];for(let i=0;i<pos.count;i++)verts.push(new T.Vector3().fromBufferAttribute(pos,i).applyMatrix4(m));for(let i=0;i<(idx?idx.count:pos.count);i+=3){const a=verts[idx?idx.getX(i):i],b=verts[idx?idx.getX(i+1):i+1],d=verts[idx?idx.getX(i+2):i+2];if([a,b,d].some(v=>v.z>1||v.z< -1))continue;if((b.x-a.x)*(d.y-a.y)-(b.y-a.y)*(d.x-a.x)<0)continue;let color=o.material.color||new T.Color('#647b72');faces.push({a,b,d,z:(a.z+b.z+d.z)/3,color:'#'+color.getHexString()})}});faces.sort((a,b)=>b.z-a.z);for(let f of faces){ctx.fillStyle=f.color;ctx.beginPath();ctx.moveTo((f.a.x+1)*sw/2,(1-f.a.y)*sh/2);ctx.lineTo((f.b.x+1)*sw/2,(1-f.b.y)*sh/2);ctx.lineTo((f.d.x+1)*sw/2,(1-f.d.y)*sh/2);ctx.fill()}}};}renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));const camera=new T.PerspectiveCamera(62,1,.1,240);const ambient=new T.HemisphereLight(0xffe9c8,0x637278,2.6);scene.add(ambient);const sun=new T.DirectionalLight(0xffd7a1,2.6);sun.position.set(-30,70,20);scene.add(sun);const solids=[];const mat=c=>new T.MeshLambertMaterial({color:c});const materials=new Map();function box(x,y,z,w,h,d,c,parent=scene){if(!materials.has(c))materials.set(c,mat(c));let m=new T.Mesh(new T.BoxGeometry(w,h,d),materials.get(c));m.position.set(x,y,z);parent.add(m);return m}box(0,-.2,0,460,.3,460,'#baa88a');
 const roads=[-60,-30,0,30,60];for(const n of roads){box(n,.01,0,11,.1,170,'#555e60');box(0,.01,n,170,.1,11,'#555e60');for(let k=-80;k<85;k+=8){box(n,.08,k,.16,.02,3,'#d6cba1');box(k,.08,n,3,.02,.16,'#d6cba1')}}
 function sign(text,x,y,z,w=5){const c=document.createElement('canvas');c.width=512;c.height=128;let q=c.getContext('2d');q.fillStyle='#174747';q.fillRect(0,0,512,128);q.fillStyle='#ffe3a9';q.font='bold 54px Arial';q.textAlign='center';q.fillText(text,256,84);let m=new T.Mesh(new T.PlaneGeometry(w,w/4),new T.MeshBasicMaterial({map:new T.CanvasTexture(c),side:T.DoubleSide}));m.position.set(x,y,z);scene.add(m)}
 let seed=7;function rand(){seed=(seed*16807)%2147483647;return seed/2147483647}const colors=['#beaa8c','#d4bd99','#b7977d','#d2c2a8','#aaa58c'];for(let a=-2;a<2;a++)for(let b=-2;b<2;b++){const cx=a*30+15,cz=b*30+15;for(let j=0;j<2;j++){let x=cx+(j?5.4:-5.4),h=10+Math.floor(rand()*5)*3;box(x,.2,cz,10,.35,21,'#cfc4ac');box(x,h/2,cz,9.5,h,18,colors[Math.floor(rand()*5)]);solids.push({x,z:cz,w:5.3,d:9.6});box(x,h+.3,cz,10,.5,18.5,'#e4d2b2');for(let y=3;y<h-1;y+=3)for(let wx=-2.8;wx<=3;wx+=2.8){box(x+wx,y,cz+9.03,1.25,1.65,.08,'#42595c');box(x+wx,y-.8,cz+9.3,1.8,.15,.6,'#e1cba5');box(x+wx,y,cz-9.03,1.2,1.6,.08,'#536466')}box(x,1.2,cz+9.08,7,2,.1,j?'#376e70':'#877047');sign(['قهوة البلد','سوبر ماركت النيل','كشري عم سيد','عصير قصب'][((a+2)*4+b+2)%4],x,2.8,cz+9.2,7);box(x,h+1,cz,2,1.8,2,'#8e9a9a')}}
@@ -40,6 +41,7 @@ function car(color){
  for(let y=.72;y<.89;y+=.045)cub(0,y,2.166,.59,.012,.015,chrome);
  const lamp=new T.MeshStandardMaterial({color:'#f4f0dc',emissive:'#fff1bc',emissiveIntensity:.65,roughness:.15});
  const tail=new T.MeshStandardMaterial({color:'#a62121',emissive:'#a5120b',emissiveIntensity:.5,roughness:.2});
+ g.userData.headlights=lamp;g.userData.tailLights=tail;
  for(const side of [-1,1]){cub(side*.63,.82,2.08,.43,.17,.07,lamp);cub(side*.66,.82,-2.09,.39,.17,.06,tail);cub(side*.67,.56,2.13,.20,.075,.04,lamp)}
  for(const z of [-2.18,2.18]){cub(0,.60,z,.40,.14,.018,mat('#e5e8de'));cub(0,.65,z*1.001,.40,.032,.022,mat('#4b8daf'))}
  for(const x of [-.94,.94])for(const z of [-1.35,1.32]){
@@ -217,6 +219,19 @@ const fuelSystem=createFuelSystem({
    faster:$('fuelFaster'),warning:$('fuelWarning'),station:$('fuelStation'),refuel:$('fuelBtn'),
    condition:$('fuelCondition'),repair:$('fuelRepair')}
 });
+const cityLife=createCityLife({
+ T,scene,sun,ambient,box,storage:walletStorage,
+ getPosition:()=>driving?taxi.position:player.position,
+ isDriving:()=>driving,getSpeed:()=>vehicleState.speed,
+ charge:cost=>{
+   if(cash+.00001<cost)return false;
+   cash=Math.max(0,Math.round((cash-cost)*10)/10);
+   $('money').textContent='ج.م '+Math.round(cash);saveWallet();return true;
+ },
+ notify:message=>toast(message),
+ ui:{time:$('cityTime'),weather:$('cityWeather'),fines:$('cityLaw'),
+   nightBtn:$('cityNight'),weatherBtn:$('cityWeatherBtn')}
+});
 $('interact').onclick=()=>career.interact()||streetEvents.interact();
 $('start').onclick=()=>{sound.start();active=true;$('intro').style.display='none';streetEvents.start();toast('قرب من العربية الصفرا واضغط اركب • فيه أحداث ومهام جانبية في الحي')};function enter(){
  if(driving){
@@ -314,6 +329,11 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
   map.strokeStyle='#e5d5a8';map.lineWidth=6;map.beginPath();
   map.moveTo(mx(103),mz(z));map.lineTo(mx(175),mz(z));map.stroke()
  }
+ for(const junction of [-60,0,60])for(const cross of [-60,0,60]){
+   const color=cityLife.getSignal('z',junction,cross);
+   map.fillStyle=color==='green'?'#53ed91':color==='red'?'#fb6464':'#ffcd58';
+   map.fillRect(mx(junction)-2,mz(cross)-2,4,4);
+ }
  for(const station of PETROL_STATIONS){
    map.fillStyle='#56fac1';map.font='bold 10px Arial';
    map.fillText('⛽',mx(station.x)-5,mz(station.z)+5);
@@ -339,6 +359,7 @@ function frame(t){
  const dt=last?Math.min((t-last)/1000,.04):1/60;last=t;
  const p=driving?taxi.position:player.position;
  if(active&&!paused){
+  cityLife.update(dt,t,p);
   let f=-joy.y+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);
   let turn=joy.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
   f=Math.max(-1,Math.min(1,f));turn=Math.max(-1,Math.min(1,turn));
@@ -356,12 +377,18 @@ function frame(t){
      reverse:pedal<0||reverseKeyHeld,
      brake:braking,manual:(keys.w||keys.arrowup)?1:0
    });
+   const oldPos={x:vehicleState.x,z:vehicleState.z};
    const result=stepVehiclePhysics(vehicleState,{
-     throttle,steer,brake:braking,grip:roadGrip(p.x,p.z)
+     throttle,steer,brake:braking,
+     grip:roadGrip(p.x,p.z)*cityLife.grip()
    },dt,carCollision);
+   cityLife.observeDriving(oldPos,vehicleState);
    taxi.position.x=vehicleState.x;taxi.position.z=vehicleState.z;
    fuelSystem.update(dt,t,throttle,true);
    taxi.rotation.y=vehicleState.yaw;yaw=vehicleState.yaw;speed=vehicleState.speed;
+   if(taxi.userData.headlights)taxi.userData.headlights.emissiveIntensity=
+     cityLife.illumination()<.22?2.6:.35;
+   if(taxi.userData.tailLights)taxi.userData.tailLights.emissiveIntensity=braking?2.8:.55;
    // Visual suspension: natural lateral roll, braking dive and tiny road vibrations.
    const chassis=taxi.userData.chassis;
    chassis.position.y=vehicleState.heave;
@@ -422,9 +449,13 @@ function frame(t){
    const carAhead=driving&&Math.hypot(
       (axis==='x'?forwardPosition:c.position.x)-taxi.position.x,
       (axis==='z'?forwardPosition:c.position.z)-taxi.position.z)<3.8;
-   const hazard=laneBlocked||pedAhead||carAhead;
+   const redLight=cityLife.trafficMustBrake(c);
+   const hazard=laneBlocked||pedAhead||carAhead||redLight;
    d.actualCruise=T.MathUtils.damp(d.actualCruise??d.cruise,hazard?0:d.cruise,hazard?7.0:1.7,dt);
    const step=dt*d.actualCruise*d.direction;
+   if(c.userData.headlights)c.userData.headlights.emissiveIntensity=
+       cityLife.illumination()<.22?2.1:.4;
+   if(c.userData.tailLights)c.userData.tailLights.emissiveIntensity=hazard?1.8:.5;
    for(const wheel of d.wheels)wheel.rotation.x+=step/.405;
    c.position[axis]+=step;
    if(c.position[axis]>82)c.position[axis]=-82;
