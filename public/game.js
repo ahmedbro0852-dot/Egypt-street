@@ -132,7 +132,9 @@ function motorcycle(color){
  box(0,1.15,-.12,.36,.48,.26,'#3a5260',g);const helmet=new T.Mesh(new T.SphereGeometry(.19,12,10),mat('#222b32'));helmet.position.set(0,1.55,-.06);g.add(helmet);box(0,1.57,.10,.28,.09,.06,'#6d8b95',g);
  for(const x of [-.25,.25]){box(x,.73,-.27,.13,.42,.20,'#334352',g);box(x,1.12,.28,.11,.12,.57,'#3a5260',g)}scene.add(g);return g;
 }
-const traffic=[];for(let i=0;i<22;i++){let c=i%4===3?motorcycle(['#b94536','#32657e','#b9ad82'][i%3]):car(['#d5d7d4','#466878','#742e2e','#b8b2a4','#34393e','#e0d2ad','#47745e'][i%7]);if(i%4!==3){if(i%3===0)c.scale.set(1.08,1.15,1.12);else if(i%3===1)c.scale.set(.94,.96,.90)}const direction=i%2?1:-1;c.userData.direction=direction;c.userData.axis=i<12?'z':'x';c.userData.cruise=i%4===3?10.2+(i%3)*.8:7.7+(i%4)*1.25;c.userData.actualCruise=c.userData.cruise;const lane=roads[i%5]+direction*2.6;const along=-76+(i%11)*14;if(c.userData.axis==='z')c.position.set(lane,0,along);else c.position.set(along,0,lane);c.rotation.y=(c.userData.axis==='x'?Math.PI/2:0)+(direction<0?Math.PI:0);traffic.push(c)}
+const traffic=[];for(let i=0;i<22;i++){let c=i%4===3?motorcycle(['#b94536','#32657e','#b9ad82'][i%3]):car(['#d5d7d4','#466878','#742e2e','#b8b2a4','#34393e','#e0d2ad','#47745e'][i%7]);if(i%4!==3){if(i%3===0)c.scale.set(1.08,1.15,1.12);else if(i%3===1)c.scale.set(.94,.96,.90)}const direction=i%2?1:-1;c.userData.direction=direction;c.userData.axis=i<12?'z':'x';c.userData.cruise=i%4===3?10.2+(i%3)*.8:7.7+(i%4)*1.25;c.userData.actualCruise=c.userData.cruise;
+ c.userData.massV19=i%4===3?215:i%3===0?1590:i%3===1?1125:1310;
+ const lane=roads[i%5]+direction*2.6;const along=-76+(i%11)*14;if(c.userData.axis==='z')c.position.set(lane,0,along);else c.position.set(along,0,lane);c.rotation.y=(c.userData.axis==='x'?Math.PI/2:0)+(direction<0?Math.PI:0);traffic.push(c)}
 // Articulated lightweight protagonist, based on the approved character reference.
 function makeHero(){
  const root=new T.Group(),rig=new T.Group();root.add(rig);
@@ -400,7 +402,7 @@ const collisionWorld=createCollisionPhysicsV18({
  ui:$('collisionStatus')
 });
 const multiBodyV19=createMultiBodyV19({
- getId:()=>garage.getVehicle().id,
+ traffic,getId:()=>garage.getVehicle().id,
  // Every contact is accounted for by the existing V18 damage/safety system.
  onExtra:()=>{},
  onInfo:message=>toast(message)
