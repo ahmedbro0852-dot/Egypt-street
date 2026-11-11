@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+ <defs>
+  <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#102b46"/><stop offset=".42" stop-color="#477a88"/><stop offset=".76" stop-color="#ed9b63"/><stop offset="1" stop-color="#ebbe81"/></linearGradient>
+  <linearGradient id="road" x2="0" y2="1"><stop stop-color="#343d41"/><stop offset="1" stop-color="#0e1923"/></linearGradient>
+  <linearGradient id="glow" x2="0" y2="1"><stop stop-color="#ffebbb" stop-opacity=".9"/><stop offset="1" stop-color="#e69b52" stop-opacity="0"/></linearGradient>
+  <radialGradient id="sun"><stop stop-color="#fff4cd"/><stop offset=".4" stop-color="#ffd38b"/><stop offset="1" stop-color="#ffd38b" stop-opacity="0"/></radialGradient>
+  <filter id="blur"><feGaussianBlur stdDeviation="23"/></filter>
+ </defs>
+ <rect width="1600" height="900" fill="url(#sky)"/>
+ <ellipse cx="950" cy="385" rx="280" ry="190" fill="url(#sun)" opacity=".78"/>
+ <path d="M0 510l50-150h30v-80h32v240h40V250h62v260h30V340h35v170h43V220h70v295h24V350h45v168h45V280h30v-62h15v320h25V325h70v180h35V210h45v290h38V290h50v235h48V340h50v186h40V245h58v282h30V335h65v170h30v-85h44v110h20" fill="#284956" opacity=".62"/>
+ <path d="M0 580v-250h95v250h30V185h140v395h35V290h115v300h45V220h145v370h35V305h105v290h30V370h115v250h35V260h130v350h70V315h135v300h35V360h115v275h35V270h155v355h30" fill="#193849" opacity=".85"/>
+ <g opacity=".76" fill="#fbd7a2"><path d="M168 270h14v25h-14zm29 0h14v25h-14zm-29 43h14v25h-14zm29 43h14v25h-14zm250-42h12v22h-12zm32 0h12v22h-12zm0 43h12v22h-12zm-32 43h12v22h-12zm550-50h16v25h-16zm32 0h16v25h-16zm-32 43h16v25h-16zm32 43h16v25h-16z"/></g>
+ <path d="M1170 515V300h16v215M1153 300h49l-6-16h-36zM1178 286v-58M1169 230h18" fill="#243b45" stroke="#243b45" stroke-width="8"/>
+ <path d="M1330 525l85-145 85 145zM1397 525l56-111 56 111z" fill="#8b7968" opacity=".8"/>
+ <path d="M0 900L580 520h440L1600 900" fill="url(#road)"/>
+ <path d="M770 900l40-380h8l45 380" fill="#e7c18a" opacity=".12"/>
+ <path d="M756 900l53-380M865 900l-54-380" stroke="#e7b86f" stroke-width="8" opacity=".45" stroke-dasharray="40 55"/>
+ <path d="M0 660l610-140M1600 660l-600-140" fill="none" stroke="#b7ac91" stroke-width="24" opacity=".6"/>
+ <g transform="translate(1120 590)">
+  <ellipse cx="180" cy="200" rx="275" ry="30" fill="#061725" opacity=".54" filter="url(#blur)"/>
+  <path d="M-15 145l35-70 66-30h195l57 36 35 67-12 60H-5z" fill="#dedbd1" stroke="#829099" stroke-width="7"/>
+  <path d="M72 78l34-47h135l49 48z" fill="#132735"/>
+  <path d="M35 105h302v14H35z" fill="#0e222b"/>
+  <rect x="110" y="4" width="114" height="40" rx="12" fill="#e9ae54"/>
+  <text x="167" y="32" font-size="22" font-family="Tahoma,Arial" text-anchor="middle" fill="#152530">تاكسي</text>
+  <rect x="13" y="156" width="49" height="36" rx="9" fill="#f6cb88"/>
+  <rect x="294" y="156" width="49" height="36" rx="9" fill="#f6cb88"/>
+  <circle cx="74" cy="211" r="33" fill="#101e26" stroke="#667780" stroke-width="14"/>
+  <circle cx="287" cy="211" r="33" fill="#101e26" stroke="#667780" stroke-width="14"/>
+ </g>
+ <rect width="1600" height="900" fill="#092031" opacity=".24"/>
+</svg>
