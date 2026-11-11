@@ -6,7 +6,7 @@ const material=c=>new T.MeshLambertMaterial({color:c});
 const palettes=['#d2bda0','#bfa98c','#c8c2b2','#ddd0b7','#b7b8aa','#ba9a7c'];
 const facades=[];
 for(let style=0;style<6;style++){
- const c=document.createElement('canvas');c.width=256;c.height=512;const g=c.getContext('2d');
+ const c=document.createElement('canvas');c.width=512;c.height=1024;const g=c.getContext('2d');g.scale(2,2);
  g.fillStyle=palettes[style];g.fillRect(0,0,256,512);
  for(let n=0;n<90;n++){g.fillStyle=n%2?'#ffffff12':'#5f524010';g.fillRect(random()*256,random()*512,4+random()*24,2+random()*5)}
  for(let floor=0;floor<5;floor++){
@@ -22,7 +22,14 @@ for(let style=0;style<6;style++){
    if((floor+col+style)%7===0){g.fillStyle='#e4dfd1';g.fillRect(x+32,y+28,27,20);g.fillStyle='#7b8887';g.fillRect(x+36,y+31,15,14)}
   }
  }
- const tex=new T.CanvasTexture(c);tex.anisotropy=2;facades.push(new T.MeshLambertMaterial({map:tex,side:T.DoubleSide}));
+ // Fine plaster grain and rain streaking drawn into the same atlas.
+ for(let n=0;n<3200;n++){g.fillStyle=n%2?'#fff1dc0d':'#29251f0c';g.fillRect(random()*256,random()*512,.35+random()*.5,.35+random()*.5)}
+ for(let floor=0;floor<5;floor++)for(let col=0;col<3;col++){
+  const x=9+col*84,y=10+floor*100;
+  g.fillStyle='#302c2412';g.fillRect(x-3,y+78,68,2);
+  for(let streak=0;streak<3;streak++){g.fillStyle='#3c32280b';g.fillRect(x+random()*62,y+80,.7+random(),5+random()*10)}
+ }
+ const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=4;facades.push(new T.MeshLambertMaterial({map:tex,side:T.DoubleSide}));
 }
 function front(x,z,w,h,d,i){
  const p=new T.Mesh(new T.PlaneGeometry(w-.22,Math.max(1,h-2.4)),facades[i%6]);

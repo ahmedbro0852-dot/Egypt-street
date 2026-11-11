@@ -74,11 +74,11 @@ export function installCairoGraphicsV45({T,scene,renderer,camera,sun,getFocus,ge
  });
  const panes=[];
  for(const wall of facadePlanes){
-  const rows=clamp(Math.floor(wall.h/3),2,7);
+  const rows=5;
   for(let row=0;row<rows;row++)for(let col=0;col<3;col++){
    if(rand()<.54)continue;
-   panes.push({x:wall.x+(col-1)*wall.w*.28,
-    y:wall.y-wall.h*.5+(row+.59)*wall.h/rows,
+   panes.push({x:wall.x+((40+col*84)/256-.5)*wall.w,
+    y:wall.y+(.5-(44+row*100)/512)*wall.h,
     z:wall.z+.14,temperature:rand()});
   }
  }

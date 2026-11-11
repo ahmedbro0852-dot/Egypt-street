@@ -1,3 +1,4 @@
+import { installFacadeDepthV46 } from './facade-depth-v46.js';
 import { installTravelLightingV44 } from './travel-lighting-v44.js';
 import { installCairoGraphicsV45 } from './cairo-graphics-v45.js';
 import { prepareDetailedCar } from './detailed-car-v42.js';
@@ -1162,4 +1163,5 @@ const mobileV40=createMobileExperienceV40({getActive:()=>active,getPaused:()=>pa
 const desktopWorldV43=installDesktopWorldV43({T,scene,renderer,sun,getVehicle:()=>activeVehicle,getState:()=>({driving,illumination:cityLife.illumination(),weather:cityLife.getState().weather,yaw:vehicleState.yaw,speed:vehicleState.speed,skid:vehicleState.skid}),notify:toast});
 const travelLightingV44=installTravelLightingV44({T,scene,renderer,sun,getPosition:()=>driving?taxi.position:player.position,getDaylight:()=>cityLife.illumination()});
 const cairoGraphicsV45=installCairoGraphicsV45({T,scene,renderer,camera,sun,getFocus:()=>driving?taxi.position:player.position,getState:()=>({illumination:cityLife.illumination(),weather:cityLife.getState().weather})});
+installFacadeDepthV46({T,scene,renderer});
 requestAnimationFrame(frame);
