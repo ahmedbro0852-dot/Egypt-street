@@ -7,7 +7,7 @@ const MU=.96,MAX_FORWARD=41.0,MAX_REVERSE=10.0;
 export function createVehiclePhysics(x=0,z=0,yaw=0){
  return {x,z,yaw,speed:0,lateralSpeed:0,steer:0,yawRate:0,
  roll:0,rollVelocity:0,pitch:0,pitchVelocity:0,heave:0,heaveVelocity:0,
- wheelSpin:0,acceleration:0,lateralAcceleration:0,impact:0,collision:false,skid:0};
+ wheelSpin:0,acceleration:0,lateralAcceleration:0,impact:0,collision:false,skid:0,absActive:0};
 }
 function spring(p,posKey,velKey,target,stiffness,dt){
  let v=p[velKey];v+=(stiffness*(target-p[posKey])-2*Math.sqrt(stiffness)*.85*v)*dt;
@@ -49,11 +49,18 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
    const engine=throttle>0?throttle*engineForce*Math.max(.43,1-.013*speed):
                 throttle<0?throttle*engineForce*.48:0;
    let fx=engine*engineScale;
-   if(braking)fx=-Math.sign(p.speed)*Math.min(brakeForce*grip*brakeScale,Math.abs(p.speed)*mass/h);
+   // V21 ABS: brake hydraulic demand is capped by available tyre-road friction.
+   // On wet roads ABS regulates pressure instead of fully locking the wheels.
+   const brakeDemand=brakeForce*brakeScale;
+   const tyreBrakeCapacity=MU*mass*G*grip*.94;
+   const absPulsing=braking&&!!input.absEnabled&&speed>1.35&&brakeDemand>tyreBrakeCapacity;
+   const effectiveBrake=absPulsing?tyreBrakeCapacity:brakeForce*grip*brakeScale;
+   p.absActive=absPulsing?clamp(1-tyreBrakeCapacity/Math.max(1,brakeDemand),0,1):0;
+   if(braking)fx=-Math.sign(p.speed)*Math.min(effectiveBrake,Math.abs(p.speed)*mass/h);
    const drag=(Math.abs(p.speed)>.03?Math.sign(p.speed):0)*
      (190+.48*speed*speed+(Math.abs(throttle)<.06?560:0)+(1-grip)*800)*dragScale;
    fx-=drag;
-   if(braking)fx=clamp(fx,-brakeForce*grip*brakeScale,brakeForce*grip*brakeScale);
+   if(braking)fx=clamp(fx,-effectiveBrake,effectiveBrake);
    const usedGrip=clamp(Math.abs(fx)/(MU*mass*G),0,.92);
    const fg=MU*frontLoad*grip*Math.sqrt(1-usedGrip*usedGrip*.65);
    const rg=MU*rearLoad*grip*Math.sqrt(1-usedGrip*usedGrip*.85);
@@ -120,5 +127,5 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
  p.acceleration=(p.speed-oldSpeed)/Math.max(dt,1e-5);
  p.lateralAcceleration=sideAccel;
  p.skid=damp(p.skid,clamp((maxSlip-.13)*1.3,0,1),5,dt);
- return {collision,impact,contact,acceleration:p.acceleration,lateralAcceleration:sideAccel,skid:p.skid};
+ return {collision,impact,contact,acceleration:p.acceleration,lateralAcceleration:sideAccel,skid:p.skid,absActive:p.absActive};
 }
