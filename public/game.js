@@ -1,4 +1,5 @@
 import { prepareDetailedCar } from './detailed-car-v42.js';
+import { installDesktopWorldV43 } from './desktop-world-v43.js';
 import { createMobileExperienceV40, tuneStickV40 } from './mobile-experience-v40.js';
 import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
@@ -1150,10 +1151,11 @@ function frame(t){
  rpm:v9Live.rpm,engineOn:driving&&drivingRealism.getState().engineOn,
  throttle:driving?Math.max(0,v9Live.throttleScale):0,
  skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather
-});v30.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});renderer.render(scene,camera);
+});v30.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});desktopWorldV43.update(dt);renderer.render(scene,camera);
 }
 try { installRealismRender({T,scene,renderer,sun}); } catch(error) { console.warn('Material quality pass unavailable',error); }
 const v30=createV30({getPlayer:()=>driving?taxi.position:player.position,getDriving:()=>driving,getActive:()=>active,getPaused:()=>paused,renderer,fresh:freshStartV55,onReward:amount=>{cash+=amount;$('money').textContent='ج.م '+Math.round(cash);saveWallet();toast('مكافأة رحلتك • +'+amount+' جنيه')}});
 const visualPolishV31=createVisualPolishV31({T,scene,renderer,player});
 const mobileV40=createMobileExperienceV40({getActive:()=>active,getPaused:()=>paused,setPaused:value=>{paused=value;$('pause').textContent=paused?'▶':'Ⅱ'},resetInput:()=>{keys={};pedal=0;brakePedal=false;sprint=false;reverseKeyHeld=false;reversePressed=false;driftHeldV34=false;jumpRequested=false;drag=null;resetPad()},notify:toast});
+const desktopWorldV43=installDesktopWorldV43({T,scene,renderer,sun,getVehicle:()=>activeVehicle,getState:()=>({driving,illumination:cityLife.illumination(),weather:cityLife.getState().weather,yaw:vehicleState.yaw,speed:vehicleState.speed,skid:vehicleState.skid}),notify:toast});
 requestAnimationFrame(frame);
