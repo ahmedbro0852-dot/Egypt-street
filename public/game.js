@@ -542,7 +542,7 @@ function enter(){
   toast('🤖 العربية بتسوق لوحدها. حرك العصاية للتوجيه اليدوي أو دوس فرامل.');
   saveWorld(true);
  }else toast('قرب من العربية الصفرا الأول')
-} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click();if(k==='g'&&!e.repeat)$('gpsBtn').click();if(k==='p'&&!e.repeat)$('handbrake').click()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;keys={};resetPad();sprint=false};
+} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click();if(k==='g'&&!e.repeat)$('gpsBtn').click();if(k==='p'&&!e.repeat)$('handbrake').click();if(k==='c'&&!e.repeat)$('camera').click()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;keys={};resetPad();sprint=false};
 const pad=$('joy'),knob=$('knob'),worldCanvas=$('world');
 function resetPad(){joy.x=0;joy.y=0;if(knob)knob.style.transform='translate(0px,0px)'}
 function stickMove(e){
@@ -824,27 +824,42 @@ function frame(t){
  beacon.position.set(target.x,.15,target.z);
  pillar.position.set(target.x,6.5,target.z);
  beacon.scale.setScalar(1+Math.sin(t*.003)*.12);
- // Driver camera returns behind the car gradually; dragging the world is a free look.
- if(driving&&t>cameraFreeUntil){
-  cameraYaw=blendHeading(cameraYaw,vehicleState.yaw,1.8,dt);
- }
- const angle=cameraYaw;
- let distance=driving?(cameraNear?6.5:10.8)+Math.min(2.0,Math.abs(speed)*.08):(cameraNear?3.8:6.6);
- // Pull camera in when a wall stands between it and the character.
- for(let i=1;i<=10;i++){
-  const f=i/10, cx=p.x-Math.sin(angle)*distance*f,cz=p.z-Math.cos(angle)*distance*f;
-  if(blocked(cx,cz,.16)){distance=Math.max(2.35,distance*((i-1)/10));break;}
- }
- const baseH=driving?4.2:3.4;
- const height=baseH+Math.sin(cameraPitch)*distance+(driving?Math.min(1.0,Math.abs(speed)*.03):0);
- // A subtle speed-based FOV widening makes fast driving feel different without nausea.
- const desiredFov=62+(driving?Math.min(6,Math.abs(speed)*.16):0);
+ // V15: alternate between chase, near chase and a first-person driver seat.
+ const interior=driving&&cameraMode==='cockpit';
+ cockpit.setVisible(interior);
+ if(interior)document.body.classList.add('cockpitActive');
+ else document.body.classList.remove('cockpitActive');
+ if(driving)activeVehicle.visible=!interior;
+ else activeVehicle.visible=true;
+ const desiredFov=interior?68:62+(driving?Math.min(6,Math.abs(speed)*.16):0);
  const nextFov=camera.fov+(desiredFov-camera.fov)*(1-Math.exp(-dt*2.5));
  if(Math.abs(nextFov-camera.fov)>.018){camera.fov=nextFov;camera.updateProjectionMatrix();}
- const cp=new T.Vector3(p.x-Math.sin(angle)*distance,height,p.z-Math.cos(angle)*distance);
- camera.position.lerp(cp,1-Math.exp(-dt*(driving?5.3:7.0)));
- const lookAhead=driving?Math.min(2.6,Math.abs(speed)*.13):.4;
- camera.lookAt(p.x+Math.sin(angle)*lookAhead,driving?1.42:1.35,p.z+Math.cos(angle)*lookAhead);
+ if(interior){
+   const vehicleAngle=vehicleState.yaw;
+   const forwardX=Math.sin(vehicleAngle),forwardZ=Math.cos(vehicleAngle);
+   const rightX=Math.cos(vehicleAngle),rightZ=-Math.sin(vehicleAngle);
+   const seat=new T.Vector3(p.x+forwardX*.40-rightX*.31,1.65,
+     p.z+forwardZ*.40-rightZ*.31);
+   camera.position.lerp(seat,1-Math.exp(-dt*12));
+   const lookAngle=vehicleAngle+cockpitLook;
+   camera.lookAt(p.x+Math.sin(lookAngle)*12,1.62,p.z+Math.cos(lookAngle)*12);
+   cockpit.update(vehicleState.steer,vehicleState.speed,garage.getVehicle().id==='motorbike');
+ }else{
+   // Smooth chase camera or walking orbit; wall avoidance stays intact.
+   if(driving&&t>cameraFreeUntil)cameraYaw=blendHeading(cameraYaw,vehicleState.yaw,1.8,dt);
+   const angle=cameraYaw;
+   let distance=driving?(cameraNear?6.5:10.8)+Math.min(2.0,Math.abs(speed)*.08):(cameraNear?3.8:6.6);
+   for(let i=1;i<=10;i++){
+    const f=i/10, cx=p.x-Math.sin(angle)*distance*f,cz=p.z-Math.cos(angle)*distance*f;
+    if(blocked(cx,cz,.16)){distance=Math.max(2.35,distance*((i-1)/10));break;}
+   }
+   const baseH=driving?4.2:3.4;
+   const height=baseH+Math.sin(cameraPitch)*distance+(driving?Math.min(1.0,Math.abs(speed)*.03):0);
+   const chase=new T.Vector3(p.x-Math.sin(angle)*distance,height,p.z-Math.cos(angle)*distance);
+   camera.position.lerp(chase,1-Math.exp(-dt*(driving?5.3:7.0)));
+   const lookAhead=driving?Math.min(2.6,Math.abs(speed)*.13):.4;
+   camera.lookAt(p.x+Math.sin(angle)*lookAhead,driving?1.42:1.35,p.z+Math.cos(angle)*lookAhead);
+ }
  $('speed').innerHTML=Math.round(Math.abs(speed)*3.6)+'<small>كم / س</small>';
  if(driving){
   const gear=gearStatus(vehicleState.speed,parkingBrake,pedal<0||reverseKeyHeld);
