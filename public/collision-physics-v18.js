@@ -1,4 +1,5 @@
-// Egypt Streets V18 — compact oriented vehicle contacts, pedestrian avoidance and crash events.
+import { solvePedestrianImpactV20 } from './pedestrian-physics-v20.js';
+// Egypt Streets V18/V20 — oriented car contacts and Newton pedestrian impulses.
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const sizes={taxi:[2.02,.94],sedan:[2,.96],sport:[2.1,1.02],motorbike:[1.03,.43]};
 const K='egypt-streets-collisions-v18';
@@ -37,9 +38,10 @@ export function pedestrianContact(car,person,radius=.43){
  return {penetration:radius+Math.min(front,sides),normal:{x:axis.x*(negative<0?1:-1),z:axis.z*(negative<0?1:-1)}};
 }
 export function createCollisionPhysicsV18({traffic=[],pedestrians=[],getVehicleType=()=>'taxi',
- registerDamage=()=>{},reactPedestrian=()=>{},charge=()=>false,
- notify=()=>{},sound=()=>{},storage,ui}={}){
+ getVehicleMass=()=>1310,registerDamage=()=>{},reactPedestrian=()=>{},charge=()=>false,
+ notify=()=>{},sound=()=>{},storage,ui,forceUi}={}){
  let stats={hits:0,carHits:0,pedHits:0,trafficHits:0,totalPenalty:0};
+ let lastPedestrianPhysics=null;
  try{const a=JSON.parse(storage?.getItem(K)||'null');
   if(a)for(const k of Object.keys(stats))stats[k]=clamp(Number(a[k])||0,0,k==='totalPenalty'?1e7:1e5)
  }catch(e){}
@@ -98,9 +100,24 @@ export function createCollisionPhysicsV18({traffic=[],pedestrians=[],getVehicleT
    sound(severity,'vehicle');
   }else{
    stats.pedHits++;
-   reactPedestrian(hit.other,unit(-hit.normal.x,-hit.normal.z),clamp(severity/12,.22,1),t);
+   const away=unit(-hit.normal.x,-hit.normal.z);
+   const heading=forward(body.yaw),direction=Math.sign(impact||1);
+   const approach=Math.max(.35,Math.abs(dot(heading,away)));
+   const personMass=58+((hit.other.userData?.id||0)%9)*3.25;
+   const physics=solvePedestrianImpactV20({
+     vehicleMass:getVehicleMass(),personMass,
+     closingSpeed:severity*approach,
+     contactDuration:clamp(.10+severity*.002,.10,.18)
+   });
+   lastPedestrianPhysics=physics;
+   reactPedestrian(hit.other,away,clamp(physics.personDeltaV/12,.2,1),t,physics);
    registerDamage(Math.max(2.2,severity*.38));
-   body.speed=-Math.sign(impact||1)*Math.min(.6,severity*.034);
+   // Physics impulse slows the car; additional bumper damping avoids nudging
+   // the same person repeatedly while the walkable collision separates.
+   body.speed=direction*Math.max(0,severity-physics.vehicleDeltaV)*.38;
+   body.lateralSpeed*=.20;body.yawRate*=.70;
+   if(forceUi)forceUi.textContent='F≈ '+Math.round(physics.averageForce/100)/10+
+      ' كيلو نيوتن • قوة صدمة تقديرية (F = m × a)';
    const fine=severity>6?150:65;
    if(charge(fine)){stats.totalPenalty+=fine;notify('🚨 خبطت حد! غرامة سلامة −'+fine+' جنيه.')}
    else notify('🚨 خد بالك من المشاة — لازم توقف لهم!');
@@ -152,5 +169,7 @@ export function createCollisionPhysicsV18({traffic=[],pedestrians=[],getVehicleT
   if(d.chassis)d.chassis.rotation.z=tilt;else car.rotation.z=tilt;
  }
  render();
- return {probe,onCollision,trafficStep,animateTraffic,getStats:()=>({...stats}),refresh:render};
+ return {probe,onCollision,trafficStep,animateTraffic,getStats:()=>({...stats}),
+  getLastPedestrianPhysics:()=>lastPedestrianPhysics?{...lastPedestrianPhysics}:null,
+  refresh:render};
 }
