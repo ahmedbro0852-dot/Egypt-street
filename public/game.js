@@ -726,21 +726,23 @@ function frame(t){
   // Existing ambient traffic, pedestrians and delivery tasks remain active.
   for(const c of traffic){
    const d=c.userData,axis=d.axis,otherAxis=axis==='x'?'z':'x';
-   const forwardPosition=c.position[axis]+d.direction*5.5;
-   // Accelerate after a stop; brake for traffic, pedestrians and the player's taxi.
-   const laneBlocked=traffic.some(other=>other!==c&&other.userData.axis===axis&&
-       other.userData.direction===d.direction&&Math.abs(other.position[otherAxis]-c.position[otherAxis])<3.1&&
-       (other.position[axis]-c.position[axis])*d.direction>0&&
-       (other.position[axis]-c.position[axis])*d.direction<7.3);
-   const pedAhead=walkers.some(w=>Math.hypot(
-      (axis==='x'?forwardPosition:c.position.x)-w.position.x,
-      (axis==='z'?forwardPosition:c.position.z)-w.position.z)<2.1);
-   const carAhead=driving&&Math.hypot(
-      (axis==='x'?forwardPosition:c.position.x)-taxi.position.x,
-      (axis==='z'?forwardPosition:c.position.z)-taxi.position.z)<3.8;
+   const currentSpeed=d.actualCruise??d.cruise;
+   // Driver perception and following distance scale with speed; cars slow early.
+   const sight=7+currentSpeed*1.0;
+   const approaching=obj=>{
+     const ahead=(obj.position[axis]-c.position[axis])*d.direction;
+     const lateral=Math.abs(obj.position[otherAxis]-c.position[otherAxis]);
+     return ahead>0&&ahead<sight&&lateral<2.2;
+   };
+   const laneBlocked=traffic.some(other=>other!==c&&
+     other.userData.axis===axis&&other.userData.direction===d.direction&&approaching(other));
+   const pedAhead=walkers.some(w=>approaching(w));
+   const carAhead=driving&&approaching(taxi);
    const redLight=cityLife.trafficMustBrake(c);
    const hazard=laneBlocked||pedAhead||carAhead||redLight;
-   d.actualCruise=T.MathUtils.damp(d.actualCruise??d.cruise,hazard?0:d.cruise,hazard?7.0:1.7,dt);
+   // Ease into a stop rather than instantaneously dropping to zero velocity.
+   d.actualCruise=T.MathUtils.damp(currentSpeed,hazard?0:d.cruise,
+      hazard?(pedAhead||carAhead?5.5:3.5):1.6,dt);
    const step=dt*d.actualCruise*d.direction;
    if(c.userData.headlights)c.userData.headlights.emissiveIntensity=
        cityLife.illumination()<.22?2.1:.4;
