@@ -220,5 +220,30 @@ export function createStreetEvents({T,scene,people,getPlayer,getDriving,isWalkab
   if(phase==='offer'||phase==='return')return npc?.position||null;
   return null;
  }
- return {start,update,interact,horn,waypoint,getState:()=>({phase,event:current?.id||null,remaining,hasNPC:!!npc,target})};
+ function snapshot(){
+  return {phase,event:current?.id||null,npcId:npc?.userData?.id||0,
+    remaining:Math.max(0,remaining),eventIndex,
+    target:target?{x:target.x,z:target.z}:null};
+ }
+ function restore(data){
+  if(!data||typeof data!=='object')return false;
+  running=true;clearMarkers();
+  const wanted=STREET_EVENTS.find(e=>e.id===data.event);
+  const resident=people.find(p=>p.userData?.id===data.npcId);
+  const nextPhase=['offer','collect','return'].includes(data.phase)?data.phase:'idle';
+  if(wanted&&resident&&nextPhase!=='idle'){
+   current=wanted;eventIndex=STREET_EVENTS.indexOf(wanted);npc=resident;
+   npc.userData.streetEventLock=true;npc.userData.rest=1e9;
+   phase=nextPhase;
+   remaining=Math.max(3,Math.min(180,Number.isFinite(data.remaining)?data.remaining:120));
+   const p=data.target;
+   target=p&&Number.isFinite(p.x)&&Number.isFinite(p.z)&&isWalkable(p.x,p.z)?
+     {x:p.x,z:p.z}:chooseTarget();
+  }else{
+   phase='idle';current=null;nextTime=elapsed+4;
+   eventIndex=Number.isInteger(data.eventIndex)?data.eventIndex:-1;
+  }
+  updateUI();return true;
+ }
+ return {start,update,interact,horn,waypoint,snapshot,restore,getState:()=>({...snapshot(),hasNPC:!!npc})};
 }
