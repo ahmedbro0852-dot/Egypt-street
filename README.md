@@ -1,19 +1,11 @@
 # شوارع مصر — Egypt Street
 
-Mobile-first Egyptian open-world browser game using Three.js.
+Mobile browser open-world game using Three.js.
 
-## Run
+Run: `python3 -m http.server 8080 --directory public`, then open http://localhost:8080.
 
-```sh
-python3 -m http.server 8080 --directory public
-```
+Touch joystick: move. Drag scene: turn. Run and Enter/Exit buttons. Keyboard: WASD/arrows, Shift, E.
 
-Open http://localhost:8080. Touch joystick to move, drag to turn, use Run and Enter/Exit. Keyboard: WASD / arrows, Shift, E.
+Import into Vercel; vercel.json serves public without a build step.
 
-## Deploy
-
-Import this repository into Vercel. The included vercel.json serves public/ without a build step.
-
-## Current build
-
-Egyptian neighborhood, traffic, delivery missions, walking and driving. The protagonist is a simplified articulated 3D interpretation of the included character reference, not a photorealistic model.
+Includes traffic, driving, delivery missions and an articulated protagonist inspired by the reference image. The 3D character is currently simplified, not photorealistic.
