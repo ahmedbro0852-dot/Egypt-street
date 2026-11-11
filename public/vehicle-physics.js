@@ -2,9 +2,8 @@
 // SI units: metres, seconds, radians. No large dependencies.
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
 const damp=(n,goal,k,dt)=>n+(goal-n)*(1-Math.exp(-k*dt));
-const G=9.81,MASS=1250,IZ=2280,WHEELBASE=2.7,LF=1.21,LR=1.49;
-const FRONT_LOAD=MASS*G*LR/WHEELBASE,REAR_LOAD=MASS*G*LF/WHEELBASE;
-const MU=.96,CF=50000,CR=54000,MAX_FORWARD=41.0,MAX_REVERSE=10.0;
+const G=9.81,BASE_MASS=1250,BASE_IZ=2280,BASE_WHEELBASE=2.7;
+const MU=.96,MAX_FORWARD=41.0,MAX_REVERSE=10.0;
 export function createVehiclePhysics(x=0,z=0,yaw=0){
  return {x,z,yaw,speed:0,lateralSpeed:0,steer:0,yawRate:0,
  roll:0,rollVelocity:0,pitch:0,pitchVelocity:0,heave:0,heaveVelocity:0,
@@ -25,38 +24,54 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
  const steerScale=clamp(Number.isFinite(tuning.steerScale)?tuning.steerScale:1,.7,1.45);
  const topSpeed=clamp(Number.isFinite(tuning.topSpeed)?tuning.topSpeed:MAX_FORWARD,24,56);
  const grip=clamp(Number.isFinite(input.grip)?input.grip:1,.45,1.25);
+ // V19: real differences between a motorcycle, family sedan and sports coupe.
+ const mass=clamp(Number.isFinite(tuning.mass)?tuning.mass:BASE_MASS,160,2600);
+ const wheelbase=clamp(Number.isFinite(tuning.wheelbase)?tuning.wheelbase:BASE_WHEELBASE,1.25,3.7);
+ const frontShare=clamp(Number.isFinite(tuning.frontShare)?tuning.frontShare:.55,.4,.64);
+ const lf=wheelbase*(1-frontShare),lr=wheelbase*frontShare;
+ const iz=BASE_IZ*(mass/BASE_MASS)*(wheelbase/BASE_WHEELBASE)**2*
+    clamp(Number.isFinite(tuning.inertiaScale)?tuning.inertiaScale:1,.4,1.7);
+ const frontLoad=mass*G*frontShare,rearLoad=mass*G*(1-frontShare);
+ const cf=50000*(mass/BASE_MASS)*clamp(tuning.tyreStiffness||1,.65,1.5);
+ const cr=54000*(mass/BASE_MASS)*clamp(tuning.tyreStiffness||1,.65,1.5);
+ const engineForce=clamp(Number.isFinite(tuning.engineForce)?tuning.engineForce:7350,900,17000);
+ const brakeForce=clamp(Number.isFinite(tuning.brakeForce)?tuning.brakeForce:9800,1400,19000);
+ const dragScale=clamp(Number.isFinite(tuning.dragScale)?tuning.dragScale:1,.3,1.8);
+ const pitchSpring=clamp(Number.isFinite(tuning.spring)?tuning.spring:68,35,125);
+ const rollSpring=clamp(Number.isFinite(tuning.rollSpring)?tuning.rollSpring:55,30,130);
+ const suspensionTravel=clamp(Number.isFinite(tuning.suspensionTravel)?tuning.suspensionTravel:.115,.05,.23);
  let impact=0,collision=false,contact=null,maxSlip=0,sideAccel=0;
  const steps=Math.max(1,Math.ceil(dt/(1/120))),h=dt/steps;
  for(let i=0;i<steps;i++){
    const speed=Math.abs(p.speed);
    // Quick city steering while reducing lock for highway stability.
    p.steer=damp(p.steer,steering*steerScale*.63/(1+speed*.029),10.5,h);
-   const engine=throttle>0?throttle*7350*Math.max(.43,1-.013*speed):
-                throttle<0?throttle*3550:0;
+   const engine=throttle>0?throttle*engineForce*Math.max(.43,1-.013*speed):
+                throttle<0?throttle*engineForce*.48:0;
    let fx=engine*engineScale;
-   if(braking)fx=-Math.sign(p.speed)*Math.min(9800*grip*brakeScale,Math.abs(p.speed)*MASS/h);
+   if(braking)fx=-Math.sign(p.speed)*Math.min(brakeForce*grip*brakeScale,Math.abs(p.speed)*mass/h);
    const drag=(Math.abs(p.speed)>.03?Math.sign(p.speed):0)*
-     (190+.48*speed*speed+(Math.abs(throttle)<.06?560:0)+(1-grip)*800);
+     (190+.48*speed*speed+(Math.abs(throttle)<.06?560:0)+(1-grip)*800)*dragScale;
    fx-=drag;
-   if(braking)fx=clamp(fx,-9800*grip*brakeScale,9800*grip*brakeScale);
-   const usedGrip=clamp(Math.abs(fx)/(MU*MASS*G),0,.92);
-   const fg=MU*FRONT_LOAD*grip*Math.sqrt(1-usedGrip*usedGrip*.65);
-   const rg=MU*REAR_LOAD*grip*Math.sqrt(1-usedGrip*usedGrip*.85);
+   if(braking)fx=clamp(fx,-brakeForce*grip*brakeScale,brakeForce*grip*brakeScale);
+   const usedGrip=clamp(Math.abs(fx)/(MU*mass*G),0,.92);
+   const fg=MU*frontLoad*grip*Math.sqrt(1-usedGrip*usedGrip*.65);
+   const rg=MU*rearLoad*grip*Math.sqrt(1-usedGrip*usedGrip*.85);
    const weight=clamp((speed-2)/3,0,1),direction=p.speed>=0?1:-1;
-   const aFront=Math.atan2(p.lateralSpeed+LF*p.yawRate,Math.max(speed,1.8))-p.steer*direction;
-   const aRear=Math.atan2(p.lateralSpeed-LR*p.yawRate,Math.max(speed,1.8));
-   const fFront=clamp(-CF*aFront,-fg,fg),fRear=clamp(-CR*aRear,-rg,rg);
+   const aFront=Math.atan2(p.lateralSpeed+lf*p.yawRate,Math.max(speed,1.8))-p.steer*direction;
+   const aRear=Math.atan2(p.lateralSpeed-lr*p.yawRate,Math.max(speed,1.8));
+   const fFront=clamp(-cf*aFront,-fg,fg),fRear=clamp(-cr*aRear,-rg,rg);
    maxSlip=Math.max(maxSlip,Math.abs(aFront),Math.abs(aRear));
-   const longAcc=fx/MASS+p.lateralSpeed*p.yawRate;
+   const longAcc=fx/mass+p.lateralSpeed*p.yawRate;
    let u=p.speed+longAcc*h;
    if(!braking&&throttle>0&&p.speed>=topSpeed)u=Math.min(u,p.speed);
    if(!braking&&throttle<0&&p.speed<=-MAX_REVERSE)u=Math.max(u,p.speed);
    if(braking&&(p.speed===0||Math.sign(u)!==Math.sign(p.speed)))u=0;
    if(Math.abs(throttle)<.05&&Math.abs(u)<.03)u=0;
    u=clamp(u,-MAX_REVERSE,topSpeed);
-   const latAcc=(fFront*Math.cos(p.steer)+fRear)/MASS-p.speed*p.yawRate;
-   const yawAcc=(LF*fFront*Math.cos(p.steer)-LR*fRear)/IZ;
-   const slowYaw=(u/WHEELBASE)*Math.tan(p.steer);
+   const latAcc=(fFront*Math.cos(p.steer)+fRear)/mass-p.speed*p.yawRate;
+   const yawAcc=(lf*fFront*Math.cos(p.steer)-lr*fRear)/iz;
+   const slowYaw=(u/wheelbase)*Math.tan(p.steer);
    p.yawRate+=(yawAcc*weight+(slowYaw-p.yawRate)*8*(1-weight)-p.yawRate*.25*weight)*h;
    const maxYaw=clamp(7.2/Math.max(5,speed),.19,1.04);
    p.yawRate=clamp(p.yawRate,-maxYaw,maxYaw);
@@ -97,9 +112,9 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
    p.wheelSpin+=p.speed*h/.405;
    sideAccel=clamp(latAcc,-MU*G*grip,MU*G*grip);
    const texture=clamp((Math.sin(p.z*.8)*Math.sin(p.x*1.1)+Math.sin(p.z*2.8+p.x*.6)*.23)*.010,-.013,.013);
-   spring(p,'pitch','pitchVelocity',clamp(-longAcc*.008,-.10,.10),68,h);
-   spring(p,'roll','rollVelocity',clamp(-sideAccel*.012,-.16,.16),55,h);
-   spring(p,'heave','heaveVelocity',texture,90,h);
+   spring(p,'pitch','pitchVelocity',clamp(-longAcc*.008*suspensionTravel/.115,-.14,.14),pitchSpring,h);
+   spring(p,'roll','rollVelocity',clamp(-sideAccel*.012*suspensionTravel/.115,-.20,.20),rollSpring,h);
+   spring(p,'heave','heaveVelocity',texture*suspensionTravel/.115,90*(pitchSpring/68),h);
  }
  p.collision=collision;p.impact=impact;
  p.acceleration=(p.speed-oldSpeed)/Math.max(dt,1e-5);
