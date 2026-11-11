@@ -89,8 +89,10 @@ export function createRoadSafetyV21({storage,ui={},notify=()=>{},haptic=()=>{}}=
    if(t-lastAlertAt>2100){notify('🚨 فرامل طوارئ! خطر '+(current.kind==='pedestrian'?'ماشي':'عربية')+' قدامك');
     haptic();lastAlertAt=t}
   }
+  const levelChanged=current.level!==lastLevel;
   lastLevel=current.level;
-  if(t-(update.lastUI||-Infinity)>180){show();update.lastUI=t}
+  // Critical warning colour must update immediately, not on the 180ms UI timer.
+  if(levelChanged||t-(update.lastUI??-Infinity)>180){show();update.lastUI=t}
   // ABS remains available for manual braking even when AEB is switched off.
   return {...current,brake:enabled&&driving&&current.level===3,
     throttleScale:enabled&&driving?current.throttleScale:1,absEnabled:driving,
