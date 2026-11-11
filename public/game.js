@@ -3,6 +3,7 @@ import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js
 import { createV30 } from './v30-expedition.js';
 import { createCairoRacesV31 } from './cairo-races-v31.js';
 import { createDriftV34 } from './drift-system-v34.js';
+import { createStreetLaptopV41 } from './street-laptop-v41.js';
 import { isRaceArenaV32, RACE_ARENA_BOUNDS_V32 } from './race-arena-v32.js';
 import { installRealismRender } from './realism-render-v16.js';
 import { createStreetAudio } from './street-audio.js';
@@ -508,6 +509,20 @@ const driftV34=createDriftV34({
   score:$('driftV34Score'),info:$('driftV34Info')},
  notify:message=>toast(message)
 });
+const streetLaptopV41=createStreetLaptopV41({
+ T,scene,document,storage:walletStorage,fresh:freshStartV55,
+ getPlayer:()=>player.position,
+ getActive:()=>active,isDriving:()=>driving,isPaused:()=>paused,
+ isRacing:()=>raceSystem?.isRunning()||false,
+ getStatus:()=>({
+  cash,completed,vehicle:garage.getVehicle().name||garage.getVehicle().id,
+  fuel:fuelSystem.getState().fuel,
+  races:raceSystem.getHistory(),
+  bestLap:raceSystem.getTimeAttackHistory().bestTime
+ }),
+ notify:message=>toast(message),
+ onOpen:()=>{keys={};resetPad();sprint=false}
+});
 let v9Live={engineOn:false,rpm:0,gear:'N',turn:'off',hazards:false,left:false,right:false,throttleScale:0};
 let v9UiLast=-1;
 function updateV9Lamps(){
@@ -657,6 +672,7 @@ if(previousWorld&&!freshStartV55){
 }
 if(freshStartV55)beginV55(false);
 function enter(){
+ if(streetLaptopV41.isOpen()){streetLaptopV41.close();return}
  if(driving){
   if(Math.abs(vehicleState.speed)>1.1){toast('وقف العربية الأول عشان تنزل بأمان');return}
   const side=3.4, sin=Math.sin(vehicleState.yaw),cos=Math.cos(vehicleState.yaw);
@@ -682,7 +698,15 @@ function enter(){
   toast('🤖 العربية بتسوق لوحدها. حرك العصاية للتوجيه اليدوي أو دوس فرامل.');
   saveWorld(true);
  }else toast('قرب من العربية الصفرا الأول')
-} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{if(e.defaultPrevented)return;const tag=e.target?.tagName;if(['INPUT','TEXTAREA','SELECT'].includes(tag))return;const physical={KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyE:'e',KeyF:'f',KeyJ:'j',KeyG:'g',KeyP:'p',KeyC:'c',KeyX:'x',KeyH:'h',KeyB:'b',KeyM:'m',Space:' ',ArrowUp:'arrowup',ArrowDown:'arrowdown',ArrowLeft:'arrowleft',ArrowRight:'arrowright',ShiftLeft:'shift',ShiftRight:'shift'};const k=physical[e.code]||e.key.toLowerCase();if(k==='escape'&&!e.repeat&&active){$('pause').click();return}if(k==='m'&&!e.repeat&&active&&!paused){$('v40Menu')?.click();return}if(paused)return;if(k==='h'&&!e.repeat)$('horn').click();if(k==='b'&&!e.repeat)$('garageBtn').click();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click();if(k==='g'&&!e.repeat)$('gpsBtn').click();if(k==='p'&&!e.repeat)$('handbrake').click();if(k==='c'&&!e.repeat)$('camera').click()};window.onkeyup=e=>{const physical={KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyX:'x',Space:' ',ArrowUp:'arrowup',ArrowDown:'arrowdown',ArrowLeft:'arrowleft',ArrowRight:'arrowright',ShiftLeft:'shift',ShiftRight:'shift'};keys[physical[e.code]||e.key.toLowerCase()]=false};window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;keys={};driftHeldV34=false;resetPad();sprint=false};
+} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{if(streetLaptopV41.isOpen()){
+ const typing=['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName);
+ if(e.key==='Escape'||(e.key?.toLowerCase()==='l'&&!typing)){
+  e.preventDefault();streetLaptopV41.close();
+ }return;
+}
+if(e.defaultPrevented)return;const tag=e.target?.tagName;if(['INPUT','TEXTAREA','SELECT'].includes(tag))return;const physical={KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyE:'e',KeyF:'f',KeyJ:'j',KeyG:'g',KeyP:'p',KeyC:'c',KeyX:'x',KeyH:'h',KeyB:'b',KeyM:'m',Space:' ',ArrowUp:'arrowup',ArrowDown:'arrowdown',ArrowLeft:'arrowleft',ArrowRight:'arrowright',ShiftLeft:'shift',ShiftRight:'shift'};const k=physical[e.code]||e.key.toLowerCase();if(k==='escape'&&!e.repeat&&active){$('pause').click();return}if(k==='m'&&!e.repeat&&active&&!paused){$('v40Menu')?.click();return}
+if(k==='l'&&!e.repeat&&active&&!paused){streetLaptopV41.toggle();return}
+if(paused)return;if(k==='h'&&!e.repeat)$('horn').click();if(k==='b'&&!e.repeat)$('garageBtn').click();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click();if(k==='g'&&!e.repeat)$('gpsBtn').click();if(k==='p'&&!e.repeat)$('handbrake').click();if(k==='c'&&!e.repeat)$('camera').click()};window.onkeyup=e=>{const physical={KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyX:'x',Space:' ',ArrowUp:'arrowup',ArrowDown:'arrowdown',ArrowLeft:'arrowleft',ArrowRight:'arrowright',ShiftLeft:'shift',ShiftRight:'shift'};keys[physical[e.code]||e.key.toLowerCase()]=false};window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;keys={};driftHeldV34=false;resetPad();sprint=false;streetLaptopV41.close()};
 const pad=$('joy'),knob=$('knob'),worldCanvas=$('world');
 function resetPad(){joy.x=0;joy.y=0;if(knob)knob.style.transform='translate(0px,0px)'}
 function stickMove(e){
@@ -1116,7 +1140,7 @@ function frame(t){
  rpm:v9Live.rpm,engineOn:driving&&drivingRealism.getState().engineOn,
  throttle:driving?Math.max(0,v9Live.throttleScale):0,
  skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather
-});v30.update(dt);mobileV40.update();visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});renderer.render(scene,camera);
+});v30.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});renderer.render(scene,camera);
 }
 try { installRealismRender({T,scene,renderer,sun}); } catch(error) { console.warn('Material quality pass unavailable',error); }
 const v30=createV30({getPlayer:()=>driving?taxi.position:player.position,getDriving:()=>driving,getActive:()=>active,getPaused:()=>paused,renderer,fresh:freshStartV55,onReward:amount=>{cash+=amount;$('money').textContent='ج.م '+Math.round(cash);saveWallet();toast('مكافأة رحلتك • +'+amount+' جنيه')}});
