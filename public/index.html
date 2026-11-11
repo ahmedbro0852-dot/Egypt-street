@@ -568,14 +568,44 @@ button:focus-visible{outline:2px solid #fff0a5;outline-offset:3px}
  .v9Tach{font-size:8px;margin:2px 0}
  #v9SignalStatus{display:none}
 }
+
+/* V15 — rides contextual overlay and a cockpit-friendly HUD. */
+#gpsList #v15TaxiRide{grid-column:1 / -1;min-height:45px;
+ background:linear-gradient(140deg,#98652c,#584328);border-color:#f5c47c}
+#v15TaxiCounter{font-size:11px;color:#f2e0b6;margin-top:9px;text-align:center;
+ border:1px solid #efc68270;background:#28454bcc;border-radius:8px;padding:7px}
+#v15RideHud{position:fixed;z-index:25;right:18px;top:160px;width:248px;
+ border-radius:14px;border:1px solid #ffd28e9e;border-inline-start:4px solid #f6bb6e;
+ padding:11px;background:linear-gradient(140deg,#183840ee,#182c38f5);
+ box-shadow:0 10px 30px #0008;color:#f8e5c2;direction:rtl;backdrop-filter:blur(9px)}
+#v15RideTitle{font-size:12px;color:#ffe0a1;display:block}
+#v15RideText{font-size:11px;line-height:1.5;color:#e7f5eb;margin:7px 0}
+#v15RideCancel{width:100%;min-height:29px;border-radius:8px;background:#704941;
+ border:1px solid #e4a78e;font-size:10px}
+body.rideActive .mission{display:none!important}
+body.cockpitActive #v15RideHud{background:#0e2f3ddc}
+body.cockpitActive #camera{background:#e1a85e!important;color:#182c36!important}
+@media(max-width:760px){
+ #v15RideHud{right:8px;top:113px;width:156px;max-width:45vw;padding:8px}
+ #v15RideTitle{font-size:10px}
+ #v15RideText{font-size:9px;margin:4px 0}
+ #v15RideCancel{font-size:9px;min-height:27px}
+ #v15TaxiCounter{font-size:10px}
+}
+@media(orientation:landscape) and (max-height:520px){
+ #v15RideHud{right:160px;top:8px;width:165px;padding:6px}
+ #v15RideTitle{font-size:9px}
+ #v15RideText{font-size:8px;margin:2px 0}
+ #v15RideCancel{min-height:23px;font-size:8px}
+}
 </style>
-<canvas id="world"></canvas><div class="hud"><div class="tag">CAIRO • OPEN WORLD • V9</div><div class="brand"><img class="logoHud" src="egypt-streets-logo.svg" alt="شوارع مصر — Egypt Streets"></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><div class="missionHeading"><span class="missionDot" aria-hidden="true"></span><small>المهمة الحالية</small><span class="missionChip">LIVE</span></div><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
+<canvas id="world"></canvas><div class="hud"><div class="tag">CAIRO • OPEN WORLD • V15</div><div class="brand"><img class="logoHud" src="egypt-streets-logo.svg" alt="شوارع مصر — Egypt Streets"></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><div class="missionHeading"><span class="missionDot" aria-hidden="true"></span><small>المهمة الحالية</small><span class="missionChip">LIVE</span></div><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
  <strong id="cityTime">🕒 07:30</strong>
  <span id="cityWeather">☀️ صحو</span>
  <span id="cityLaw">🚦 إشارات مرور ومخالفات</span>
  <div id="lifeButtons"><button id="cityNight" type="button">🌙 الليل</button>
  <button id="cityWeatherBtn" type="button">غيّر الطقس</button></div>
- </section><div id="cityVersion">شوارع مصر • V9</div><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div>
+ </section><div id="cityVersion">شوارع مصر • V15</div><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div>
 <section id="fuelHud" aria-live="off">
  <div id="fuelTitle">⛽ تانك العربية <span id="gearBadge" aria-label="الغيار الحالي">N</span></div>
  <div id="driveReadout" aria-live="off">🚗 واقف • الدريكسيون مستقيم</div>
@@ -599,10 +629,10 @@ button:focus-visible{outline:2px solid #fff0a5;outline-offset:3px}
  <button id="v9Right" type="button" aria-label="إشارة يمين">▶</button>
  <button id="v9Ignition" type="button" aria-label="تشغيل أو إطفاء الموتور">🔑</button>
  </div>
-<button id="interact" type="button" aria-label="التفاعل مع الشخصيات والأحداث">💬 اتفاعل</button><button id="sound" aria-label="تشغيل أو كتم أصوات اللعبة" aria-pressed="true">الصوت شغال</button><div class="pedals"><button id="accelerate" aria-label="زود السرعة التلقائية">سرعة +</button><button id="brakePedal" aria-label="فرامل">فرامل ■</button><button id="reverse" aria-label="رجوع للخلف">رجوع ▼</button></div><div class="bottom"><button id="camera" aria-label="تغيير مسافة الكاميرا">كاميرا</button><div id="speed">0<small>كم / س</small></div><button id="horn">بوق</button><button id="run">جري</button><button id="jump" aria-label="قفز">قفز ⤴</button><button id="enter" class="primary">اركب</button></div><div id="heroCard"><div>بطل شوارع مصر<small>تيشيرت فحمي • جينز أزرق</small></div><img src="character-reference.jpg" alt="مرجع تصميم الشخصية"></div><button id="garageBtn" type="button">🔧 جراج</button>
+<button id="interact" type="button" aria-label="التفاعل مع الشخصيات والأحداث">💬 اتفاعل</button><button id="sound" aria-label="تشغيل أو كتم أصوات اللعبة" aria-pressed="true">الصوت شغال</button><div class="pedals"><button id="accelerate" aria-label="زود السرعة التلقائية">سرعة +</button><button id="brakePedal" aria-label="فرامل">فرامل ■</button><button id="reverse" aria-label="رجوع للخلف">رجوع ▼</button></div><div class="bottom"><button id="camera" aria-label="تغيير زاوية الكاميرا">كاميرا 🎥</button><div id="speed">0<small>كم / س</small></div><button id="horn">بوق</button><button id="run">جري</button><button id="jump" aria-label="قفز">قفز ⤴</button><button id="enter" class="primary">اركب</button></div><div id="heroCard"><div>بطل شوارع مصر<small>تيشيرت فحمي • جينز أزرق</small></div><img src="character-reference.jpg" alt="مرجع تصميم الشخصية"></div><button id="garageBtn" type="button">🔧 جراج</button>
 <section id="garagePanel" role="dialog" aria-label="جراج شوارع مصر">
  <button id="garageClose" type="button" aria-label="إغلاق الجراج">✕</button>
- <h2>🔧 جراج شوارع مصر <span>V9</span></h2>
+ <h2>🔧 جراج شوارع مصر <span>V15</span></h2>
  <p>امتلك عربيات وموتوسيكل وطور الأداء بفلوس المهمات. الشراء والتبديل وإنت نازل من العربية.</p>
  <div id="garageSelected">🚕 تاكسي القاهرة</div>
  <div id="garageSpecs"></div><div id="garageBalance"></div>
@@ -632,9 +662,15 @@ button:focus-visible{outline:2px solid #fff0a5;outline-offset:3px}
  <button id="gpsSide" type="button">🗣️ حدث جانبي</button>
  <button id="gpsFuel" type="button">⛽ أقرب بنزينة</button>
  <button id="gpsTour" type="button">🚕 لفة في البلد</button>
+ <button id="v15TaxiRide" type="button">📞 مشوار تاكسي جديد</button>
  </div>
+ <div id="v15TaxiCounter">مشاوير: 0 • أجور: 0 جنيه</div>
  <div id="gpsHint">الطريق بيظهر باللون الأخضر على الخريطة. القيادة الذاتية بتحاول تتبع الطرق وتتوقف عند الوجهة. عند الأماكن البعيدة عن الشارع، اركن وكمّل مشي.</div>
-</section><div id="versionBadge">شوارع مصر · V9</div><button id="jobsBtn" type="button">💼 تقديم شغل</button><section id="jobsPanel" role="dialog" aria-label="وظايف شوارع مصر">
+</section><section id="v15RideHud" aria-live="polite" style="display:none">
+ <strong id="v15RideTitle">🚕 مشوار تاكسي</strong>
+ <p id="v15RideText">اركب وسوق للراكب</p>
+ <button id="v15RideCancel" type="button">إلغاء المشوار</button>
+ </section><div id="versionBadge">شوارع مصر · V15</div><button id="jobsBtn" type="button">💼 تقديم شغل</button><section id="jobsPanel" role="dialog" aria-label="وظايف شوارع مصر">
  <button id="jobsClose" aria-label="اقفل الوظائف">✕</button>
  <h2>💼 مكتب تشغيل شوارع مصر</h2><p>قدّم على الشغل، اتقبل في الوظيفة، وبعدها ابدأ وردية وخد مرتبك!</p>
  <div id="jobsList">
@@ -648,11 +684,11 @@ button:focus-visible{outline:2px solid #fff0a5;outline-offset:3px}
  <button id="workAction" type="button">نفّذ المهمة</button><div id="toast">حي النيل • القاهرة</div><div id="npcDialogue" role="status" aria-live="polite"></div><div id="intro" class="overlay v55-intro" role="dialog" aria-label="شاشة بداية شوارع مصر">
  <div class="v55-glow" aria-hidden="true"></div>
  <section class="v55-box">
-  <span class="v55-eyebrow"><span class="v55-liveDot"></span> THE CITY IS YOURS · EGYPT STREETS V9</span>
+  <span class="v55-eyebrow"><span class="v55-liveDot"></span> THE CITY IS YOURS · EGYPT STREETS V15</span>
   <img class="logoHero" src="egypt-streets-logo.svg" alt="شوارع مصر"><h1 class="srOnly">شوارع مصر</h1>
   <div class="v55-line" aria-hidden="true"></div><div class="introRoadBadge">✦ القاهرة · بين النيل والشوارع والناس ✦</div>
-  <p class="v55-subtitle">من أول شارع لحد آخر حكاية. اختار عربيتك، اسمع صوت الموتور وهو بينقل الغيارات، شغّل الإشارات وسوق وسط شوارع القاهرة والـGPS والمهمات.</p>
-  <div class="v55-highlights"><span>🎛️ موتور وفتيس واقعي</span><span>🔧 جراج ومركبات</span><span>🧭 GPS ذكي</span><span>🚗 قيادة ذاتية</span><span>💾 حفظ تلقائي</span><span>💼 شغل ومهمات</span></div>
+  <p class="v55-subtitle">من أول شارع لحد آخر حكاية. اركب عربيتك وسوق في القاهرة من كاميرا الصالون، واستلم ركاب تاكسي حقيقيين، مع GPS وشغل وجراج ومهمات وإشارات مرور.</p>
+  <div class="v55-highlights"><span>🚕 مشاوير وركاب</span><span>🎥 كاميرا داخل العربية</span><span>🎛️ موتور وفتيس واقعي</span><span>🔧 جراج ومركبات</span><span>🧭 GPS ذكي</span><span>🚗 قيادة ذاتية</span><span>💾 حفظ تلقائي</span><span>💼 شغل ومهمات</span></div>
   <div id="savePreview" class="v55-save" aria-live="polite">جاري فحص التقدم المحفوظ...</div>
   <div class="v55-actions">
    <button id="continueGame" class="primary" type="button">▶ كمّل لعبك</button>
