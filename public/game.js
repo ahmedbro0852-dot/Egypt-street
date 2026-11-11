@@ -552,7 +552,9 @@ function restoreWorld(state){
  if(!state)return false;
  // Save snapshots taken during a race must never strand the player in an
  // empty arena after refreshing (the in-progress tournament is not resumed).
- if(isRaceArenaV32(state.taxi.x,state.taxi.z)){
+ let hasRaceCheckpoint=false;
+ try{hasRaceCheckpoint=!!walletStorage?.getItem(RACE_RETURN_KEY_V32)}catch(e){}
+ if(isRaceArenaV32(state.taxi.x,state.taxi.z)||hasRaceCheckpoint){
   let back=null;
   try{back=JSON.parse(walletStorage?.getItem(RACE_RETURN_KEY_V32)||'null')}catch(e){}
   if(!back||!Number.isFinite(back.x)||!Number.isFinite(back.z)||
