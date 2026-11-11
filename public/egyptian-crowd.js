@@ -211,8 +211,25 @@ export function createEgyptianCrowd(T,scene,isBlocked){
   }else if(accessory==='cane'){
     box(elbows[1],'#9b7451',.105,-.50,.055,.041,.59,.04);
   }
+  // A nine-mesh distant silhouette is substituted for the full animated rig.
+  // No extra textures, requests or skeletal GPU draws on low-end phones.
+  const proxy=group(man),proxyLegs=[],proxyArms=[];
+  egg(proxy,outer,0,1.16,0,.29*build*frame,.37,.19);
+  if(longRobe)shape(proxy,'cone',outer,0,.73,0,.39,.96,.39);
+  else egg(proxy,pants,0,.89,0,.23,.17,.16);
+  egg(proxy,skin,0,1.75,0,.17,.20,.15);
+  egg(proxy,headwear==='hijab'?scarfColor:hair,0,1.87,-.03,.17,.10,.15);
+  for(const side of [-1,1]){
+   const leg=group(proxy,side*.135,.86,0);
+   egg(leg,longRobe?outer:pants,0,-.31,0,.109,.33,.11);
+   egg(leg,'#34383b',0,-.63,.08,.12,.068,.19);
+   proxyLegs.push(leg);
+   const arm=group(proxy,side*.32,1.43,0);
+   egg(arm,outer,0,-.26,0,.08,.27,.09);
+   proxyArms.push(arm);
+  }
   const u={id:index+1,name,role,style,gender,accessory,
-    arms,elbows,legs,knees,head,body:rig,details,faceDetails,eyes,
+    arms,elbows,legs,knees,head,body:rig,details,faceDetails,eyes,proxy,proxyLegs,proxyArms,
     phase:index*1.07,speed:(elderly?.57:.72+(index%5)*.08),
     dir:index%2?1:-1,minX:-73,maxX:75,rest:index%11===0?.5:0,
     motion:0,blink:0,blinkTimer:1.4+(index%5)*.61};
@@ -231,23 +248,26 @@ export function createEgyptianCrowd(T,scene,isBlocked){
     if(occupied.some(v=>Math.hypot(candidate-v.x,z-v.z)<3.4))continue;
     x=candidate;break;
    }
-   g.position.set(x,0,z);root.add(g);
+   g.position.set(x,0,z);
    residents.push(g);occupied.push({x,z});
  }
  const setLerp=(current,target,k,dt)=>current+(target-current)*(1-Math.exp(-k*dt));
  // NPCs move only within the current districts; visual LOD has three tiers.
  function update(dt,t,focus,cars=[],controlledCar=null){
   dt=Math.min(Math.max(dt||0,0),.05);
-  const f=focus||{x:0,z:0},maxDraw=(typeof innerWidth==='number'&&innerWidth<760)?79:110;
+  const f=focus||{x:0,z:0},mobile=typeof innerWidth==='number'&&innerWidth<760;
+  const maxDraw=mobile?76:112;
   for(const p of residents){
    const u=p.userData;
    const dx=p.position.x-f.x,dz=p.position.z-f.z;
    const distSq=dx*dx+dz*dz;
    p.visible=distSq<maxDraw*maxDraw;
    if(distSq>(maxDraw+16)*(maxDraw+16))continue;
-   const faceNear=distSq<28*28,detailNear=distSq<50*50;
-   u.faceDetails.visible=faceNear;
-   u.details.visible=detailNear;
+   const highNear=distSq<(mobile?25*25:34*34);
+   const faceNear=distSq<20*20,detailNear=distSq<34*34;
+   u.body.visible=highNear;u.proxy.visible=!highNear;
+   u.faceDetails.visible=highNear&&faceNear;
+   u.details.visible=highNear&&detailNear;
    let nearCar=false;
    if(controlledCar){
      const d=Math.hypot(p.position.x-controlledCar.position.x,p.position.z-controlledCar.position.z);
@@ -269,6 +289,13 @@ export function createEgyptianCrowd(T,scene,isBlocked){
    if(u.rest>0&&u.rest<1e8)u.rest=Math.max(0,u.rest-dt);
    p.rotation.y=setLerp(p.rotation.y,u.dir>0?Math.PI/2:-Math.PI/2,8,dt);
    const phase=u.phase+=dt*u.speed*7*u.motion,step=Math.sin(phase),lift=Math.max(0,Math.sin(phase+Math.PI/2));
+   if(!highNear){
+     u.proxyLegs[0].rotation.x=step*.31*u.motion;
+     u.proxyLegs[1].rotation.x=-step*.31*u.motion;
+     u.proxyArms[0].rotation.x=-step*.20*u.motion;
+     u.proxyArms[1].rotation.x=step*.20*u.motion;
+     continue;
+   }
    u.legs[0].rotation.x=step*.50*u.motion;
    u.legs[1].rotation.x=-step*.50*u.motion;
    u.knees[0].rotation.x=-Math.max(0,-step)*.40*u.motion;
