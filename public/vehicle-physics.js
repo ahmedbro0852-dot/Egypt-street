@@ -4,7 +4,7 @@ const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
 const damp=(n,goal,k,dt)=>n+(goal-n)*(1-Math.exp(-k*dt));
 const G=9.81,MASS=1250,IZ=2280,WHEELBASE=2.7,LF=1.21,LR=1.49;
 const FRONT_LOAD=MASS*G*LR/WHEELBASE,REAR_LOAD=MASS*G*LF/WHEELBASE;
-const MU=.94,CF=48000,CR=52000;
+const MU=.94,CF=48000,CR=52000,MAX_FORWARD=32.5;
 export function createVehiclePhysics(x=0,z=0,yaw=0){
  return {x,z,yaw,speed:0,lateralSpeed:0,steer:0,yawRate:0,
  roll:0,rollVelocity:0,pitch:0,pitchVelocity:0,heave:0,heaveVelocity:0,
@@ -25,7 +25,7 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
  for(let i=0;i<steps;i++){
    const speed=Math.abs(p.speed);
    p.steer=damp(p.steer,steering*.58/(1+speed*.026),8,h);
-   const engine=throttle>0?throttle*5400*Math.max(.30,1-.019*speed):
+   const engine=throttle>0?throttle*6700*Math.max(.46,1-.014*speed):
                 throttle<0?throttle*3400:0;
    let fx=engine;
    if(braking)fx=-Math.sign(p.speed)*Math.min(9800*grip,Math.abs(p.speed)*MASS/h);
@@ -43,11 +43,11 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
    maxSlip=Math.max(maxSlip,Math.abs(aFront),Math.abs(aRear));
    const longAcc=fx/MASS+p.lateralSpeed*p.yawRate;
    let u=p.speed+longAcc*h;
-   if(!braking&&throttle>0&&p.speed>=23.5)u=Math.min(u,p.speed);
+   if(!braking&&throttle>0&&p.speed>=MAX_FORWARD)u=Math.min(u,p.speed);
    if(!braking&&throttle<0&&p.speed<=-8)u=Math.max(u,p.speed);
    if(braking&&(p.speed===0||Math.sign(u)!==Math.sign(p.speed)))u=0;
    if(Math.abs(throttle)<.05&&Math.abs(u)<.03)u=0;
-   u=clamp(u,-8,23.5);
+   u=clamp(u,-8,MAX_FORWARD);
    const latAcc=(fFront*Math.cos(p.steer)+fRear)/MASS-p.speed*p.yawRate;
    const yawAcc=(LF*fFront*Math.cos(p.steer)-LR*fRear)/IZ;
    const slowYaw=(u/WHEELBASE)*Math.tan(p.steer);
