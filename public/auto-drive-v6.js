@@ -94,7 +94,7 @@ export function createAutoDriver({signalStop=()=>false,onStatus=()=>{}}={}){
   const d=axis==='x'?(vx>=0?1:-1):(vz>=0?1:-1);
   return signalStop({position:{x:vehicle.x,z:vehicle.z},userData:{axis,direction:d}});
  }
- function controls(vehicle,traffic=[],walkers=[],dt=1/60){
+ function controls(vehicle,traffic=[],walkers=[],dt=1/60,options={}){
   const idle={steer:0,throttle:0,brake:false,active:false,targetSpeed:0};
   if(!enabled)return idle;
   if(mode==='gps'&&arrived)return {...idle,active:true,brake:true,arrived:true};
@@ -116,7 +116,7 @@ export function createAutoDriver({signalStop=()=>false,onStatus=()=>{}}={}){
   const dx=dest.x-vehicle.x,dz=dest.z-vehicle.z;
   const remaining=Math.hypot(dx,dz);
   const heading=Math.atan2(dx,dz),err=angle(heading-vehicle.yaw);
-  let steer=clamp(err*1.60-vehicle.yawRate*.25,-1,1);
+  let steer=clamp(err*1.42-vehicle.yawRate*.30,-1,1);
   // Brake before sharp turns; do not cut through buildings to the next node.
   let corner=false;
   if(mode==='gps'&&pathIndex<path.length-1){
@@ -125,8 +125,11 @@ export function createAutoDriver({signalStop=()=>false,onStatus=()=>{}}={}){
    corner=Math.abs(angle(a-heading))>.6;
   }
   const sharp=Math.abs(err)>.75;
-  let desired=sharp?3.0:Math.abs(err)>.32?5.2:11.0;
-  if(corner&&remaining<18)desired=Math.min(desired,3.6);
+  const chosen=Number.isFinite(options.cruiseKmh)?options.cruiseKmh:60;
+  // City autopilot respects speed preset but caps itself for urban roads.
+  let desired=sharp?3.3:Math.abs(err)>.32?5.9:clamp(chosen/3.6,8.5,17.0);
+  // Slow down well *before* a sharp corner, not while already turning.
+  if(corner&&remaining<35)desired=Math.min(desired,Math.max(3.7,(remaining-5)*.43));
   if(mode==='gps'&&pathIndex===path.length-1)desired=Math.min(desired,Math.max(1.1,(remaining-2.8)*.6));
   if(remaining<9)desired=Math.min(desired,3.8);
   let danger=avoid(vehicle,traffic,walkers);
@@ -134,7 +137,7 @@ export function createAutoDriver({signalStop=()=>false,onStatus=()=>{}}={}){
   if(danger&&!hazardShown){hazardShown=true;onStatus('🚦 ببطّأ عشان في عائق أو إشارة قدّامنا.')}
   if(!danger)hazardShown=false;
   const brake=danger||speed>desired+.85;
-  const throttle=brake?0:clamp(.18+(desired-speed)*.18,0,.9);
+  const throttle=brake?0:clamp(.15+(desired-speed)*.20,0,.95);
   // Re-plan if the car is at a standstill for too long without a visible hazard.
   if(mode==='gps'&&!danger&&speed<.42&&throttle>.4){
    stuckTime+=dt;
