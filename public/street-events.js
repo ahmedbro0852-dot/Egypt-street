@@ -141,15 +141,22 @@ export function createStreetEvents({T,scene,people,getPlayer,getDriving,isWalkab
   }
   const person=nearestResident();
   if(person){
-   const role=person.userData.role;
+   const role=person.userData.role,name=person.userData.name;
+   const id=person.userData.id||0;
    const lines=[
     'إزيك يا باشا! الدنيا زحمة النهارده.',
     'صباح الفل، خلي بالك من العربيات.',
     'نورت الشارع يا كبير!',
     'ربنا يسهّل أمورك يا محترم.'
    ];
-   const id=person.userData.id||0;
-   showMessage(person.userData.name+' ('+role+'): '+lines[id%lines.length],4.5);
+   // Occupation-based dialogue links the new career system to street life.
+   let talk=lines[id%lines.length];
+   if(/سائق|تاكسي|توصيل/.test(role))talk='لو بتدور على شغل في السواقة، افتح «تقديم شغل» وقدّم على تاكسي أو توصيل.';
+   else if(/ميكانيك|عامل بناء/.test(role))talk='الدنيا مليانة شغل في الصيانة، جرّب تتقدم لمساعد ميكانيكي.';
+   else if(/بائع|صاحب محل|خباز/.test(role))talk='قهوة البلد بيدوروا على حد يساعدهم في الطلبات! افتح مكتب التشغيل.';
+   else if(/طالب|طالبة/.test(role))talk='سمعت إن فيه شغل باليومية ومهمات بتجيب فلوس، جرّبت؟';
+   else if(/مسن|مسنّة|سيدة مصرية/.test(role))talk='خد بالك من العربيات السريعة يا ابني، وربنا يوفقك في شغلك.';
+   showMessage(name+' ('+role+'): '+talk,5.1);
    person.userData.waveUntil=performance.now()+2200;
    return true;
   }
