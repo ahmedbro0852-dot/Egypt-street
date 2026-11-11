@@ -52,20 +52,26 @@ export function createCollisionPhysicsV18({traffic=[],pedestrians=[],getVehicleT
  function bodyOf(c){return vehicleShape(c.position.x,c.position.z,c.rotation.y,kindOf(c))}
  function probe(x,z,yaw=0,id=getVehicleType()){
   if(![x,z,yaw].every(Number.isFinite))return null;
-  const me=vehicleShape(x,z,yaw,id);let hit=null;
+  const me=vehicleShape(x,z,yaw,id);let hit=null,contacts=[];
   for(const other of traffic){
    if((other.position.x-x)**2+(other.position.z-z)**2>36)continue;
    const contact=vehicleContact(me,bodyOf(other));
-   if(contact&&(!hit||contact.penetration>hit.penetration))
-    hit={...contact,type:'vehicle',other};
+   if(contact){
+    const item={...contact,type:'vehicle',other};
+    contacts.push(item);
+    if(!hit||contact.penetration>hit.penetration)hit=item;
+   }
   }
   for(const other of pedestrians){
    if((other.position.x-x)**2+(other.position.z-z)**2>22)continue;
    const contact=pedestrianContact(me,other.position);
-   if(contact&&(!hit||contact.penetration>hit.penetration))
-    hit={...contact,type:'pedestrian',other};
+   if(contact){
+    const item={...contact,type:'pedestrian',other};
+    contacts.push(item);
+    if(!hit||contact.penetration>hit.penetration)hit=item;
+   }
   }
-  return hit;
+  return hit?{...hit,contacts}:null;
  }
  function onCollision(hit,body,impact,t=0){
   if(!hit?.other||!Number.isFinite(t))return null;
