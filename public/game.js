@@ -759,6 +759,31 @@ function carCollision(x,z,angle){
 }
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}onresize=resize;resize();let last=0,gait=0;const map=$('map').getContext('2d');function minimap(p){
  map.clearRect(0,0,180,180);
+ if(raceModeV32){
+  // V37: a racetrack-only minimap, no Cairo streets overlaying the arena.
+  map.fillStyle='#344c3c';map.fillRect(0,0,180,180);
+  const circuit=raceSystem.getCourses()[0].points;
+  const scale=.56,mx=x=>90+(x-p.x)*scale,mz=z=>90+(z-p.z)*scale;
+  map.lineCap='round';map.lineJoin='round';
+  map.beginPath();map.moveTo(mx(circuit[0][0]),mz(circuit[0][1]));
+  for(const [x,z] of circuit.slice(1))map.lineTo(mx(x),mz(z));
+  map.closePath();map.strokeStyle='#272c32';map.lineWidth=11;map.stroke();
+  map.strokeStyle='#efbd64';map.lineWidth=1.5;map.stroke();
+  const next=raceSystem.getRace()?.waypoint;
+  if(next){map.beginPath();map.arc(mx(next.x),mz(next.z),6,0,Math.PI*2);
+    map.strokeStyle='#ffcb6c';map.lineWidth=2;map.stroke()}
+  const ghost=raceSystem.getGhostPosition?.();
+  if(ghost){map.beginPath();map.arc(mx(ghost.x),mz(ghost.z),4.6,0,Math.PI*2);
+    map.fillStyle='#65fff0';map.fill();
+    map.fillStyle='#c3fffd';map.font='bold 10px Arial';
+    map.fillText('👻',mx(ghost.x)+5,mz(ghost.z)-6)}
+  map.beginPath();map.arc(90,90,5.5,0,Math.PI*2);
+  map.fillStyle='#ff756b';map.fill();
+  map.fillStyle='#fff0bf';map.font='bold 10px Arial';
+  map.fillText('🏁 حلبة السباق',7,14);
+  map.lineCap='butt';map.lineJoin='miter';
+  return;
+ }
  map.fillStyle='#555c54';map.fillRect(0,0,180,180);
  const scale=.55, cx=p.x,cz=p.z;
  const mx=x=>90+(x-cx)*scale,mz=z=>90+(z-cz)*scale;
