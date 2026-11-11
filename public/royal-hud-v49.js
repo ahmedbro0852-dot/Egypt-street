@@ -1,6 +1,6 @@
 // V49 HUD / settings skin uses the existing running game, not a screenshot.
 const V49_KEY='egypt-street-gold-ui-v49';
-const defaults=()=>({quality:'high',showMap:true,showTasks:true,showActions:true,showFps:true,sensitivity:1,deadzone:.06,compact:true,steady:false});
+const defaults=()=>({quality:window.matchMedia?.('(pointer: coarse)')?.matches?'auto':'high',showMap:true,showTasks:true,showActions:true,showFps:true,sensitivity:1,deadzone:.06,compact:true,steady:false});
 const bound=(v,a,b)=>Math.max(a,Math.min(b,Number(v)||a));
 export function installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive=()=>false,getCompleted=()=>0,getDriving=()=>false}={}){
  const $=id=>document.getElementById(id);
@@ -9,6 +9,7 @@ export function installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive
  let stored={};try{stored=JSON.parse(localStorage.getItem(V49_KEY)||'{}')||{}}catch{}
  const control=mobileV40?.getSettings?.()||{};
  let state={...defaults(),...stored,sensitivity:control.sensitivity??1,deadzone:control.deadzone??.06,compact:control.compact??true,steady:control.steady??false};
+ if(window.matchMedia?.('(pointer: coarse)')?.matches&&!stored.v50QualityChosen&&stored.quality==='high')state.quality='auto';
  let draft={...state},currentTab='graphics';
  const tabs=[['graphics','▣','الرسومات'],['audio','◖','الصوت'],['controls','⌘','عناصر التحكم'],['ui','▦','الواجهة'],['sensitivity','⊕','الحساسية'],['game','⚑','اللعب'],['language','◎','اللغة']];
  const quick=document.createElement('nav');quick.id='v49-quick';quick.setAttribute('aria-label','اختصارات العالم المفتوح');
@@ -38,9 +39,9 @@ export function installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive
   main.replaceChildren();
   if(currentTab==='graphics'){
    title('▣ إعدادات الرسومات');
-   choices('جودة الرسومات',[['balanced','متوازنة'],['high','عالية'],['ultra','فائقة ✦']],draft.quality,id=>draft.quality=id);
+   choices('جودة الرسومات',[['auto','تلقائية ✦'],['balanced','متوازنة'],['high','عالية'],['ultra','فائقة ✦']],draft.quality,id=>{draft.quality=id;draft.v50QualityChosen=true});
    action('معدل الإطارات (FPS)','تلقائي حسب الجهاز',()=>{});
-   note('اختيار الجودة يغيّر دقة العرض وتأثيرات الرسومات المدعومة. معدل الإطارات الفعلي يعتمد على قدرة الجهاز؛ 120 FPS ليس مضمونًا.');
+   note('في الموبايل، V50 يضبط دقة العرض تلقائيًا وقت الضغط على الجهاز. وضع «تلقائية» موصى به، ومعدل الإطارات الفعلي يعتمد على جهازك.');
    flip('إظهار عدّاد الأداء', 'showFps');
    action('التصوير بدون واجهة','📷 F9',()=>{const b=$('v43Panel')?.querySelectorAll('button')?.[1];$('v40Resume')?.click();b?.click()});
   }else if(currentTab==='audio'){
@@ -72,7 +73,7 @@ export function installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive
   }
  }
  function applyV40(id,value,type){const el=$(id);if(!el)return;el[type==='checkbox'?'checked':'value']=value;el.dispatchEvent(new Event(type==='checkbox'?'change':'input',{bubbles:true}))}
- function applyQuality(id){if(desktopWorldV43?.enabled){desktopWorldV43.setQuality(id);return}if(renderer?.isWebGLRenderer&&renderer.setPixelRatio){const dpr=Math.min(window.devicePixelRatio||1,2);renderer.setPixelRatio(Math.min(2,dpr*({balanced:.75,high:1,ultra:1.3}[id]||1)))}}
+ function applyQuality(id){if(desktopWorldV43?.enabled){desktopWorldV43.setQuality(id==='auto'?'high':id);return}if(id==='auto')return;if(renderer?.isWebGLRenderer&&renderer.setPixelRatio){const dpr=Math.min(window.devicePixelRatio||1,2);renderer.setPixelRatio(Math.min(2,dpr*({balanced:.75,high:1,ultra:1.3}[id]||1)))}}
  function paint(){
   document.body.classList.toggle('v49-no-map',!state.showMap);
   document.body.classList.toggle('v49-no-tasks',!state.showTasks);
