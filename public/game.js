@@ -9,6 +9,7 @@ import { createCityLife } from './city-life-v5.js';
 import { createWorldSave, GAME_KEYS_V55 } from './game-save-v55.js';
 import { createAutoDriver } from './auto-drive-v6.js';
 import { createGpsV6 } from './gps-v6.js';
+import { createGarageV8 } from './garage-v8.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
 import { stickFromPointer, footDirection, steeringFromStick, blendHeading } from './controls-v3.js';
 import { updateCarWheels, spinTrafficWheels, gearStatus } from './wheel-rig.js';
@@ -284,6 +285,49 @@ const gps=createGpsV6({
     fuel:$('gpsFuel'),tour:$('gpsTour')}
  }
 });
+// Shared taxi anchor keeps existing GPS, camera, collisions and autosave intact.
+const garageModels={taxi};
+let activeVehicle=taxi;
+function activateGarageVehicle(id){
+ if(id!=='taxi'&&!garageModels[id]){
+  const model=id==='motorbike'?motorcycle('#c74337'):
+     car(id==='sport'?'#c52642':'#2b667a');
+  if(id==='sport'){
+   model.scale.set(1.04,.88,1.03);
+   box(0,1.13,-1.90,1.68,.10,.30,'#192329',model.userData.chassis);
+   box(0,1.01,-1.92,.11,.22,.22,'#121b22',model.userData.chassis);
+   box(0,.68,2.12,.92,.08,.06,'#101a22',model.userData.chassis);
+  }else if(id==='sedan'){
+   model.scale.set(.96,1.02,.95);
+   box(0,1.66,-.13,1.27,.10,1.18,'#3c7886',model.userData.chassis);
+  }
+  garageModels[id]=model;
+ }
+ activeVehicle=garageModels[id]||taxi;
+ for(const [key,model] of Object.entries(garageModels)){
+  model.visible=key===id;
+  model.position.copy(taxi.position);model.rotation.y=taxi.rotation.y;
+ }
+}
+const garage=createGarageV8({
+ ui:{
+  open:$('garageBtn'),panel:$('garagePanel'),close:$('garageClose'),
+  title:$('garageSelected'),stats:$('garageSpecs'),balance:$('garageBalance'),
+  cars:{taxi:$('garageTaxi'),sedan:$('garageSedan'),
+        sport:$('garageSport'),motorbike:$('garageMotorbike')},
+  upgrades:{engine:$('garageEngine'),brakes:$('garageBrakes'),tyres:$('garageTyres')}
+ },
+ storage:walletStorage,
+ getMoney:()=>cash,
+ charge:cost=>{
+  if(cash+.00001<cost)return false;
+  cash=Math.max(0,Math.round((cash-cost)*10)/10);
+  $('money').textContent='ج.م '+Math.round(cash);saveWallet();return true;
+ },
+ isDriving:()=>driving,notify:message=>toast(message),
+ onSelect:activateGarageVehicle,onChanged:()=>saveWorld(true)
+});
+activateGarageVehicle(garage.getVehicle().id);
 function updateAutoPilotLabel(){
  $('autoPilot').textContent=autoDriver.getState().enabled?'🤖 أوقف القيادة الذاتية':'🤖 شغّل القيادة الذاتية';
 }
@@ -301,7 +345,7 @@ function worldSnapshot(){
   driving,parkingBrake,cameraYaw,cameraPitch,money:cash,
   mission:{completed,target:{x:target.x,z:target.z}},
   fuel:fuelSystem.getState(),career:career.getStats(),
-  sideEvent:streetEvents.snapshot(),autopilot:autoDriver.getState(),gps:gps.getState()
+  sideEvent:streetEvents.snapshot(),autopilot:autoDriver.getState(),gps:gps.getState(),garage:garage.getState()
  };
 }
 function saveWorld(force=false){
@@ -445,8 +489,10 @@ function roadGrip(x,z){
 }
 function carCollision(x,z,angle){
  const sin=Math.sin(angle),cos=Math.cos(angle);
- // Rectangular footprint for all four corners and bumper centres.
- for(const [front,right] of [[1.83,.87],[1.83,-.87],[-1.83,.87],[-1.83,-.87],[2.05,0],[-2.05,0]]){
+ // Narrow motorcycle footprint; the other cars keep door and bumper clearance.
+ const small=garage.getVehicle().id==='motorbike';
+ const halfL=small?.91:1.83,halfW=small?.36:.87,bumper=small?1.05:2.05;
+ for(const [front,right] of [[halfL,halfW],[halfL,-halfW],[-halfL,halfW],[-halfL,-halfW],[bumper,0],[-bumper,0]]){
   const px=x+sin*front+cos*right,pz=z+cos*front-sin*right;
   if(blocked(px,pz,.12))return true;
  }
@@ -540,7 +586,8 @@ function frame(t){
    const autopilot=autoDriver.controls(vehicleState,traffic,walkers,dt,{cruiseKmh:fuelSystem.getState().target});
    const steer=autopilot.active?autopilot.steer:manualSteer;
    const braking=brakePedal||sprint||keys.shift||keys[' ']||
-      $('jobsPanel').style.display==='block'||autopilot.brake||parkingBrake||reverseBraking;
+      $('jobsPanel').style.display==='block'||$('garagePanel').style.display==='block'||
+      $('gpsPanel').style.display==='block'||autopilot.brake||parkingBrake||reverseBraking;
    const throttle=autopilot.active?
       (braking||fuelSystem.getState().fuel<=.01||!fuelSystem.getState().auto?
         0:Math.min(fuelSystem.throttle({manual:1}),autopilot.throttle)):
@@ -549,24 +596,25 @@ function frame(t){
        brake:braking,manual:(keys.w||keys.arrowup)?1:0
      });
    const oldPos={x:vehicleState.x,z:vehicleState.z};
+   const tune=garage.getTuning();
    const result=stepVehiclePhysics(vehicleState,{
      throttle,steer,brake:braking,
-     grip:roadGrip(p.x,p.z)*cityLife.grip()
+     grip:roadGrip(p.x,p.z)*cityLife.grip()*tune.gripScale,tuning:tune
    },dt,carCollision);
    cityLife.observeDriving(oldPos,vehicleState);
    taxi.position.x=vehicleState.x;taxi.position.z=vehicleState.z;
    fuelSystem.update(dt,t,throttle,true);
    taxi.rotation.y=vehicleState.yaw;yaw=vehicleState.yaw;speed=vehicleState.speed;
-   if(taxi.userData.headlights)taxi.userData.headlights.emissiveIntensity=
+   if(activeVehicle!==taxi){activeVehicle.position.copy(taxi.position);activeVehicle.rotation.y=taxi.rotation.y;}
+   if(activeVehicle.userData.headlights)activeVehicle.userData.headlights.emissiveIntensity=
      cityLife.illumination()<.22?2.6:.35;
-   if(taxi.userData.tailLights)taxi.userData.tailLights.emissiveIntensity=braking?2.8:.55;
+   if(activeVehicle.userData.tailLights)activeVehicle.userData.tailLights.emissiveIntensity=braking?2.8:.55;
    // Visual suspension: natural lateral roll, braking dive and tiny road vibrations.
-   const chassis=taxi.userData.chassis;
-   chassis.position.y=vehicleState.heave;
-   chassis.rotation.z=vehicleState.roll;
-   chassis.rotation.x=vehicleState.pitch;
+   const chassis=activeVehicle.userData.chassis;
+   if(chassis){chassis.position.y=vehicleState.heave;chassis.rotation.z=vehicleState.roll;chassis.rotation.x=vehicleState.pitch;}
+   else activeVehicle.rotation.z=Math.min(.16,Math.max(-.16,vehicleState.roll*.75));
    player.position.copy(taxi.position);
-   updateCarWheels(taxi,vehicleState,dt);
+   updateCarWheels(activeVehicle,vehicleState,dt);
    if(result.collision&&t>bumpCooldown){
     toast(result.impact>6?'خد بالك من الطريق! العربية خبطت':'في عائق قدّامك');
     if(result.impact>4&&navigator.vibrate)navigator.vibrate(Math.min(95,Math.round(result.impact*4)));
@@ -682,6 +730,7 @@ function frame(t){
  minimap(p);
  if(active&&Math.round(t/1200)%2===0)$('toast').dataset.district=cairo.district(p.x,p.z);
  if(active&&!paused){
+  if(activeVehicle!==taxi&&!driving){activeVehicle.position.copy(taxi.position);activeVehicle.rotation.y=taxi.rotation.y;}
   saveClockV55+=dt;
   if(saveClockV55>=2.5){saveClockV55=0;saveWorld(true)}
  }
