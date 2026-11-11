@@ -29,7 +29,7 @@ export function installDesktopWorldV43({T,scene,renderer,sun,getVehicle,getState
  document.body.classList.add('desktop-v43');
  const panel=document.createElement('aside');panel.id='v43Panel';
  panel.setAttribute('aria-label','إعدادات جرافيك الكمبيوتر');
- const title=document.createElement('strong');title.textContent='شوارع مصر • V43';
+ const title=document.createElement('strong');title.textContent='شوارع مصر • V45';
  const button=document.createElement('button');button.type='button';button.title='F8 لتغيير جودة الرسوم';
  const fps=document.createElement('span');fps.className='fps';fps.textContent='-- FPS';
  const photoBtn=document.createElement('button');photoBtn.type='button';photoBtn.title='F9 لإخفاء الواجهة والتصوير';photoBtn.textContent='📷 F9';
