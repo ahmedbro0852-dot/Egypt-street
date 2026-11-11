@@ -2,7 +2,7 @@
 export const SAVE_KEY_V55='egypt-street-world-v55';
 export const GAME_KEYS_V55=[
  SAVE_KEY_V55,'egypt-street-wallet-v4','egypt-street-fuel-v4',
- 'egypt-street-careers-v1','egypt-street-life-v5','egypt-streets-garage-v8','egypt-streets-rides-v15','egypt-streets-collisions-v18'
+ 'egypt-street-careers-v1','egypt-street-life-v5','egypt-streets-garage-v8','egypt-streets-rides-v15','egypt-streets-collisions-v18','egypt-streets-safety-v21'
 ];
 const finite=(v,d=0)=>Number.isFinite(v)?v:d;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -57,6 +57,11 @@ export function sanitizeSnapshot(data){
    arrived:!!data.autopilot?.arrived
   },
   gps:{mode:['job','delivery','side','fuel','tour'].includes(data.gps?.mode)?data.gps.mode:'tour'},
+  roadSafety:data.roadSafety&&typeof data.roadSafety==='object'?{
+    enabled:data.roadSafety.enabled!==false,
+    warnings:clamp(Math.floor(finite(data.roadSafety.warnings,0)),0,100000),
+    interventions:clamp(Math.floor(finite(data.roadSafety.interventions,0)),0,100000)
+  }:null,
   drivingRealism:data.drivingRealism&&typeof data.drivingRealism==='object'?{
     engineOn:!!data.drivingRealism.engineOn,
     turn:['left','right'].includes(data.drivingRealism.turn)?data.drivingRealism.turn:'off',
