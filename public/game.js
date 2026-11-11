@@ -10,6 +10,7 @@ import { createWorldSave, GAME_KEYS_V55 } from './game-save-v55.js';
 import { createAutoDriver } from './auto-drive-v6.js';
 import { createGpsV6 } from './gps-v6.js';
 import { createGarageV8 } from './garage-v8.js';
+import { createDrivingRealismV9 } from './driving-realism-v9.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
 import { stickFromPointer, footDirection, steeringFromStick, blendHeading } from './controls-v3.js';
 import { updateCarWheels, spinTrafficWheels, gearStatus } from './wheel-rig.js';
@@ -56,7 +57,17 @@ function car(color){
  const lamp=new T.MeshStandardMaterial({color:'#f4f0dc',emissive:'#fff1bc',emissiveIntensity:.65,roughness:.15});
  const tail=new T.MeshStandardMaterial({color:'#a62121',emissive:'#a5120b',emissiveIntensity:.5,roughness:.2});
  g.userData.headlights=lamp;g.userData.tailLights=tail;
- for(const side of [-1,1]){cub(side*.63,.82,2.08,.43,.17,.07,lamp);cub(side*.66,.82,-2.09,.39,.17,.06,tail);cub(side*.67,.56,2.13,.20,.075,.04,lamp)}
+ const blinkerLeft=new T.MeshStandardMaterial({color:'#a16d21',emissive:'#ffae2b',emissiveIntensity:.08,roughness:.3});
+ const blinkerRight=new T.MeshStandardMaterial({color:'#a16d21',emissive:'#ffae2b',emissiveIntensity:.08,roughness:.3});
+ g.userData.indicators={left:blinkerLeft,right:blinkerRight};
+ for(const side of [-1,1]){
+  cub(side*.63,.82,2.08,.43,.17,.07,lamp);
+  cub(side*.66,.82,-2.09,.39,.17,.06,tail);
+  cub(side*.67,.56,2.13,.20,.075,.04,lamp);
+  const amber=side<0?blinkerLeft:blinkerRight;
+  cub(side*.86,.76,2.13,.20,.095,.055,amber);
+  cub(side*.84,.75,-2.11,.22,.095,.055,amber);
+ }
  for(const z of [-2.18,2.18]){cub(0,.60,z,.40,.14,.018,mat('#e5e8de'));cub(0,.65,z*1.001,.40,.032,.022,mat('#4b8daf'))}
  for(const x of [-.94,.94])for(const z of [-1.35,1.32]){
  const pivot=new T.Group();pivot.position.set(x,.43,z);g.add(pivot);wheels.push(pivot);
@@ -85,7 +96,20 @@ function motorcycle(color){
  box(0,.52,0,.26,.13,1.22,'#35383b',g);box(0,.85,-.25,.40,.13,.68,'#25272b',g);
  const tank=new T.Mesh(new T.SphereGeometry(1,12,8),mat(color));tank.scale.set(.23,.22,.36);tank.position.set(0,.81,.27);g.add(tank);
  box(0,1.12,.66,.70,.055,.055,'#a5a8aa',g);box(0,.87,.77,.10,.55,.10,'#969b9e',g);
- box(0,1,.85,.23,.19,.10,'#fff0bd',g);box(0,.74,-.86,.22,.10,.06,'#bb2828',g);
+ box(0,1,.85,.23,.19,.10,'#fff0bd',g);
+ const bikeBrake=new T.MeshStandardMaterial({color:'#a82120',emissive:'#de211c',emissiveIntensity:.5,roughness:.25});
+ g.userData.tailLights=bikeBrake;
+ const brakeMesh=new T.Mesh(new T.BoxGeometry(.22,.10,.06),bikeBrake);brakeMesh.position.set(0,.74,-.86);g.add(brakeMesh);
+ const bikeLeft=new T.MeshStandardMaterial({color:'#ae7024',emissive:'#ffaf2d',emissiveIntensity:.08});
+ const bikeRight=new T.MeshStandardMaterial({color:'#ae7024',emissive:'#ffaf2d',emissiveIntensity:.08});
+ g.userData.indicators={left:bikeLeft,right:bikeRight};
+ for(const side of [-1,1]){
+  const turnMat=side<0?bikeLeft:bikeRight;
+  for(const z of [-.81,.79]){
+   const turnLamp=new T.Mesh(new T.BoxGeometry(.17,.10,.10),turnMat);
+   turnLamp.position.set(side*.39,.86,z);g.add(turnLamp);
+  }
+ }
  for(const z of [-.70,.72]){const pivot=new T.Group();pivot.position.set(0,.34,z);g.add(pivot);g.userData.wheels.push(pivot);const rolling=new T.Group();pivot.add(rolling);pivot.userData={front:z>0,side:0,radius:.32,baseY:.34,rolling};const w=new T.Mesh(new T.CylinderGeometry(.32,.32,.16,16),mat('#171a1d'));w.rotation.z=Math.PI/2;rolling.add(w);for(const x of [-.09,.09]){const hub=new T.Mesh(new T.CylinderGeometry(.20,.20,.018,12),mat('#9da5ac'));hub.position.x=x;hub.rotation.z=Math.PI/2;rolling.add(hub)}}
  // Seated rider and helmet.
  box(0,1.15,-.12,.36,.48,.26,'#3a5260',g);const helmet=new T.Mesh(new T.SphereGeometry(.19,12,10),mat('#222b32'));helmet.position.set(0,1.55,-.06);g.add(helmet);box(0,1.57,.10,.28,.09,.06,'#6d8b95',g);
@@ -240,6 +264,7 @@ const fuelSystem=createFuelSystem({
  T,scene,box,sign,storage:walletStorage,
  getPosition:()=>taxi.position,
  getSpeed:()=>vehicleState.speed,isDriving:()=>driving,
+ isEngineRunning:()=>drivingRealism.getState().engineOn,
  getMoney:()=>cash,
  charge:cost=>{
   if(cash+.00001<cost)return false;
@@ -328,6 +353,40 @@ const garage=createGarageV8({
  onSelect:activateGarageVehicle,onChanged:()=>saveWorld(true)
 });
 activateGarageVehicle(garage.getVehicle().id);
+const drivingRealism=createDrivingRealismV9({notify:message=>toast(message)});
+let v9Live={engineOn:false,rpm:0,gear:'N',turn:'off',hazards:false,left:false,right:false,throttleScale:0};
+let v9UiLast=-1;
+function updateV9Lamps(){
+ const lampSet=activeVehicle.userData.indicators;
+ if(lampSet){
+  lampSet.left.emissiveIntensity=v9Live.left?3.2:.07;
+  lampSet.right.emissiveIntensity=v9Live.right?3.2:.07;
+ }
+}
+function updateV9Dashboard(t=0){
+ if(t-v9UiLast<125&&v9UiLast>=0)return;
+ v9UiLast=t;
+ const state=drivingRealism.getState();
+ $('v9RpmValue').textContent=Math.round(state.rpm)+' RPM';
+ $('v9RpmFill').style.width=Math.min(100,Math.max(0,state.rpm/7500*100)).toFixed(1)+'%';
+ $('v9Engine').textContent=state.engineOn?'🔑 الموتور شغال':'🔑 الموتور مطفي';
+ $('v9SignalStatus').textContent=state.hazards?'⚠️ فلشر الانتظار شغال':
+  state.turn==='left'?'◀ إشارة شمال':state.turn==='right'?'إشارة يمين ▶':'إشارات: مغلقة';
+ $('v9Left').setAttribute('aria-pressed',String(state.turn==='left'));
+ $('v9Right').setAttribute('aria-pressed',String(state.turn==='right'));
+ $('v9Hazard').setAttribute('aria-pressed',String(state.hazards));
+ $('v9Ignition').setAttribute('aria-pressed',String(state.engineOn));
+}
+$('v9Left').onclick=()=>{if(!driving)return;drivingRealism.indicator('left');updateV9Dashboard(Infinity);saveWorld(true)};
+$('v9Right').onclick=()=>{if(!driving)return;drivingRealism.indicator('right');updateV9Dashboard(Infinity);saveWorld(true)};
+$('v9Hazard').onclick=()=>{if(!driving)return;drivingRealism.hazard();updateV9Dashboard(Infinity);saveWorld(true)};
+$('v9Ignition').onclick=()=>{
+ if(!driving)return;
+ if(drivingRealism.toggleEngine(fuelSystem.getState().fuel,vehicleState.speed)){
+  if(!drivingRealism.getState().engineOn&&autoDriver.getState().enabled){autoDriver.stop();updateAutoPilotLabel();}
+  updateV9Dashboard(Infinity);saveWorld(true);
+ }
+};
 function updateAutoPilotLabel(){
  $('autoPilot').textContent=autoDriver.getState().enabled?'🤖 أوقف القيادة الذاتية':'🤖 شغّل القيادة الذاتية';
 }
@@ -345,7 +404,7 @@ function worldSnapshot(){
   driving,parkingBrake,cameraYaw,cameraPitch,money:cash,
   mission:{completed,target:{x:target.x,z:target.z}},
   fuel:fuelSystem.getState(),career:career.getStats(),
-  sideEvent:streetEvents.snapshot(),autopilot:autoDriver.getState(),gps:gps.getState(),garage:garage.getState()
+  sideEvent:streetEvents.snapshot(),autopilot:autoDriver.getState(),gps:gps.getState(),garage:garage.getState(),drivingRealism:drivingRealism.getState()
  };
 }
 function saveWorld(force=false){
@@ -381,6 +440,10 @@ function restoreWorld(state){
   $('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
  }
  fuelSystem.restore(state.fuel);
+ if(driving)drivingRealism.enter(fuelSystem.getState().fuel);else drivingRealism.exit();
+ drivingRealism.restore(state.drivingRealism,fuelSystem.getState().fuel);
+ v9Live={...v9Live,...drivingRealism.getState(),left:false,right:false};
+ updateV9Dashboard(Infinity);
  parkingBrake=!!state.parkingBrake;updateParkingUi();
  career.restore(state.career);
  streetEvents.restore(state.sideEvent);
@@ -429,12 +492,12 @@ function enter(){
   if(!safe){toast('حرّك العربية شوية عشان تلاقي مكان تنزل فيه');return}
   driving=false;player.visible=true;player.position.set(safe[0],0,safe[1]);
   speed=0;onFoot.vx=onFoot.vz=0;onFoot.vy=onFoot.y=0;onFoot.grounded=true;jumpRequested=false;vehicleState.speed=0;vehicleState.lateralSpeed=0;vehicleState.yawRate=0;
-  autoDriver.stop();parkingBrake=false;updateParkingUi();fuelSystem.exit();document.body.classList.remove('driving');pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
+  autoDriver.stop();drivingRealism.exit();parkingBrake=false;updateParkingUi();fuelSystem.exit();document.body.classList.remove('driving');pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
  }else if(player.position.distanceTo(taxi.position)<6){
   driving=true;player.visible=false;
   Object.assign(vehicleState,createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y));
   yaw=taxi.rotation.y;cameraYaw=yaw;cameraFreeUntil=0;speed=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;resetPad();
-  document.body.classList.add('driving');parkingBrake=false;updateParkingUi();fuelSystem.enter();autoDriver.start(vehicleState.x,vehicleState.z);
+  document.body.classList.add('driving');parkingBrake=false;updateParkingUi();fuelSystem.enter();drivingRealism.enter(fuelSystem.getState().fuel);autoDriver.start(vehicleState.x,vehicleState.z);
   updateAutoPilotLabel();$('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
   $('controlsHint').textContent='🧭 GPS للمهمات • العصاية للتحكم اليدوي';
   toast('🤖 العربية بتسوق لوحدها. حرك العصاية للتوجيه اليدوي أو دوس فرامل.');
@@ -588,13 +651,19 @@ function frame(t){
    const braking=brakePedal||sprint||keys.shift||keys[' ']||
       $('jobsPanel').style.display==='block'||$('garagePanel').style.display==='block'||
       $('gpsPanel').style.display==='block'||autopilot.brake||parkingBrake||reverseBraking;
-   const throttle=autopilot.active?
+   const demandedThrottle=autopilot.active?
       (braking||fuelSystem.getState().fuel<=.01||!fuelSystem.getState().auto?
         0:Math.min(fuelSystem.throttle({manual:1}),autopilot.throttle)):
      fuelSystem.throttle({
        reverse:reverseKeyHeld,
        brake:braking,manual:(keys.w||keys.arrowup)?1:0
      });
+   v9Live=drivingRealism.update(dt,{
+      driving:true,speed:vehicleState.speed,throttle:demandedThrottle,brake:braking,
+      steer:vehicleState.steer,yaw:vehicleState.yaw,fuel:fuelSystem.getState().fuel,
+      parking:parkingBrake,skid:vehicleState.skid,vehicleId:garage.getVehicle().id
+   });
+   const throttle=demandedThrottle*v9Live.throttleScale;
    const oldPos={x:vehicleState.x,z:vehicleState.z};
    const tune=garage.getTuning();
    const result=stepVehiclePhysics(vehicleState,{
@@ -603,12 +672,13 @@ function frame(t){
    },dt,carCollision);
    cityLife.observeDriving(oldPos,vehicleState);
    taxi.position.x=vehicleState.x;taxi.position.z=vehicleState.z;
-   fuelSystem.update(dt,t,throttle,true);
+   fuelSystem.update(dt,t,throttle,v9Live.engineOn);
    taxi.rotation.y=vehicleState.yaw;yaw=vehicleState.yaw;speed=vehicleState.speed;
    if(activeVehicle!==taxi){activeVehicle.position.copy(taxi.position);activeVehicle.rotation.y=taxi.rotation.y;}
    if(activeVehicle.userData.headlights)activeVehicle.userData.headlights.emissiveIntensity=
      cityLife.illumination()<.22?2.6:.35;
    if(activeVehicle.userData.tailLights)activeVehicle.userData.tailLights.emissiveIntensity=braking?2.8:.55;
+   updateV9Lamps();
    // Visual suspension: natural lateral roll, braking dive and tiny road vibrations.
    const chassis=activeVehicle.userData.chassis;
    if(chassis){chassis.position.y=vehicleState.heave;chassis.rotation.z=vehicleState.roll;chassis.rotation.x=vehicleState.pitch;}
@@ -711,6 +781,10 @@ function frame(t){
  }
  const baseH=driving?4.2:3.4;
  const height=baseH+Math.sin(cameraPitch)*distance+(driving?Math.min(1.0,Math.abs(speed)*.03):0);
+ // A subtle speed-based FOV widening makes fast driving feel different without nausea.
+ const desiredFov=62+(driving?Math.min(6,Math.abs(speed)*.16):0);
+ const nextFov=camera.fov+(desiredFov-camera.fov)*(1-Math.exp(-dt*2.5));
+ if(Math.abs(nextFov-camera.fov)>.018){camera.fov=nextFov;camera.updateProjectionMatrix();}
  const cp=new T.Vector3(p.x-Math.sin(angle)*distance,height,p.z-Math.cos(angle)*distance);
  camera.position.lerp(cp,1-Math.exp(-dt*(driving?5.3:7.0)));
  const lookAhead=driving?Math.min(2.6,Math.abs(speed)*.13):.4;
@@ -718,8 +792,10 @@ function frame(t){
  $('speed').innerHTML=Math.round(Math.abs(speed)*3.6)+'<small>كم / س</small>';
  if(driving){
   const gear=gearStatus(vehicleState.speed,parkingBrake,pedal<0||reverseKeyHeld);
-  $('gearBadge').textContent=gear.gear;
+  $('gearBadge').textContent=gear.gear==='D'&&v9Live.engineOn?'D'+drivingRealism.getState().gear:
+    (!v9Live.engineOn?'N':gear.gear);
   $('gearBadge').dataset.gear=gear.gear;
+  updateV9Dashboard(t);
   const steerAngle=vehicleState.steer;
   const turning=steerAngle>.035?'شمال':steerAngle<-.035?'يمين':'مستقيم';
   $('driveReadout').textContent=parkingBrake?'🅿️ فرامل اليد مفعّلة':
@@ -734,6 +810,10 @@ function frame(t){
   saveClockV55+=dt;
   if(saveClockV55>=2.5){saveClockV55=0;saveWorld(true)}
  }
- sound.tick({active,paused,driving,speed,traffic,p,dt});renderer.render(scene,camera);
+ sound.tick({active,paused,driving,speed,traffic,p,dt,
+ rpm:v9Live.rpm,engineOn:driving&&drivingRealism.getState().engineOn,
+ throttle:driving?Math.max(0,v9Live.throttleScale):0,
+ skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather
+});renderer.render(scene,camera);
 }
 requestAnimationFrame(frame);
