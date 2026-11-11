@@ -8,17 +8,23 @@ const finite=(v,d=0)=>Number.isFinite(v)?v:d;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function sanitizeSnapshot(data){
  if(!data||data.version!==1||!data.player||!data.taxi)return null;
- const place=(p,def)=>({
-  x:clamp(finite(p?.x,def.x),-215,215),
-  z:clamp(finite(p?.z,def.z),-166,166),
-  yaw:clamp(finite(p?.yaw,0),-10000,10000)
- });
+ const place=(p,def,arenaAllowed=false)=>{
+  const x=finite(p?.x,def.x),z=finite(p?.z,def.z);
+  // Keep the isolated racetrack x range only for player/car positions.
+  // GPS targets and mission destinations remain restricted to old Cairo.
+  const inRace=arenaAllowed&&x>254&&x<515&&z>-122&&z<122;
+  return {
+   x:clamp(x,-215,inRace?515:215),
+   z:clamp(z,-166,166),
+   yaw:clamp(finite(p?.yaw,0),-10000,10000)
+  };
+ };
  const mission=data.mission||{};
  return {
   version:1,
   savedAt:clamp(finite(data.savedAt,0),0,1e15),
-  player:place(data.player,{x:0,z:12}),
-  taxi:place(data.taxi,{x:2,z:8}),
+  player:place(data.player,{x:0,z:12},true),
+  taxi:place(data.taxi,{x:2,z:8},true),
   driving:!!data.driving,
   parkingBrake:!!data.parkingBrake,
   cameraYaw:finite(data.cameraYaw,0),
