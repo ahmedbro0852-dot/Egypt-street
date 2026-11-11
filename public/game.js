@@ -3,6 +3,7 @@ import * as T from './three.js';
 import { installCairo } from './cairo-city.js';
 import { createEgyptianCrowd } from './egyptian-crowd.js';
 import { createStreetEvents } from './street-events.js';
+import { createCareerSystem } from './street-careers.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
 import { stickFromPointer, footDirection, steeringFromStick, blendHeading } from './controls-v3.js';
 const $=id=>document.getElementById(id),scene=new T.Scene();scene.background=new T.Color('#b9d0cf');scene.fog=new T.Fog('#b9d0cf',65,190);let renderer;try{renderer=new T.WebGLRenderer({canvas:$('world'),antialias:true})}catch(e){const old=$('world'),c=old.cloneNode();old.replaceWith(c);const ctx=c.getContext('2d');let sw=0,sh=0;renderer={setPixelRatio(){},setSize(w,h){sw=c.width=w;sh=c.height=h},render(scene,camera){scene.updateMatrixWorld();camera.updateMatrixWorld();const view=new T.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse),faces=[];ctx.fillStyle='#b9d0cf';ctx.fillRect(0,0,sw,sh);scene.traverse(o=>{if(!o.isMesh||!o.visible||!o.parent.visible||o.userData.skipFallback)return;for(let ancestor=o.parent;ancestor;ancestor=ancestor.parent)if(!ancestor.visible)return;const center=new T.Vector3().setFromMatrixPosition(o.matrixWorld);if(center.distanceTo(camera.position)>95)return;const m=new T.Matrix4().multiplyMatrices(view,o.matrixWorld),pos=o.geometry.attributes.position,idx=o.geometry.index;const verts=[];for(let i=0;i<pos.count;i++)verts.push(new T.Vector3().fromBufferAttribute(pos,i).applyMatrix4(m));for(let i=0;i<(idx?idx.count:pos.count);i+=3){const a=verts[idx?idx.getX(i):i],b=verts[idx?idx.getX(i+1):i+1],d=verts[idx?idx.getX(i+2):i+2];if([a,b,d].some(v=>v.z>1||v.z< -1))continue;if((b.x-a.x)*(d.y-a.y)-(b.y-a.y)*(d.x-a.x)<0)continue;let color=o.material.color||new T.Color('#647b72');faces.push({a,b,d,z:(a.z+b.z+d.z)/3,color:'#'+color.getHexString()})}});faces.sort((a,b)=>b.z-a.z);for(let f of faces){ctx.fillStyle=f.color;ctx.beginPath();ctx.moveTo((f.a.x+1)*sw/2,(1-f.a.y)*sh/2);ctx.lineTo((f.b.x+1)*sw/2,(1-f.b.y)*sh/2);ctx.lineTo((f.d.x+1)*sw/2,(1-f.d.y)*sh/2);ctx.fill()}}};}renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));const camera=new T.PerspectiveCamera(62,1,.1,240);scene.add(new T.HemisphereLight(0xffe9c8,0x637278,2.6));const sun=new T.DirectionalLight(0xffd7a1,2.6);sun.position.set(-30,70,20);scene.add(sun);const solids=[];const mat=c=>new T.MeshLambertMaterial({color:c});const materials=new Map();function box(x,y,z,w,h,d,c,parent=scene){if(!materials.has(c))materials.set(c,mat(c));let m=new T.Mesh(new T.BoxGeometry(w,h,d),materials.get(c));m.position.set(x,y,z);parent.add(m);return m}box(0,-.2,0,460,.3,460,'#baa88a');
@@ -70,7 +71,7 @@ function motorcycle(color){
  box(0,1.15,-.12,.36,.48,.26,'#3a5260',g);const helmet=new T.Mesh(new T.SphereGeometry(.19,12,10),mat('#222b32'));helmet.position.set(0,1.55,-.06);g.add(helmet);box(0,1.57,.10,.28,.09,.06,'#6d8b95',g);
  for(const x of [-.25,.25]){box(x,.73,-.27,.13,.42,.20,'#334352',g);box(x,1.12,.28,.11,.12,.57,'#3a5260',g)}scene.add(g);return g;
 }
-const traffic=[];for(let i=0;i<22;i++){let c=i%4===3?motorcycle(['#b94536','#32657e','#b9ad82'][i%3]):car(['#d5d7d4','#466878','#742e2e','#b8b2a4','#34393e','#e0d2ad','#47745e'][i%7]);if(i%4!==3){if(i%3===0)c.scale.set(1.08,1.15,1.12);else if(i%3===1)c.scale.set(.94,.96,.90)}const direction=i%2?1:-1;c.userData.direction=direction;c.userData.axis=i<12?'z':'x';c.userData.cruise=i%4===3?5:3+i%3;const lane=roads[i%5]+direction*2.6;const along=-76+(i%11)*14;if(c.userData.axis==='z')c.position.set(lane,0,along);else c.position.set(along,0,lane);c.rotation.y=(c.userData.axis==='x'?Math.PI/2:0)+(direction<0?Math.PI:0);traffic.push(c)}
+const traffic=[];for(let i=0;i<22;i++){let c=i%4===3?motorcycle(['#b94536','#32657e','#b9ad82'][i%3]):car(['#d5d7d4','#466878','#742e2e','#b8b2a4','#34393e','#e0d2ad','#47745e'][i%7]);if(i%4!==3){if(i%3===0)c.scale.set(1.08,1.15,1.12);else if(i%3===1)c.scale.set(.94,.96,.90)}const direction=i%2?1:-1;c.userData.direction=direction;c.userData.axis=i<12?'z':'x';c.userData.cruise=i%4===3?10.2+(i%3)*.8:7.7+(i%4)*1.25;c.userData.actualCruise=c.userData.cruise;const lane=roads[i%5]+direction*2.6;const along=-76+(i%11)*14;if(c.userData.axis==='z')c.position.set(lane,0,along);else c.position.set(along,0,lane);c.rotation.y=(c.userData.axis==='x'?Math.PI/2:0)+(direction<0?Math.PI:0);traffic.push(c)}
 // Articulated lightweight protagonist, based on the approved character reference.
 function makeHero(){
  const root=new T.Group(),rig=new T.Group();root.add(rig);
@@ -158,7 +159,22 @@ $('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'�
  ui:{card:$('eventPanel'),title:$('eventTitle'),text:$('eventText'),
      interact:$('interact'),dialog:$('npcDialogue')}
 });
-$('interact').onclick=()=>streetEvents.interact();
+const career=createCareerSystem({
+ T,scene,
+ ui:{open:$('jobsBtn'),close:$('jobsClose'),panel:$('jobsPanel'),cancel:$('jobsCancel'),
+    summary:$('jobsSummary'),hud:$('workHud'),hudTitle:$('workHudTitle'),hudText:$('workHudText'),
+    action:$('workAction'),
+    cards:{taxi:$('careerTaxi'),courier:$('careerCourier'),microbus:$('careerMicrobus'),
+           mechanic:$('careerMechanic'),cafe:$('careerCafe')}},
+ getPosition:()=>driving?taxi.position:player.position,
+ isDriving:()=>driving,getSpeed:()=>vehicleState.speed,
+ onReward:amount=>{cash+=amount;$('money').textContent='ج.م '+cash},
+ notify:msg=>toast(msg),
+ storage:(()=>{try{return window.localStorage}catch(e){return null}})()
+});
+const restoredCareerPay=career.getStats().earned;
+if(restoredCareerPay){cash+=restoredCareerPay;$('money').textContent='ج.م '+cash}
+$('interact').onclick=()=>career.interact()||streetEvents.interact();
 $('start').onclick=()=>{sound.start();active=true;$('intro').style.display='none';streetEvents.start();toast('قرب من العربية الصفرا واضغط اركب • فيه أحداث ومهام جانبية في الحي')};function enter(){
  if(driving){
   if(Math.abs(vehicleState.speed)>1.1){toast('وقف العربية الأول عشان تنزل بأمان');return}
@@ -179,7 +195,7 @@ $('start').onclick=()=>{sound.start();active=true;$('intro').style.display='none
   $('controlsHint').textContent='↔ العصاية للتوجيه • البنزين من اليمين';
   toast('العصاية يمين وشمال للدريكسيون • زر بنزين للتسارع • اسحب الشاشة لتلف الكاميرا');
  }else toast('قرب من العربية الصفرا الأول')
-} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat)streetEvents.interact()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;jumpRequested=false;keys={};resetPad();sprint=false};
+} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;jumpRequested=false;keys={};resetPad();sprint=false};
 const pad=$('joy'),knob=$('knob'),worldCanvas=$('world');
 function resetPad(){joy.x=0;joy.y=0;if(knob)knob.style.transform='translate(0px,0px)'}
 function stickMove(e){
@@ -260,6 +276,12 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
   map.strokeStyle='#67e6eb';map.lineWidth=2;
   map.beginPath();map.arc(mx(eventWaypoint.x),mz(eventWaypoint.z),7,0,Math.PI*2);map.stroke();
  }
+ const workPoint=career.waypoint();
+ if(workPoint){
+  map.strokeStyle='#80ffc2';map.lineWidth=2.8;
+  map.beginPath();map.arc(mx(workPoint.x),mz(workPoint.z),9,0,Math.PI*2);map.stroke();
+  map.fillStyle='#c5ffe0';map.font='bold 10px Arial';map.fillText('شغل',mx(workPoint.x)-9,mz(workPoint.z)-12);
+ }
  for(const [v,color,r] of [[target,'#ffd373',4],[taxi.position,'#e7b542',3],[p,'#fff',5]]){
   map.fillStyle=color;map.beginPath();map.arc(mx(v.x),mz(v.z),r,0,Math.PI*2);map.fill()
  }
@@ -327,11 +349,26 @@ function frame(t){
   }
   // Existing ambient traffic, pedestrians and delivery tasks remain active.
   for(const c of traffic){
-   const d=c.userData,step=dt*d.cruise*d.direction;
+   const d=c.userData,axis=d.axis,otherAxis=axis==='x'?'z':'x';
+   const forwardPosition=c.position[axis]+d.direction*5.5;
+   // Accelerate after a stop; brake for traffic, pedestrians and the player's taxi.
+   const laneBlocked=traffic.some(other=>other!==c&&other.userData.axis===axis&&
+       other.userData.direction===d.direction&&Math.abs(other.position[otherAxis]-c.position[otherAxis])<3.1&&
+       (other.position[axis]-c.position[axis])*d.direction>0&&
+       (other.position[axis]-c.position[axis])*d.direction<7.3);
+   const pedAhead=walkers.some(w=>Math.hypot(
+      (axis==='x'?forwardPosition:c.position.x)-w.position.x,
+      (axis==='z'?forwardPosition:c.position.z)-w.position.z)<2.1);
+   const carAhead=driving&&Math.hypot(
+      (axis==='x'?forwardPosition:c.position.x)-taxi.position.x,
+      (axis==='z'?forwardPosition:c.position.z)-taxi.position.z)<3.8;
+   const hazard=laneBlocked||pedAhead||carAhead;
+   d.actualCruise=T.MathUtils.damp(d.actualCruise??d.cruise,hazard?0:d.cruise,hazard?7.0:1.7,dt);
+   const step=dt*d.actualCruise*d.direction;
    for(const wheel of d.wheels)wheel.rotation.x+=step/.405;
-   c.position[d.axis]+=step;
-   if(c.position[d.axis]>82)c.position[d.axis]=-82;
-   if(c.position[d.axis]<-82)c.position[d.axis]=82;
+   c.position[axis]+=step;
+   if(c.position[axis]>82)c.position[axis]=-82;
+   if(c.position[axis]<-82)c.position[axis]=82;
    if(driving&&Math.hypot(c.position.x-p.x,c.position.z-p.z)<2.3){
     vehicleState.speed=Math.sign(vehicleState.speed)*Math.min(Math.abs(vehicleState.speed),1.4);
     speed=vehicleState.speed;
@@ -339,8 +376,9 @@ function frame(t){
   }
   gait+=dt*Math.abs(speed)*2.8;
   animateHero(player,gait,driving||!onFoot.grounded?0:Math.min(1,Math.abs(speed)/4.3));
-  crowd.update(dt,t,p,traffic,taxi);
+  crowd.update(dt,t,p,traffic,taxi,driving?vehicleState.speed:0);
   streetEvents.update(dt,t);
+  career.update(dt,t);
   if(driving&&p.distanceTo(target)<4&&Math.abs(speed)<10){
    cash+=150;completed++;
    $('money').textContent='ج.م '+cash;
