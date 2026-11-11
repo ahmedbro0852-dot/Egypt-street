@@ -17,8 +17,11 @@ export function footDirection(forward,right,cameraYaw,pace=1){
          magnitude:mag};
 }
 export function steeringFromStick(joystickX,keyboardX){
- // On a behind-car camera, screen-right is negative camera-local X.
- return -clamp(joystickX+keyboardX,-1,1);
+ // V33: a wider, quicker steering curve on mobile. A half-travel joystick
+ // already commands ~58% steering instead of 50%; full lock is unchanged.
+ // Keyboard steering remains immediate and reverses cleanly.
+ const raw=clamp((Number(joystickX)||0)+(Number(keyboardX)||0),-1,1);
+ return -Math.sign(raw)*Math.pow(Math.abs(raw),.78);
 }
 export function blendHeading(from,to,rate,dt){
  return from+Math.atan2(Math.sin(to-from),Math.cos(to-from))*(1-Math.exp(-rate*Math.max(0,dt)));
