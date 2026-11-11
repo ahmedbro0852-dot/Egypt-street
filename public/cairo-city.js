@@ -1,6 +1,7 @@
+import { createDetailedPalmV48 } from './palm-landscape-v48.js';
 // Extra Cairo environment for the existing Three.js game.
 // Procedural geometry & texture atlases: deliberately light on mobile downloads.
-export function installCairo(T,scene,box,sign,solids){
+export function installCairo(T,scene,box,sign,solids,options={}){
 let seed=7431;const random=()=>{seed=seed*16807%2147483647;return seed/2147483647};
 const material=c=>new T.MeshLambertMaterial({color:c});
 const palettes=['#d2bda0','#bfa98c','#c8c2b2','#ddd0b7','#b7b8aa','#ba9a7c'];
@@ -72,6 +73,7 @@ for(const z of [-60,0,60]){
 }
 const wood=material('#7e7059'),green=material('#608365'),metal=material('#606969');
 function tree(x,z){
+ if(options.detailedTrees){createDetailedPalmV48(scene,x,z,6.5+Math.abs(z%7)*.19);return;}
  let trunk=new T.Mesh(new T.CylinderGeometry(.15,.23,3.7,7),wood);trunk.position.set(x,1.85,z);scene.add(trunk);
  for(const [dx,dy,dz,r] of [[0,4.2,0,1.6],[-1,3.7,.1,1.1],[.9,3.85,-.4,1.1]]){
   let crown=new T.Mesh(new T.SphereGeometry(r,8,6),green);crown.position.set(x+dx,dy,z+dz);scene.add(crown);

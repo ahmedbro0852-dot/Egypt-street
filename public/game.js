@@ -1,9 +1,10 @@
+import { createDetailedPalmV48, updateLandscapeV48 } from './palm-landscape-v48.js';
 import { dressReferenceHeroV47, installReferenceHudV47 } from './reference-look-v47.js?v=47.2';
 import { installFacadeDepthV46 } from './facade-depth-v46.js';
 import { installTravelLightingV44 } from './travel-lighting-v44.js';
-import { installCairoGraphicsV45 } from './cairo-graphics-v45.js';
+import { installCairoGraphicsV45 } from './cairo-graphics-v45.js?v=48.1';
 import { prepareDetailedCar } from './detailed-car-v42.js';
-import { installDesktopWorldV43 } from './desktop-world-v43.js';
+import { installDesktopWorldV43 } from './desktop-world-v43.js?v=48.1';
 import { createMobileExperienceV40, tuneStickV40 } from './mobile-experience-v40.js';
 import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
@@ -14,7 +15,7 @@ import { isRaceArenaV32, RACE_ARENA_BOUNDS_V32 } from './race-arena-v32.js';
 import { installRealismRender } from './realism-render-v16.js';
 import { createStreetAudio } from './street-audio.js';
 import * as T from './three.js';
-import { installCairo } from './cairo-city.js';
+import { installCairo } from './cairo-city.js?v=48.1';
 import { createEgyptianCrowd } from './egyptian-crowd.js';
 import { createStreetEvents } from './street-events.js';
 import { createCareerSystem } from './street-careers.js';
@@ -52,8 +53,8 @@ for(const n of roads){
 // V17 batches all asphalt overlays, lane strips and sidewalks instead of hundreds of meshes.
 function sign(text,x,y,z,w=5){const c=document.createElement('canvas');c.width=512;c.height=128;let q=c.getContext('2d');q.fillStyle='#174747';q.fillRect(0,0,512,128);q.fillStyle='#ffe3a9';q.font='bold 54px Arial';q.textAlign='center';q.fillText(text,256,84);let m=new T.Mesh(new T.PlaneGeometry(w,w/4),new T.MeshBasicMaterial({map:new T.CanvasTexture(c),side:T.DoubleSide}));m.position.set(x,y,z);scene.add(m)}
 let seed=7;function rand(){seed=(seed*16807)%2147483647;return seed/2147483647}const colors=['#beaa8c','#d4bd99','#b7977d','#d2c2a8','#aaa58c'];for(let a=-2;a<2;a++)for(let b=-2;b<2;b++){const cx=a*30+15,cz=b*30+15;for(let j=0;j<2;j++){let x=cx+(j?5.4:-5.4),h=10+Math.floor(rand()*5)*3;box(x,.2,cz,10,.35,21,'#cfc4ac');box(x,h/2,cz,9.5,h,18,colors[Math.floor(rand()*5)]);solids.push({x,z:cz,w:5.3,d:9.6});box(x,h+.3,cz,10,.5,18.5,'#e4d2b2');for(let y=3;y<h-1;y+=3)for(let wx=-2.8;wx<=3;wx+=2.8){box(x+wx,y,cz+9.03,1.25,1.65,.08,'#42595c');box(x+wx,y-.8,cz+9.3,1.8,.15,.6,'#e1cba5');box(x+wx,y,cz-9.03,1.2,1.6,.08,'#536466')}box(x,1.2,cz+9.08,7,2,.1,j?'#376e70':'#877047');sign(['قهوة البلد','سوبر ماركت النيل','كشري عم سيد','عصير قصب'][((a+2)*4+b+2)%4],x,2.8,cz+9.2,7);box(x,h+1,cz,2,1.8,2,'#8e9a9a')}}
-function palm(x,z){box(x,3,z,.35,6,.35,'#8e7956');for(let i=0;i<7;i++){let leaf=box(x,6,z,4,.15,.6,'#4d7954');leaf.rotation.y=i*Math.PI/3.5;leaf.rotation.z=.18}}for(let z=-75;z<80;z+=15){palm(7,z);palm(-67,z)}
-const cairo = installCairo(T,scene,box,sign,solids);
+function palm(x,z){if(renderer.isWebGLRenderer){createDetailedPalmV48(scene,x,z,6.3+Math.abs(z%9)*.14);return;}box(x,3,z,.35,6,.35,'#8e7956');for(let i=0;i<7;i++){let leaf=box(x,6,z,4,.15,.6,'#4d7954');leaf.rotation.y=i*Math.PI/3.5;leaf.rotation.z=.18}}for(let z=-75;z<80;z+=15){palm(7,z);palm(-67,z)}
+const cairo = installCairo(T,scene,box,sign,solids,{detailedTrees:!!renderer.isWebGLRenderer});
 const realisticRoads=createRealisticRoads({T,scene});
 const streetDetails=installStreetDetailsV15({T,scene,box,sign,blocked});
 const cockpit=createCockpitV15({T,scene,camera});
@@ -1155,7 +1156,7 @@ function frame(t){
  rpm:v9Live.rpm,engineOn:driving&&drivingRealism.getState().engineOn,
  throttle:driving?Math.max(0,v9Live.throttleScale):0,
  skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather
-});v30.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});desktopWorldV43.update(dt);travelLightingV44.update(dt);cairoGraphicsV45.update(dt);renderer.render(scene,camera);
+});v30.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});desktopWorldV43.update(dt);travelLightingV44.update(dt);cairoGraphicsV45.update(dt);updateLandscapeV48(dt,cityLife.getState().weather==='مطر');renderer.render(scene,camera);
 }
 try { installRealismRender({T,scene,renderer,sun}); } catch(error) { console.warn('Material quality pass unavailable',error); }
 const v30=createV30({getPlayer:()=>driving?taxi.position:player.position,getDriving:()=>driving,getActive:()=>active,getPaused:()=>paused,renderer,fresh:freshStartV55,onReward:amount=>{cash+=amount;$('money').textContent='ج.م '+Math.round(cash);saveWallet();toast('مكافأة رحلتك • +'+amount+' جنيه')}});
@@ -1166,4 +1167,9 @@ const travelLightingV44=installTravelLightingV44({T,scene,renderer,sun,getPositi
 const cairoGraphicsV45=installCairoGraphicsV45({T,scene,renderer,camera,sun,getFocus:()=>driving?taxi.position:player.position,getState:()=>({illumination:cityLife.illumination(),weather:cityLife.getState().weather})});
 installFacadeDepthV46({T,scene,renderer});
 installReferenceHudV47();
+if(!renderer.isWebGLRenderer){
+ const notice=document.createElement('div');notice.id='graphicsFallbackV48';notice.setAttribute('role','status');
+ notice.textContent='عرض رسومي مبسّط — WebGL غير متاح. فعّل تسريع الرسومات لظهور التفاصيل.';
+ notice.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:76px;max-width:60vw;padding:7px 12px;border:1px solid #d5b77a70;border-radius:10px;background:#201e1bde;color:#e8d1a6;font:10px/1.7 Tahoma;text-align:center;z-index:70;pointer-events:none';document.body.append(notice);
+}
 requestAnimationFrame(frame);

@@ -20,27 +20,41 @@ export function installCairoGraphicsV45({T,scene,renderer,camera,sun,getFocus,ge
    'varying vec3 direction;',
    'void main(){ direction=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }'
   ].join('\n'),
-  fragmentShader:[
-   'varying vec3 direction;',
-   'uniform float daylight, cloudCover, elapsed;',
-   'uniform vec3 sunDir;',
-   'void main(){',
-   'vec3 d=normalize(direction); float y=d.y; float bright=clamp(daylight,0.0,1.0);',
-   'vec3 horizon=mix(vec3(.060,.068,.12),vec3(.82,.75,.65),bright);',
-   'vec3 zenith=mix(vec3(.012,.022,.065),vec3(.08,.37,.69),bright);',
-   'vec3 color=mix(horizon,zenith,smoothstep(-.13,.85,y));',
-   'color+=vec3(.42,.18,.07)*(1.0-bright)*exp(-pow((y-.06)*8.0,2.0))*.32;',
-   'float sun=pow(max(dot(d,normalize(sunDir)),0.0),130.0);',
-   'color+=vec3(1.0,.72,.48)*sun*bright*.60;',
-   'float a=sin(d.x*20.0+elapsed*.008+sin(d.z*14.0));',
-   'float b=sin(d.z*21.0-elapsed*.006+sin(d.x*13.0));',
-   'float cloud=smoothstep(.28,.8,a*b)*smoothstep(.04,.36,y);',
-   'vec3 cloudColor=mix(vec3(.10,.15,.20),vec3(.88,.86,.81),bright);',
-   'color=mix(color,cloudColor,cloud*(.19+.32*cloudCover));',
-   'color=mix(color,vec3(.18,.21,.26),cloudCover*.18);',
-   'gl_FragColor=vec4(color,1.0);',
-   '}'
-  ].join('\n')
+  fragmentShader:`
+   varying vec3 direction;
+   uniform float daylight, cloudCover, elapsed;
+   uniform vec3 sunDir;
+   float hash3(vec3 p){p=fract(p*.3183099+vec3(.1,.2,.3));p*=17.0;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
+   float noise3(vec3 p){
+    vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+    return mix(mix(mix(hash3(i),hash3(i+vec3(1,0,0)),f.x),mix(hash3(i+vec3(0,1,0)),hash3(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash3(i+vec3(0,0,1)),hash3(i+vec3(1,0,1)),f.x),mix(hash3(i+vec3(0,1,1)),hash3(i+vec3(1,1,1)),f.x),f.y),f.z);
+   }
+   float fbm(vec3 p){float n=0.0,a=.53;for(int i=0;i<4;i++){n+=a*noise3(p);p=p*2.03+vec3(13.7,9.2,4.1);a*=.5;}return n;}
+   void main(){
+    vec3 d=normalize(direction),sun=normalize(sunDir);
+    float bright=clamp(daylight,0.0,1.0),y=d.y;
+    float sunset=(1.0-smoothstep(.10,.52,sun.y))*bright;
+    vec3 horizon=mix(vec3(.025,.038,.075),vec3(.73,.77,.78),bright);
+    horizon=mix(horizon,vec3(1.0,.54,.29),sunset*.57);
+    vec3 zenith=mix(vec3(.003,.008,.026),vec3(.055,.25,.53),bright);
+    vec3 color=mix(horizon,zenith,smoothstep(-.05,.78,y));
+    float alignment=max(dot(d,sun),0.0);
+    color+=vec3(1.0,.66,.32)*pow(alignment,18.0)*bright*(.12+sunset*.28);
+    color+=vec3(1.0,.88,.63)*smoothstep(.99982,.99996,alignment)*bright*2.4;
+    vec3 cloudP=d*5.5+vec3(elapsed*.006,0.0,elapsed*.003);
+    float cloudNoise=fbm(cloudP);
+    float cloud=smoothstep(.57-cloudCover*.18,.78-cloudCover*.14,cloudNoise)*smoothstep(.02,.24,y);
+    float edge=clamp((fbm(cloudP+sun*.3)-cloudNoise)*4.0+.5,0.0,1.0);
+    vec3 cloudColor=mix(vec3(.025,.037,.065),mix(vec3(.47,.52,.56),vec3(.97,.92,.81),edge),bright);
+    cloudColor=mix(cloudColor,vec3(.34,.37,.40)*(.2+.8*bright),cloudCover*.50);
+    color=mix(color,cloudColor,cloud*(.55+cloudCover*.38));
+    float star=step(.9992,hash3(floor(d*380.0)))*smoothstep(.04,.25,y)*(1.0-bright)*(1.0-bright);
+    color+=vec3(.48,.58,.78)*star*(1.0-cloud)*(1.0-cloudCover);
+    gl_FragColor=vec4(max(color,vec3(0.0)),1.0);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+   }`
+
  });
  ownedMaterials.push(skyMat);
  const sky=add(new T.Mesh(new T.SphereGeometry(185,36,24),skyMat));

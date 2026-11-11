@@ -46,3 +46,11 @@ All V43 art effects are generated locally; there is no background music or track
 - Weather-dependent atmospheric fog. Existing V44 travelling shadows, V43 graphics presets and all gameplay systems remain in place.
 
 V45 is a **visual improvement, not photorealism**. Its effects require desktop WebGL, and may cost additional GPU time on older computers.
+
+### V48 — detailed palms and atmospheric sky
+
+- Replaces the original box palm leaves and sphere crowns on WebGL with tapered bark trunks and pinnate fronds (1,870 leaf triangles per tree). Geometry and materials are shared; each tree uses two visible meshes.
+- Wind deforms foliage and its shadow using shared shader uniforms; strength increases in rain.
+- Atmospheric sky now includes smooth multi-octave clouds, a sun disc, sunset tint and sparse night stars, with renderer tone mapping and output color conversion.
+- Software-rendered sessions now display an honest graphics fallback notice. Original lightweight trees remain available in that path.
+- Validation: finite geometry/color attributes, shared resources, synchronized wind/shadow uniforms, JavaScript syntax and headless OpenGL compilation of the custom sky fragment shader. Full game WebGL visual QA remains limited by the browser environment.
