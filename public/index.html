@@ -466,6 +466,23 @@ button:focus-visible{outline:2px solid #fff0a5;outline-offset:3px}
  .v55-tip{display:none}
 }
 @media(prefers-reduced-motion:reduce){button,.v55-glow{transition:none!important;animation:none!important}}
+
+/* Vehicle controls V6.1: readable gear and physical steering feedback. */
+#fuelTitle{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#gearBadge{background:#d8bb7d;border-radius:6px;min-width:27px;text-align:center;padding:4px 6px;
+ font-family:Arial,sans-serif;color:#112531;font-size:13px;font-weight:1000;direction:ltr;box-shadow:0 2px 9px #0004}
+#gearBadge[data-gear="R"]{background:#f29d75;color:#292424}
+#gearBadge[data-gear="P"]{background:#f1a6a2;color:#31252d}
+#gearBadge[data-gear="D"]{background:#8eeac4;color:#123629}
+#driveReadout{font-size:10px;color:#e5dbc2;line-height:1.65;margin:5px 0 4px;white-space:normal}
+#steeringTrack{height:5px;border-radius:20px;margin-bottom:7px;position:relative;
+ background:linear-gradient(90deg,#65bece,#e5d2ab 50%,#65bece);box-shadow:inset 0 1px 5px #0005}
+#steeringNeedle{position:absolute;top:-4px;left:50%;height:13px;width:6px;border-radius:4px;
+ transform:translateX(-50%);background:#fff4ca;border:1px solid #163340;box-shadow:0 0 6px #ffcc6a}
+#fuelActions #handbrake{grid-column:1/3;background:#365766;border-color:#c7b7a0;font-weight:900}
+#fuelActions #handbrake[aria-pressed="true"]{background:#9a4e3a;border-color:#ffcda5;color:#fff0db}
+@media(max-width:760px){#driveReadout{font-size:9px}#fuelActions #handbrake{height:30px;font-size:9px}}
+@media(orientation:landscape) and (max-height:520px){#driveReadout{margin:2px 0;font-size:8px}#steeringTrack{margin-bottom:3px}}
 </style>
 <canvas id="world"></canvas><div class="hud"><div class="tag">CAIRO • OPEN WORLD • V6</div><div class="brand"><img class="logoHud" src="egypt-streets-logo.svg" alt="شوارع مصر — Egypt Streets"></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><div class="missionHeading"><span class="missionDot" aria-hidden="true"></span><small>المهمة الحالية</small><span class="missionChip">LIVE</span></div><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
  <strong id="cityTime">🕒 07:30</strong>
@@ -475,12 +492,15 @@ button:focus-visible{outline:2px solid #fff0a5;outline-offset:3px}
  <button id="cityWeatherBtn" type="button">غيّر الطقس</button></div>
  </section><div id="cityVersion">شوارع مصر • V6</div><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div>
 <section id="fuelHud" aria-live="off">
- <div id="fuelTitle">⛽ تانك العربية</div>
+ <div id="fuelTitle">⛽ تانك العربية <span id="gearBadge" aria-label="الغيار الحالي">N</span></div>
+ <div id="driveReadout" aria-live="off">🚗 واقف • الدريكسيون مستقيم</div>
+ <div id="steeringTrack" aria-hidden="true"><div id="steeringNeedle"></div></div>
  <div id="fuelMode">🚗 بنزين تلقائي</div>
  <div id="fuelAmount">16 / 45 لتر</div><div id="fuelCondition">🔧 حالة العربية 100% • 25°</div>
  <div id="fuelTrack"><div id="fuelFill"></div></div>
  <div id="fuelActions"><button id="autoDrive" type="button">⏸️ وقف البنزين التلقائي</button>
  <button id="autoPilot" type="button">🤖 قيادة ذاتية: شغالة</button>
+ <button id="handbrake" type="button" aria-pressed="false">🅿️ فرامل اليد: مفتوحة</button>
  <button id="fuelSlower" type="button">− سرعة</button><button id="fuelFaster" type="button">+ سرعة</button></div>
  <div id="fuelWarning"></div><div id="fuelStation"></div>
  <button id="fuelBtn" type="button">⛽ فوّل العربية</button><button id="fuelRepair" type="button">🔧 صلّح العربية</button>
