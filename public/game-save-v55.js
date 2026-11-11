@@ -36,7 +36,17 @@ export function sanitizeSnapshot(data){
   }:null,
   career:data.career&&typeof data.career==='object'?data.career:null,
   sideEvent:data.sideEvent&&typeof data.sideEvent==='object'?data.sideEvent:null,
-  autopilot:{enabled:!!data.autopilot?.enabled,index:Math.max(0,Math.floor(finite(data.autopilot?.index,0)))}
+  autopilot:{
+   enabled:!!data.autopilot?.enabled,
+   index:Math.max(0,Math.floor(finite(data.autopilot?.index,0))),
+   mode:data.autopilot?.mode==='gps'?'gps':'patrol',
+   goal:data.autopilot?.goal&&Number.isFinite(data.autopilot.goal.x)&&Number.isFinite(data.autopilot.goal.z)?
+     place(data.autopilot.goal,{x:0,z:0}):null,
+   label:String(data.autopilot?.label||'').slice(0,90),
+   routeIndex:Math.max(0,Math.floor(finite(data.autopilot?.routeIndex,0))),
+   arrived:!!data.autopilot?.arrived
+  },
+  gps:{mode:['job','delivery','side','fuel','tour'].includes(data.gps?.mode)?data.gps.mode:'tour'}
  };
 }
 export function createWorldSave({storage,clock=()=>Date.now(),intervalMs=2500}={}){
