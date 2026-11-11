@@ -15,7 +15,7 @@ export function installStreetDetailsV15({T,scene,box,sign,blocked=()=>false}){
   props.push({x,z,type:'نور شارع'});
  }
  // Added by shops and cross streets, not in the drive lanes.
- for(const x of [-70,-39,-8,20,70])for(const z of [-47,17,47]){
+ for(const x of [-103,-70,70,101])for(const z of [-47,17,47]){
   if(!blocked(x,z,.65))lamp(x,z);
  }
  for(const [i,[x,z]] of [[-73,-42],[-39,76],[9,76],[73,-16],[-83,46],[87,-78]].entries()){
