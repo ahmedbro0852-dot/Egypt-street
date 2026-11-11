@@ -75,7 +75,14 @@ function makeHero(){
  const root=new T.Group(),rig=new T.Group();root.add(rig);
  const skin=new T.MeshStandardMaterial({color:'#b78260',roughness:.88}),shirt=new T.MeshStandardMaterial({color:'#393b3e',roughness:1}),jeans=new T.MeshStandardMaterial({color:'#48627b',roughness:1}),hair=new T.MeshStandardMaterial({color:'#25201d',roughness:1}),shoe=new T.MeshStandardMaterial({color:'#d4cfc1',roughness:.95});
  function ell(parent,x,y,z,a,b,c,m){const mesh=new T.Mesh(new T.SphereGeometry(1,16,12),m);mesh.position.set(x,y,z);mesh.scale.set(a,b,c);parent.add(mesh);return mesh}
- function limb(x,y,len,r,m){let pivot=new T.Group();pivot.position.set(x,y,0);rig.add(pivot);ell(pivot,0,-len/2,0,r,len/2+.035,r,m);return pivot}
+ function limb(x,y,len,r,m){
+  const pivot=new T.Group();pivot.position.set(x,y,0);rig.add(pivot);
+  ell(pivot,0,-len/4,0,r,len/4+.033,r,m);
+  const joint=new T.Group();joint.position.y=-len/2;pivot.add(joint);
+  ell(joint,0,-len/4,0,r*.92,len/4+.04,r*.98,m);
+  pivot.userData.joint=joint;
+  return pivot;
+ }
  ell(rig,0,1.18,0,.29,.37,.17,shirt);ell(rig,0,.91,0,.26,.13,.16,shirt);
  ell(rig,0,1.55,0,.09,.12,.09,skin);
  const head=new T.Group();head.position.y=1.75;rig.add(head);
@@ -87,20 +94,42 @@ function makeHero(){
  for(const x of [-.063,.063]){ell(head,x,.035,.139,.034,.014,.012,eyeWhite);ell(head,x,.035,.151,.012,.013,.006,iris);ell(head,x,.068,.135,.041,.009,.012,hair);ell(head,Math.sign(x)*.16,-.005,0,.025,.052,.032,skin)}
  ell(head,0,-.084,.166,.045,.006,.007,mat('#795448'));
  const leftArm=limb(-.32,1.43,.32,.085,shirt),rightArm=limb(.32,1.43,.32,.085,shirt);
- for(const arm of [leftArm,rightArm]){ell(arm,0,-.41,.005,.065,.17,.065,skin);ell(arm,0,-.60,.018,.061,.085,.043,skin)}
- const watch=new T.Mesh(new T.CylinderGeometry(.071,.071,.045,12),hair);watch.position.set(0,-.51,.005);leftArm.add(watch);
+ for(const arm of [leftArm,rightArm]){
+  const forearm=arm.userData.joint;
+  ell(forearm,0,-.21,.014,.075,.08,.068,skin);
+  ell(forearm,0,-.30,.035,.061,.071,.053,skin);
+ }
+ const watch=new T.Mesh(new T.CylinderGeometry(.071,.071,.045,12),hair);
+ watch.position.set(0,-.235,.005);leftArm.userData.joint.add(watch);
  const leftLeg=limb(-.135,.86,.70,.105,jeans),rightLeg=limb(.135,.86,.70,.105,jeans);
- for(const leg of [leftLeg,rightLeg]){ell(leg,0,-.74,.055,.112,.085,.20,shoe);ell(leg,0,-.79,.055,.116,.025,.205,mat('#b5ae9f'))}
- root.userData={rig,leftArm,rightArm,leftLeg,rightLeg};return root;
+ for(const leg of [leftLeg,rightLeg]){
+  const knee=leg.userData.joint;
+  ell(knee,0,-.387,.085,.115,.07,.208,shoe);
+  ell(knee,0,-.435,.095,.118,.024,.210,mat('#b5ae9f'));
+ }
+ // Jacket seams, shirt neckline, shoe stitching and subtle face features.
+ ell(rig,0,1.34,.176,.145,.052,.02,mat('#55545b'));
+ ell(head,-.161,-.005,0,.022,.045,.032,skin);
+ ell(head,.161,-.005,0,.022,.045,.032,skin);
+ ell(head,0,-.083,.173,.055,.010,.010,mat('#74493d'));
+ root.userData={rig,leftArm,rightArm,leftLeg,rightLeg,
+  leftElbow:leftArm.userData.joint,rightElbow:rightArm.userData.joint,
+  leftKnee:leftLeg.userData.joint,rightKnee:rightLeg.userData.joint,head};
+ return root;
 }
 function animateHero(hero,phase,amount){
  const r=hero.userData;
  const strength=Math.min(1.5,Math.max(0,amount));
  const stride=Math.sin(phase),contact=Math.max(0,Math.sin(phase*2));
- r.leftLeg.rotation.x=stride*.54*strength;
- r.rightLeg.rotation.x=-stride*.54*strength;
- r.leftArm.rotation.x=-stride*.41*strength;
- r.rightArm.rotation.x=stride*.41*strength;
+ r.leftLeg.rotation.x=stride*.50*strength;
+ r.rightLeg.rotation.x=-stride*.50*strength;
+ r.leftKnee.rotation.x=-Math.max(0,-stride)*.43*strength;
+ r.rightKnee.rotation.x=-Math.max(0,stride)*.43*strength;
+ r.leftArm.rotation.x=-stride*.37*strength;
+ r.rightArm.rotation.x=stride*.37*strength;
+ r.leftElbow.rotation.x=.12+Math.max(0,stride)*.10*strength;
+ r.rightElbow.rotation.x=.12+Math.max(0,-stride)*.10*strength;
+ r.head.rotation.y=Math.sin(phase*.44)*.045*strength;
  // Opposing shoulder/hip motion, heel-lift and damped weight transfer.
  r.rig.rotation.y=Math.sin(phase)*.035*strength;
  r.rig.rotation.z=Math.sin(phase)*.021*strength;
