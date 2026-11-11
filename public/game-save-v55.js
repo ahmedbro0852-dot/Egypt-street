@@ -2,7 +2,7 @@
 export const SAVE_KEY_V55='egypt-street-world-v55';
 export const GAME_KEYS_V55=[
  SAVE_KEY_V55,'egypt-street-wallet-v4','egypt-street-fuel-v4',
- 'egypt-street-careers-v1','egypt-street-life-v5','egypt-streets-garage-v8','egypt-streets-rides-v15','egypt-streets-collisions-v18','egypt-streets-safety-v21','egypt-streets-races-v31','egypt-street-race-return-v32'
+ 'egypt-street-careers-v1','egypt-street-life-v5','egypt-streets-garage-v8','egypt-streets-rides-v15','egypt-streets-collisions-v18','egypt-streets-safety-v21','egypt-streets-races-v31','egypt-street-race-return-v32','egypt-streets-drift-v34'
 ];
 const finite=(v,d=0)=>Number.isFinite(v)?v:d;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
