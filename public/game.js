@@ -1,3 +1,4 @@
+import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
 import { createCairoRacesV31 } from './cairo-races-v31.js';
 import { isRaceArenaV32, RACE_ARENA_BOUNDS_V32 } from './race-arena-v32.js';
@@ -184,24 +185,6 @@ function makeHero(){
   leftElbow:leftArm.userData.joint,rightElbow:rightArm.userData.joint,
   leftKnee:leftLeg.userData.joint,rightKnee:rightLeg.userData.joint,head};
  return root;
-}
-function animateHero(hero,phase,amount){
- const r=hero.userData;
- const strength=Math.min(1.5,Math.max(0,amount));
- const stride=Math.sin(phase),contact=Math.max(0,Math.sin(phase*2));
- r.leftLeg.rotation.x=stride*.50*strength;
- r.rightLeg.rotation.x=-stride*.50*strength;
- r.leftKnee.rotation.x=-Math.max(0,-stride)*.43*strength;
- r.rightKnee.rotation.x=-Math.max(0,stride)*.43*strength;
- r.leftArm.rotation.x=-stride*.37*strength;
- r.rightArm.rotation.x=stride*.37*strength;
- r.leftElbow.rotation.x=.12+Math.max(0,stride)*.10*strength;
- r.rightElbow.rotation.x=.12+Math.max(0,-stride)*.10*strength;
- r.head.rotation.y=Math.sin(phase*.44)*.045*strength;
- // Opposing shoulder/hip motion, heel-lift and damped weight transfer.
- r.rig.rotation.y=Math.sin(phase)*.035*strength;
- r.rig.rotation.z=Math.sin(phase)*.021*strength;
- r.rig.position.y=contact*.035*strength;
 }
 const player=makeHero();scene.add(player);player.position.set(0,0,12);
 const crowd=createEgyptianCrowd(T,scene,(x,z)=>blocked(x,z,.38));
@@ -994,7 +977,7 @@ function frame(t){
    if(c.position[axis]<-82)c.position[axis]=82;
   }
   gait+=dt*Math.abs(speed)*2.8;
-  animateHero(player,gait,driving||!onFoot.grounded?0:Math.min(1,Math.abs(speed)/4.3));
+  animateHeroV31(player,gait,driving?0:Math.min(1,Math.abs(speed)/4.3),{dt,speed:driving?0:speed,grounded:driving||onFoot.grounded,vertical:onFoot.vy});
   crowd.update(dt,t,p,traffic,taxi,driving?vehicleState.speed:0);
   streetEvents.update(dt,t);
   career.update(dt,t);
@@ -1074,8 +1057,9 @@ function frame(t){
  rpm:v9Live.rpm,engineOn:driving&&drivingRealism.getState().engineOn,
  throttle:driving?Math.max(0,v9Live.throttleScale):0,
  skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather
-});v30.update(dt);renderer.render(scene,camera);
+});v30.update(dt);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});renderer.render(scene,camera);
 }
 try { installRealismRender({T,scene,renderer,sun}); } catch(error) { console.warn('Material quality pass unavailable',error); }
 const v30=createV30({getPlayer:()=>driving?taxi.position:player.position,getDriving:()=>driving,getActive:()=>active,getPaused:()=>paused,renderer,fresh:freshStartV55,onReward:amount=>{cash+=amount;$('money').textContent='ج.م '+Math.round(cash);saveWallet();toast('مكافأة رحلتك • +'+amount+' جنيه')}});
+const visualPolishV31=createVisualPolishV31({T,scene,renderer,player});
 requestAnimationFrame(frame);
