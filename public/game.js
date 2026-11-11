@@ -1,6 +1,7 @@
 import { createStreetAudio } from './street-audio.js';
 import * as T from './three.js';
 import { installCairo } from './cairo-city.js';
+import { createEgyptianCrowd } from './egyptian-crowd.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
 const $=id=>document.getElementById(id),scene=new T.Scene();scene.background=new T.Color('#b9d0cf');scene.fog=new T.Fog('#b9d0cf',65,190);let renderer;try{renderer=new T.WebGLRenderer({canvas:$('world'),antialias:true})}catch(e){const old=$('world'),c=old.cloneNode();old.replaceWith(c);const ctx=c.getContext('2d');let sw=0,sh=0;renderer={setPixelRatio(){},setSize(w,h){sw=c.width=w;sh=c.height=h},render(scene,camera){scene.updateMatrixWorld();camera.updateMatrixWorld();const view=new T.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse),faces=[];ctx.fillStyle='#b9d0cf';ctx.fillRect(0,0,sw,sh);scene.traverse(o=>{if(!o.isMesh||!o.visible||!o.parent.visible||o.userData.skipFallback)return;for(let ancestor=o.parent;ancestor;ancestor=ancestor.parent)if(!ancestor.visible)return;const center=new T.Vector3().setFromMatrixPosition(o.matrixWorld);if(center.distanceTo(camera.position)>95)return;const m=new T.Matrix4().multiplyMatrices(view,o.matrixWorld),pos=o.geometry.attributes.position,idx=o.geometry.index;const verts=[];for(let i=0;i<pos.count;i++)verts.push(new T.Vector3().fromBufferAttribute(pos,i).applyMatrix4(m));for(let i=0;i<(idx?idx.count:pos.count);i+=3){const a=verts[idx?idx.getX(i):i],b=verts[idx?idx.getX(i+1):i+1],d=verts[idx?idx.getX(i+2):i+2];if([a,b,d].some(v=>v.z>1||v.z< -1))continue;if((b.x-a.x)*(d.y-a.y)-(b.y-a.y)*(d.x-a.x)<0)continue;let color=o.material.color||new T.Color('#647b72');faces.push({a,b,d,z:(a.z+b.z+d.z)/3,color:'#'+color.getHexString()})}});faces.sort((a,b)=>b.z-a.z);for(let f of faces){ctx.fillStyle=f.color;ctx.beginPath();ctx.moveTo((f.a.x+1)*sw/2,(1-f.a.y)*sh/2);ctx.lineTo((f.b.x+1)*sw/2,(1-f.b.y)*sh/2);ctx.lineTo((f.d.x+1)*sw/2,(1-f.d.y)*sh/2);ctx.fill()}}};}renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));const camera=new T.PerspectiveCamera(62,1,.1,240);scene.add(new T.HemisphereLight(0xffe9c8,0x637278,2.6));const sun=new T.DirectionalLight(0xffd7a1,2.6);sun.position.set(-30,70,20);scene.add(sun);const solids=[];const mat=c=>new T.MeshLambertMaterial({color:c});const materials=new Map();function box(x,y,z,w,h,d,c,parent=scene){if(!materials.has(c))materials.set(c,mat(c));let m=new T.Mesh(new T.BoxGeometry(w,h,d),materials.get(c));m.position.set(x,y,z);parent.add(m);return m}box(0,-.2,0,460,.3,460,'#baa88a');
 const roads=[-60,-30,0,30,60];for(const n of roads){box(n,.01,0,11,.1,170,'#555e60');box(0,.01,n,170,.1,11,'#555e60');for(let k=-80;k<85;k+=8){box(n,.08,k,.16,.02,3,'#d6cba1');box(k,.08,n,3,.02,.16,'#d6cba1')}}
@@ -86,7 +87,8 @@ function makeHero(){
 }
 function animateHero(hero,phase,amount){const r=hero.userData;r.leftLeg.rotation.x=Math.sin(phase)*.65*amount;r.rightLeg.rotation.x=-Math.sin(phase)*.65*amount;r.leftArm.rotation.x=-Math.sin(phase)*.5*amount;r.rightArm.rotation.x=Math.sin(phase)*.5*amount;r.rig.position.y=Math.abs(Math.sin(phase))*.035*amount;}
 const player=makeHero();scene.add(player);player.position.set(0,0,12);
-const walkers=[];for(let i=0;i<18;i++){let g=makeHero();g.position.set(roads[i%5]+7,0,-70+i*8);scene.add(g);walkers.push(g)}
+const crowd=createEgyptianCrowd(T,scene,(x,z)=>blocked(x,z,.38));
+const walkers=crowd.people; // Forty unique residents
 
 const target=new T.Vector3(62,0,-50);let beacon=new T.Mesh(new T.CylinderGeometry(2,2,.12,32),new T.MeshBasicMaterial({color:0xffcd68,transparent:true,opacity:.7}));scene.add(beacon);let pillar=new T.Mesh(new T.CylinderGeometry(.25,.25,13,12),new T.MeshBasicMaterial({color:0xffd57e,transparent:true,opacity:.45}));scene.add(pillar);
 const sound=createStreetAudio();let pedal=0;for(const [id,value] of [['accelerate',1],['reverse',-1]]){const b=$(id);b.onpointerdown=e=>{pedal=value;b.setPointerCapture(e.pointerId);sound.start()};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>pedal=0;} $('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;keys={};joy.x=joy.y=0;sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;const vehicleState=createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y);let dragSteer=0,bumpCooldown=0;let toastTimer;function toast(s){$('toast').textContent=s;clearTimeout(toastTimer);$('toast').style.opacity=1;toastTimer=setTimeout(()=>$('toast').style.opacity=.15,4500)}$('start').onclick=()=>{sound.start();active=true;$('intro').style.display='none';toast('قرب من العربية الصفرا واضغط اركب')};function enter(){
@@ -182,8 +184,9 @@ function frame(t){
    const desired=f*(sprint||keys.shift?7.5:4.3);
    speed=T.MathUtils.damp(speed,desired,desired?9:13,dt);
    const nx=p.x+Math.sin(yaw)*speed*dt,nz=p.z+Math.cos(yaw)*speed*dt;
-   if(!blocked(nx,p.z,.43)&&!traffic.some(c=>Math.hypot(nx-c.position.x,p.z-c.position.z)<1.15))p.x=nx;else speed*=.23;
-   if(!blocked(p.x,nz,.43)&&!traffic.some(c=>Math.hypot(p.x-c.position.x,nz-c.position.z)<1.15))p.z=nz;else speed*=.23;
+   const npcNear=(x,z)=>walkers.some(w=>Math.hypot(x-w.position.x,z-w.position.z)<.85);
+   if(!blocked(nx,p.z,.43)&&!traffic.some(c=>Math.hypot(nx-c.position.x,p.z-c.position.z)<1.15)&&!npcNear(nx,p.z))p.x=nx;else speed*=.23;
+   if(!blocked(p.x,nz,.43)&&!traffic.some(c=>Math.hypot(p.x-c.position.x,nz-c.position.z)<1.15)&&!npcNear(p.x,nz))p.z=nz;else speed*=.23;
    player.rotation.y=yaw;
   }
   // Existing ambient traffic, pedestrians and delivery tasks remain active.
@@ -200,11 +203,7 @@ function frame(t){
   }
   gait+=dt*Math.abs(speed)*2.8;
   animateHero(player,gait,driving?0:Math.min(1,Math.abs(speed)/4.3));
-  for(const [i,g] of walkers.entries()){
-   animateHero(g,t*.0025+i,.45);
-   g.position.z+=dt*.65;
-   if(g.position.z>80)g.position.z=-80;
-  }
+  crowd.update(dt,t,p,traffic,taxi);
   if(driving&&p.distanceTo(target)<4&&Math.abs(speed)<10){
    cash+=150;completed++;
    $('money').textContent='ج.م '+cash;
