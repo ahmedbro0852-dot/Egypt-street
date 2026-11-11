@@ -2,7 +2,7 @@
 export const SAVE_KEY_V55='egypt-street-world-v55';
 export const GAME_KEYS_V55=[
  SAVE_KEY_V55,'egypt-street-wallet-v4','egypt-street-fuel-v4',
- 'egypt-street-careers-v1','egypt-street-life-v5'
+ 'egypt-street-careers-v1','egypt-street-life-v5','egypt-streets-garage-v8'
 ];
 const finite=(v,d=0)=>Number.isFinite(v)?v:d;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -47,7 +47,12 @@ export function sanitizeSnapshot(data){
    routeIndex:Math.max(0,Math.floor(finite(data.autopilot?.routeIndex,0))),
    arrived:!!data.autopilot?.arrived
   },
-  gps:{mode:['job','delivery','side','fuel','tour'].includes(data.gps?.mode)?data.gps.mode:'tour'}
+  gps:{mode:['job','delivery','side','fuel','tour'].includes(data.gps?.mode)?data.gps.mode:'tour'},
+  garage:data.garage&&typeof data.garage==='object'?{
+    selected:['taxi','sedan','sport','motorbike'].includes(data.garage.selected)?data.garage.selected:'taxi',
+    owned:Array.isArray(data.garage.owned)?data.garage.owned.filter(x=>['taxi','sedan','sport','motorbike'].includes(x)):['taxi'],
+    upgrades:Object.fromEntries(['engine','brakes','tyres'].map(k=>[k,Math.max(0,Math.min(3,Math.floor(Number(data.garage.upgrades?.[k])||0)))]))
+  }:null
  };
 }
 export function createWorldSave({storage,clock=()=>Date.now(),intervalMs=2500}={}){
