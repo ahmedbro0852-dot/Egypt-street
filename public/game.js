@@ -1,5 +1,6 @@
 import { createV30 } from './v30-expedition.js';
 import { createCairoRacesV31 } from './cairo-races-v31.js';
+import { isRaceArenaV32, RACE_ARENA_BOUNDS_V32 } from './race-arena-v32.js';
 import { installRealismRender } from './realism-render-v16.js';
 import { createStreetAudio } from './street-audio.js';
 import * as T from './three.js';
@@ -371,6 +372,8 @@ function activateGarageVehicle(id){
  }
 }
 let raceSystem=null;
+let raceModeV32=false,raceReturnPointV32=null;
+const RACE_RETURN_KEY_V32='egypt-street-race-return-v32';
 const currentRaceVehicleId=()=>{
  const race=raceSystem?.getRace();
  return race?.id==='formula'?'sport':race?.id==='moto'?'motorbike':garage.getVehicle().id;
@@ -450,6 +453,12 @@ raceSystem=createCairoRacesV31({
  requestDrive:()=>{if(!driving)enter();return driving},
  prepareCar:(course,spawn)=>{
   if(!driving)return false;
+  raceReturnPointV32={
+   x:vehicleState.x,z:vehicleState.z,yaw:vehicleState.yaw,
+   cameraYaw,cameraMode
+  };
+  try{walletStorage?.setItem(RACE_RETURN_KEY_V32,JSON.stringify(raceReturnPointV32))}catch(e){}
+  raceModeV32=true;
   autoDriver.stop();updateAutoPilotLabel();
   parkingBrake=false;updateParkingUi();
   Object.assign(vehicleState,createVehiclePhysics(spawn.x,spawn.z,spawn.yaw));
@@ -474,7 +483,17 @@ raceSystem=createCairoRacesV31({
   saveWorld(true);return true;
  },
  restoreCar:()=>{
+  const back=raceReturnPointV32||{x:2,z:8,yaw:0,cameraYaw:0,cameraMode:'wide'};
+  raceModeV32=false;
   activeVehicle.visible=false;
+  Object.assign(vehicleState,createVehiclePhysics(back.x,back.z,back.yaw));
+  taxi.position.set(back.x,0,back.z);taxi.rotation.y=back.yaw;
+  player.position.copy(taxi.position);yaw=back.yaw;speed=0;
+  cameraYaw=back.cameraYaw??back.yaw;cameraFreeUntil=0;
+  cameraMode=back.cameraMode==='cockpit'?'wide':back.cameraMode||'wide';
+  cameraNear=cameraMode==='near';
+  raceReturnPointV32=null;
+  try{walletStorage?.removeItem(RACE_RETURN_KEY_V32)}catch(e){}
   activateGarageVehicle(garage.getVehicle().id);
   $('controlsHint').textContent='🧭 GPS للمهمات • العصاية للتحكم اليدوي';
   saveWorld(true);
@@ -548,6 +567,18 @@ function saveWorld(force=false){
 }
 function restoreWorld(state){
  if(!state)return false;
+ // Save snapshots taken during a race must never strand the player in an
+ // empty arena after refreshing (the in-progress tournament is not resumed).
+ if(isRaceArenaV32(state.taxi.x,state.taxi.z)){
+  let back=null;
+  try{back=JSON.parse(walletStorage?.getItem(RACE_RETURN_KEY_V32)||'null')}catch(e){}
+  if(!back||!Number.isFinite(back.x)||!Number.isFinite(back.z)||
+     isRaceArenaV32(back.x,back.z))back={x:2,z:8,yaw:0,cameraYaw:0,cameraMode:'wide'};
+  state={...state,taxi:{...state.taxi,x:back.x,z:back.z,yaw:back.yaw||0},
+    player:{...state.player,x:back.x,z:back.z},
+    cameraYaw:back.cameraYaw??back.yaw??0,cameraMode:'wide'};
+  try{walletStorage?.removeItem(RACE_RETURN_KEY_V32)}catch(e){}
+ }
  // The stand-alone wallet key is updated immediately after purchases and rewards.
  if(!hasSavedWallet)cash=state.money;
  $('money').textContent='ج.م '+Math.round(cash);
@@ -689,10 +720,17 @@ worldCanvas.onpointerup=worldCanvas.onpointercancel=worldCanvas.onlostpointercap
  if(drag&&drag.id===e.pointerId)drag=null;
 };
 function blocked(x,z,radius=.45){
+ if(isRaceArenaV32(x,z)){
+  if(!raceModeV32)return true;
+  const b=RACE_ARENA_BOUNDS_V32;
+  return x<b.left+radius||x>b.right-radius||
+         z<b.top+radius||z>b.bottom-radius;
+ }
  if(Math.abs(x)>218-radius||Math.abs(z)>168-radius||cairo.isWater(x,z))return true;
  return solids.some(b=>Math.abs(x-b.x)<b.w+radius&&Math.abs(z-b.z)<b.d+radius)
 }
 function roadGrip(x,z){
+ if(raceModeV32&&isRaceArenaV32(x,z))return 1.09;
  // Asphalt grips better than dusty pavements and unpaved blocks.
  const localRoad=(Math.abs(z)<84&&roads.some(n=>Math.abs(x-n)<6.8)) ||
         (Math.abs(x)<84&&roads.some(n=>Math.abs(z-n)<6.8));
@@ -762,6 +800,11 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
  }
  const racePoint=raceSystem?.getRace()?.waypoint;
  if(racePoint){
+  const circuit=raceSystem.getCourses()[0].points;
+  map.strokeStyle='#f0bd69';map.lineWidth=5;
+  map.beginPath();map.moveTo(mx(circuit[0][0]),mz(circuit[0][1]));
+  for(const [rx,rz] of circuit.slice(1))map.lineTo(mx(rx),mz(rz));
+  map.closePath();map.stroke();
   map.strokeStyle='#ffca62';map.lineWidth=3;
   map.beginPath();map.arc(mx(racePoint.x),mz(racePoint.z),8,0,Math.PI*2);map.stroke();
   map.fillStyle='#ffce79';map.font='bold 11px Arial';map.fillText('🏁',mx(racePoint.x)-5,mz(racePoint.z)-10);
@@ -816,7 +859,9 @@ function frame(t){
    const racingId=currentRaceVehicleId();
    const tune={...garage.getTuning(),...getVehicleDynamicsV19(racingId)};
    if(racingId==='sport'&&raceSystem?.isFormula()){tune.topSpeed=52;tune.engineForce=10100}
-   const roadSurface=realisticRoads.surfaceAt(vehicleState.x,vehicleState.z);
+   const roadSurface=raceModeV32&&isRaceArenaV32(vehicleState.x,vehicleState.z)?
+    {grip:1.05,bump:0,height:0,onRoad:true,roadType:'race circuit'}:
+    realisticRoads.surfaceAt(vehicleState.x,vehicleState.z);
    const tyreGrip=roadGrip(p.x,p.z)*cityLife.grip()*streetDetails.grip(p.x,p.z)*
        roadSurface.grip*tune.gripScale;
    const steer=autopilot.active?autopilot.steer:manualSteer;
@@ -849,7 +894,7 @@ function frame(t){
       braking?'🔵 فرملة متحكم فيها • ABS جاهز':'🟢 ABS جاهز';
     lastAbsUiV21=t;
    }
-   cityLife.observeDriving(oldPos,vehicleState);
+   if(!raceModeV32)cityLife.observeDriving(oldPos,vehicleState);
    taxi.position.x=vehicleState.x;taxi.position.z=vehicleState.z;
    taxi.position.y=T.MathUtils.damp(taxi.position.y,roadSurface.height||0,5.5,dt);
    fuelSystem.update(dt,t,throttle,v9Live.engineOn);
