@@ -19,9 +19,11 @@ export function updateCarWheels(car,physical,dt=1/60){
    const side=meta.side??Math.sign(wheel.position.x);
    // Steer around the vertical kingpin, spin around the axle in a *child* group.
    wheel.rotation.y=front?(side<0?angles.left:angles.right):0;
+   // Wheel angular velocity depends on its radius: bike wheels are smaller.
+   const spin=(physical.wheelSpin||0)*(WHEEL_RADIUS/(meta.radius||WHEEL_RADIUS));
    if(meta.rolling){
-     meta.rolling.rotation.x=physical.wheelSpin||0;
-   }else wheel.rotation.x=physical.wheelSpin||0;
+     meta.rolling.rotation.x=spin;
+   }else wheel.rotation.x=spin;
    if(Number.isFinite(meta.baseY)){
      // Tyres contact the road: subtle unsprung oscillation only.
      const roadRipple=Math.min(.025,Math.abs(physical.speed||0)*.0012);
