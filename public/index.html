@@ -164,8 +164,43 @@ button:focus-visible{outline:2px solid #ffe293}
  #sound{display:none}
  #fuelWarning,#fuelStation{font-size:9px;margin-top:3px}
 }
+
+/* V5: Cairo life dashboard, weather and realistic traffic rules. */
+#lifeV5{position:fixed;z-index:16;top:11px;left:12px;padding:9px 11px;
+ width:168px;max-width:44vw;border-radius:15px;pointer-events:none;
+ background:linear-gradient(145deg,#112632eb,#172c37ef);border:1px solid #afd6e46e;
+ color:#e5f3ef;box-shadow:0 6px 21px #0006;direction:rtl}
+#lifeV5 strong{font-size:12px;color:#ffe3a3;display:block}
+#lifeV5 span{font-size:10px;display:block;margin-top:5px;line-height:1.35}
+#lifeButtons{display:flex;gap:5px;margin-top:8px;pointer-events:auto}
+#lifeButtons button{border-radius:8px;width:50%;height:29px;padding:2px;font-size:10px;
+ background:#2c5366;border:1px solid #a5ced57d;touch-action:manipulation}
+#cityLaw{color:#bce5b5}
+#cityVersion{position:fixed;top:8px;left:186px;z-index:10;color:#ffe6ac;
+ font:900 10px Tahoma,Arial,sans-serif;text-shadow:0 2px 6px #0008;pointer-events:none}
+@media(max-width:760px){
+ #lifeV5{left:8px;top:121px;width:156px;max-width:45vw;padding:7px 8px}
+ #lifeV5 strong{font-size:11px}
+ #lifeV5 span{font-size:9px;margin-top:3px}
+ #lifeButtons button{height:27px;font-size:9px}
+ #cityVersion{top:126px;left:172px}
+ #map{top:15px!important;left:10px!important}
+ #eventPanel{top:260px}
+ #jobsBtn{bottom:269px}
+}
+@media(orientation:landscape) and (max-height:520px){
+ #lifeV5{top:13px;left:8px;width:140px;max-width:28vw}
+ #cityVersion{top:115px;left:10px}
+ #eventPanel{top:12px;left:158px;max-width:150px}
+}
 </style>
-<canvas id="world"></canvas><div class="hud"><div class="tag">OPEN WORLD • EARLY BUILD</div><div class="brand">شوارع مصر<span style="color:#ffca6d">.</span></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><small>● المهمة الحالية</small><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div>
+<canvas id="world"></canvas><div class="hud"><div class="tag">OPEN WORLD • EARLY BUILD</div><div class="brand">شوارع مصر<span style="color:#ffca6d">.</span></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><small>● المهمة الحالية</small><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
+ <strong id="cityTime">🕒 07:30</strong>
+ <span id="cityWeather">☀️ صحو</span>
+ <span id="cityLaw">🚦 إشارات مرور ومخالفات</span>
+ <div id="lifeButtons"><button id="cityNight" type="button">🌙 الليل</button>
+ <button id="cityWeatherBtn" type="button">غيّر الطقس</button></div>
+ </section><div id="cityVersion">شوارع مصر • V5</div><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div>
 <section id="fuelHud" aria-live="off">
  <div id="fuelTitle">⛽ تانك العربية</div>
  <div id="fuelMode">🚗 بنزين تلقائي</div>
@@ -186,4 +221,4 @@ button:focus-visible{outline:2px solid #ffe293}
  <article class="jobCard"><b>☕ عامل قهوة</b><small>قدّم طلبات للمحلات والزبائن</small><em>240 ج.م / وردية</em><button id="careerCafe">قدّم على الشغل</button></article>
  </div><div id="jobsSummary"></div><button id="jobsCancel">إلغاء الوردية الحالية</button></section>
  <section id="workHud" aria-live="polite"><div id="workHudTitle"></div><div id="workHudText"></div></section>
- <button id="workAction" type="button">نفّذ المهمة</button><div id="toast">حي النيل • القاهرة</div><div id="npcDialogue" role="status" aria-live="polite"></div><div id="intro" class="overlay"><div class="intro"><div class="eyebrow">مصر • عالم مفتوح • نسخة أولية</div><h1>الشارع<br><span style="color:#ffca6d">حكايتك.</span></h1><p>انزل الحي، خد لفة بالعربية، ووصّل أول طلب ليك. بطل جديد بتصميم مستوحى من الشخصية المصرية اللي اخترناها. المجسم الحالي نسخة مبسطة للموبايل، ولسه بنطوّر واقعيته.</p><img class="reference" src="character-reference.jpg" alt="تصميم البطل من الأمام والجانب والخلف"><button id="start" class="primary">يلا نلعب ←</button><p class="hint">الموبايل: البنزين بيشتغل تلقائيًا بعد الركوب. العصاية للدريكسيون، «سرعة +» و«− سرعة» لتحديد سرعتك، الفرامل للتوقف، و«وقف التلقائي» للركن. قرب من بنزينة ووقف عشان تفوّل من رصيدك.<br>كمبيوتر: WASD/الأسهم • E للركوب • F للتفاعل • Shift للجري • Space للقفز مشي/الفرامل قيادة</p></div></div><script type="module" src="game.js"></script></html>
+ <button id="workAction" type="button">نفّذ المهمة</button><div id="toast">حي النيل • القاهرة</div><div id="npcDialogue" role="status" aria-live="polite"></div><div id="intro" class="overlay"><div class="intro"><div class="eyebrow">مصر • عالم مفتوح • نسخة أولية</div><h1>الشارع<br><span style="color:#ffca6d">حكايتك.</span></h1><p>انزل الحي، خد لفة بالعربية، ووصّل أول طلب ليك. بطل جديد بتصميم مستوحى من الشخصية المصرية اللي اخترناها. المجسم الحالي نسخة مبسطة للموبايل، ولسه بنطوّر واقعيته.</p><img class="reference" src="character-reference.jpg" alt="تصميم البطل من الأمام والجانب والخلف"><button id="start" class="primary">يلا نلعب ←</button><p class="hint">الموبايل: البنزين بيشتغل تلقائيًا بعد الركوب. العصاية للدريكسيون، «سرعة +» و«− سرعة» لتحديد سرعتك، الفرامل للتوقف، و«وقف التلقائي» للركن. في V5 الإشارات بتتغير والمطر بيقلل تماسك الطريق، وزر «الليل» لتجربة الإضاءة. قرب من بنزينة ووقف عشان تفوّل من رصيدك.<br>كمبيوتر: WASD/الأسهم • E للركوب • F للتفاعل • Shift للجري • Space للقفز مشي/الفرامل قيادة</p></div></div><script type="module" src="game.js"></script></html>
