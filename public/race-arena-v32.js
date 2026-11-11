@@ -45,7 +45,7 @@ export function createRaceArenaV32({T,scene}={}){
      return [part.x+lx*cos+lz*sin-bin.cx,part.y+iy*part.h/2,
       part.z-lx*sin+lz*cos-bin.cz];
     });
-    for(const [a,b,c,d] of faces)for(const n of [a,b,c,a,c,d])
+    for(const [a,b,c,d] of faces)for(const n of [a,c,b,a,d,c])
      vertices.push(...positions[n]);
    }
    const geo=new T.BufferGeometry();
