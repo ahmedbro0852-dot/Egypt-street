@@ -391,15 +391,17 @@ const drivingRealism=createDrivingRealismV9({notify:message=>toast(message)});
 const collisionWorld=createCollisionPhysicsV18({
  traffic,pedestrians:walkers,storage:walletStorage,
  getVehicleType:()=>garage.getVehicle().id,
+ getVehicleMass:()=>getVehicleDynamicsV19(garage.getVehicle().id).mass,
  registerDamage:force=>fuelSystem.registerImpact(force),
- reactPedestrian:(resident,away,power,time)=>crowd.reactCollision(resident,away,power,time),
+ reactPedestrian:(resident,away,power,time,physics)=>
+    crowd.reactCollision(resident,away,power,time,physics),
  notify:message=>toast(message),sound:(severity,kind)=>sound.impact(severity,kind),
  charge:cost=>{
   if(cash+.00001<cost)return false;
   cash=Math.max(0,Math.round((cash-cost)*10)/10);
   $('money').textContent='ج.م '+Math.round(cash);saveWallet();return true;
  },
- ui:$('collisionStatus')
+ ui:$('collisionStatus'),forceUi:$('pedestrianForceV20')
 });
 const multiBodyV19=createMultiBodyV19({
  traffic,getId:()=>garage.getVehicle().id,
