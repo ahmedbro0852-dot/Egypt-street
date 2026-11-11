@@ -1,3 +1,4 @@
+import { createMobileExperienceV40, tuneStickV40 } from './mobile-experience-v40.js';
 import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
 import { createCairoRacesV31 } from './cairo-races-v31.js';
@@ -687,7 +688,7 @@ function resetPad(){joy.x=0;joy.y=0;if(knob)knob.style.transform='translate(0px,
 function stickMove(e){
  const r=pad.getBoundingClientRect(),radius=Math.max(20,Math.min(r.width,r.height)*.5-22);
  const x=e.clientX-r.left-r.width*.5,y=e.clientY-r.top-r.height*.5;
- joy=stickFromPointer(x,y,radius);
+ joy=tuneStickV40(stickFromPointer(x,y,radius),mobileV40.getSettings().deadzone);
  knob.style.transform='translate('+Math.round(joy.x*radius)+'px,'+Math.round(joy.y*radius)+'px)';
 }
 pad.onpointerdown=e=>{
@@ -710,7 +711,8 @@ worldCanvas.onpointerdown=e=>{
 };
 worldCanvas.onpointermove=e=>{
  if(!drag||drag.id!==e.pointerId)return;
- const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+ const sensitivity=mobileV40.getSettings().sensitivity;
+ const dx=(e.clientX-drag.x)*sensitivity,dy=(e.clientY-drag.y)*sensitivity;
  if(driving&&cameraMode==='cockpit'){
   cockpitLook=Math.max(-.70,Math.min(.70,cockpitLook-dx*.0042));
  }else{
@@ -1033,7 +1035,7 @@ function frame(t){
  else document.body.classList.remove('cockpitActive');
  if(driving)activeVehicle.visible=!interior;
  else activeVehicle.visible=true;
- const desiredFov=interior?68:62+(driving?Math.min(6,Math.abs(speed)*.16):0);
+ const desiredFov=interior?68:62+(driving&&!mobileV40.getSettings().steady?Math.min(6,Math.abs(speed)*.16):0);
  const nextFov=camera.fov+(desiredFov-camera.fov)*(1-Math.exp(-dt*2.5));
  if(Math.abs(nextFov-camera.fov)>.018){camera.fov=nextFov;camera.updateProjectionMatrix();}
  if(interior){
@@ -1088,9 +1090,10 @@ function frame(t){
  rpm:v9Live.rpm,engineOn:driving&&drivingRealism.getState().engineOn,
  throttle:driving?Math.max(0,v9Live.throttleScale):0,
  skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather
-});v30.update(dt);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});renderer.render(scene,camera);
+});v30.update(dt);mobileV40.update();visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});renderer.render(scene,camera);
 }
 try { installRealismRender({T,scene,renderer,sun}); } catch(error) { console.warn('Material quality pass unavailable',error); }
 const v30=createV30({getPlayer:()=>driving?taxi.position:player.position,getDriving:()=>driving,getActive:()=>active,getPaused:()=>paused,renderer,fresh:freshStartV55,onReward:amount=>{cash+=amount;$('money').textContent='ج.م '+Math.round(cash);saveWallet();toast('مكافأة رحلتك • +'+amount+' جنيه')}});
 const visualPolishV31=createVisualPolishV31({T,scene,renderer,player});
+const mobileV40=createMobileExperienceV40({getActive:()=>active,getPaused:()=>paused,setPaused:value=>{paused=value;$('pause').textContent=paused?'▶':'Ⅱ'},resetInput:()=>{keys={};pedal=0;brakePedal=false;sprint=false;reverseKeyHeld=false;reversePressed=false;driftHeldV34=false;jumpRequested=false;drag=null;resetPad()},notify:toast});
 requestAnimationFrame(frame);
