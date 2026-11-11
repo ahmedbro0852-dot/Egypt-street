@@ -19,21 +19,26 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
  const throttle=clamp(Number.isFinite(input.throttle)?input.throttle:0,-1,1);
  const steering=clamp(Number.isFinite(input.steer)?input.steer:0,-1,1);
  const braking=!!input.brake,oldSpeed=p.speed;
- const grip=clamp(Number.isFinite(input.grip)?input.grip:1,.50,1.10);
+ const tuning=input.tuning||{};
+ const engineScale=clamp(Number.isFinite(tuning.engineScale)?tuning.engineScale:1,.6,1.85);
+ const brakeScale=clamp(Number.isFinite(tuning.brakeScale)?tuning.brakeScale:1,.65,1.65);
+ const steerScale=clamp(Number.isFinite(tuning.steerScale)?tuning.steerScale:1,.7,1.45);
+ const topSpeed=clamp(Number.isFinite(tuning.topSpeed)?tuning.topSpeed:MAX_FORWARD,24,56);
+ const grip=clamp(Number.isFinite(input.grip)?input.grip:1,.45,1.25);
  let impact=0,collision=false,maxSlip=0,sideAccel=0;
  const steps=Math.max(1,Math.ceil(dt/(1/120))),h=dt/steps;
  for(let i=0;i<steps;i++){
    const speed=Math.abs(p.speed);
    // Quick city steering while reducing lock for highway stability.
-   p.steer=damp(p.steer,steering*.63/(1+speed*.029),10.5,h);
+   p.steer=damp(p.steer,steering*steerScale*.63/(1+speed*.029),10.5,h);
    const engine=throttle>0?throttle*7350*Math.max(.43,1-.013*speed):
                 throttle<0?throttle*3550:0;
-   let fx=engine;
-   if(braking)fx=-Math.sign(p.speed)*Math.min(9800*grip,Math.abs(p.speed)*MASS/h);
+   let fx=engine*engineScale;
+   if(braking)fx=-Math.sign(p.speed)*Math.min(9800*grip*brakeScale,Math.abs(p.speed)*MASS/h);
    const drag=(Math.abs(p.speed)>.03?Math.sign(p.speed):0)*
      (190+.48*speed*speed+(Math.abs(throttle)<.06?560:0)+(1-grip)*800);
    fx-=drag;
-   if(braking)fx=clamp(fx,-9800*grip,9800*grip);
+   if(braking)fx=clamp(fx,-9800*grip*brakeScale,9800*grip*brakeScale);
    const usedGrip=clamp(Math.abs(fx)/(MU*MASS*G),0,.92);
    const fg=MU*FRONT_LOAD*grip*Math.sqrt(1-usedGrip*usedGrip*.65);
    const rg=MU*REAR_LOAD*grip*Math.sqrt(1-usedGrip*usedGrip*.85);
@@ -44,11 +49,11 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
    maxSlip=Math.max(maxSlip,Math.abs(aFront),Math.abs(aRear));
    const longAcc=fx/MASS+p.lateralSpeed*p.yawRate;
    let u=p.speed+longAcc*h;
-   if(!braking&&throttle>0&&p.speed>=MAX_FORWARD)u=Math.min(u,p.speed);
+   if(!braking&&throttle>0&&p.speed>=topSpeed)u=Math.min(u,p.speed);
    if(!braking&&throttle<0&&p.speed<=-MAX_REVERSE)u=Math.max(u,p.speed);
    if(braking&&(p.speed===0||Math.sign(u)!==Math.sign(p.speed)))u=0;
    if(Math.abs(throttle)<.05&&Math.abs(u)<.03)u=0;
-   u=clamp(u,-MAX_REVERSE,MAX_FORWARD);
+   u=clamp(u,-MAX_REVERSE,topSpeed);
    const latAcc=(fFront*Math.cos(p.steer)+fRear)/MASS-p.speed*p.yawRate;
    const yawAcc=(LF*fFront*Math.cos(p.steer)-LR*fRear)/IZ;
    const slowYaw=(u/WHEELBASE)*Math.tan(p.steer);
