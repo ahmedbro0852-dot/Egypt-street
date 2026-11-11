@@ -9,7 +9,7 @@ export const PETROL_STATIONS=[
 export const TANK_CAPACITY=45;
 export const FUEL_PRICE=6; // purely fictional gameplay rate, not a real-world price.
 const SAVE_KEY='egypt-street-fuel-v4';
-export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpeed,isDriving,getMoney,charge,notify}){
+export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpeed,isDriving,isEngineRunning=()=>false,getMoney,charge,notify}){
  let fuel=16,auto=true,target=75,spent=0,totalKm=0,lastSave=0,warning=false,atStation=null,condition=100,temperature=25,lastDamageWarn=0;
  try{
   const saved=JSON.parse(storage?.getItem(SAVE_KEY)||'null');
@@ -136,6 +136,7 @@ export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpe
   const nearStation=station();
   if(!isDriving()||!nearStation){notify('لازم تكون بالعربية جنب محطة بنزين.');return false}
   if(!isStopped()){notify('وقف العربية تمام قبل التفويل.');return false}
+  if(isEngineRunning()){notify('🔑 لازم تطفّي الموتور قبل تفويل البنزين — اضغط زر المفتاح.');return false}
   const short=TANK_CAPACITY-fuel;
   const litres=Math.floor(Math.min(short,getMoney()/FUEL_PRICE)*10)/10;
   if(litres<.1){notify('الفلوس مش كفاية لتفويل العربية.');return false}
