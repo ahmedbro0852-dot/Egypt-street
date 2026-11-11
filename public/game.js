@@ -65,7 +65,9 @@ function car(color){
  let mirror=part(new T.SphereGeometry(1,12,8),paint,side*1.02,1.17,.81);mirror.scale.set(.16,.085,.12);cub(side*1.11,1.17,.78,.015,.09,.13,glass);
  cub(side*.9,.47,0,.10,.09,2.5,paint);
  }
- cub(0,.58,2.11,1.51,.18,.10,black);cub(0,.54,-2.12,1.52,.13,.09,black);
+ const frontBumper=cub(0,.58,2.11,1.51,.18,.10,black);
+ const rearBumper=cub(0,.54,-2.12,1.52,.13,.09,black);
+ g.userData.damagePanels={frontBumper,rearBumper,paint};
  cub(0,.79,2.145,.63,.22,.025,black);
  for(let y=.72;y<.89;y+=.045)cub(0,y,2.166,.59,.012,.015,chrome);
  const lamp=new T.MeshStandardMaterial({color:'#f4f0dc',emissive:'#fff1bc',emissiveIntensity:.65,roughness:.15});
@@ -328,6 +330,18 @@ const gps=createGpsV6({
 // Shared taxi anchor keeps existing GPS, camera, collisions and autosave intact.
 const garageModels={taxi};
 let activeVehicle=taxi;
+function updateCrashBodyVisual(model,condition){
+ const panels=model?.userData?.damagePanels;
+ if(!panels)return;
+ const wear=Math.max(0,Math.min(.88,(100-(Number(condition)||100))/95));
+ // Minor bumper deformation and scuffed paint survive a page refresh via saved condition.
+ panels.frontBumper.position.z=2.11-wear*.26;
+ panels.frontBumper.rotation.y=wear*.16;
+ panels.rearBumper.position.z=-2.12+wear*.15;
+ panels.rearBumper.rotation.y=-wear*.09;
+ panels.paint.roughness=.29+wear*.38;
+ panels.paint.metalness=.65-wear*.24;
+}
 function activateGarageVehicle(id){
  if(id!=='taxi'&&!garageModels[id]){
   const model=id==='motorbike'?motorcycle('#c74337'):
@@ -763,6 +777,7 @@ function frame(t){
    else activeVehicle.rotation.z=Math.min(.16,Math.max(-.16,vehicleState.roll*.75));
    player.position.copy(taxi.position);
    updateCarWheels(activeVehicle,vehicleState,dt);
+   updateCrashBodyVisual(activeVehicle,fuelSystem.getState().condition);
    if(result.collision){
     // Dynamic bodies receive one contact event, with a cooldown per target.
     const event=result.contact?
@@ -910,6 +925,7 @@ function frame(t){
  if(active&&Math.round(t/1200)%2===0)$('toast').dataset.district=cairo.district(p.x,p.z);
  if(active&&!paused){
   if(activeVehicle!==taxi&&!driving){activeVehicle.position.copy(taxi.position);activeVehicle.rotation.y=taxi.rotation.y;}
+  if(!driving)updateCrashBodyVisual(activeVehicle,fuelSystem.getState().condition);
   saveClockV55+=dt;
   if(saveClockV55>=2.5){saveClockV55=0;saveWorld(true)}
  }
