@@ -123,7 +123,8 @@ export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpe
   if(lastSave>8){lastSave=0;persist();}
  }
  function refuel(){
-  if(!isDriving()||!atStation){notify('لازم تكون بالعربية جنب محطة بنزين.');return false}
+  const nearStation=station();
+  if(!isDriving()||!nearStation){notify('لازم تكون بالعربية جنب محطة بنزين.');return false}
   if(!isStopped()){notify('وقف العربية تمام قبل التفويل.');return false}
   const short=TANK_CAPACITY-fuel;
   const litres=Math.floor(Math.min(short,getMoney()/FUEL_PRICE)*10)/10;
