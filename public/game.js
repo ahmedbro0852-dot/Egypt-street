@@ -2,6 +2,7 @@ import { createStreetAudio } from './street-audio.js';
 import * as T from './three.js';
 import { installCairo } from './cairo-city.js';
 import { createEgyptianCrowd } from './egyptian-crowd.js';
+import { createStreetEvents } from './street-events.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
 const $=id=>document.getElementById(id),scene=new T.Scene();scene.background=new T.Color('#b9d0cf');scene.fog=new T.Fog('#b9d0cf',65,190);let renderer;try{renderer=new T.WebGLRenderer({canvas:$('world'),antialias:true})}catch(e){const old=$('world'),c=old.cloneNode();old.replaceWith(c);const ctx=c.getContext('2d');let sw=0,sh=0;renderer={setPixelRatio(){},setSize(w,h){sw=c.width=w;sh=c.height=h},render(scene,camera){scene.updateMatrixWorld();camera.updateMatrixWorld();const view=new T.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse),faces=[];ctx.fillStyle='#b9d0cf';ctx.fillRect(0,0,sw,sh);scene.traverse(o=>{if(!o.isMesh||!o.visible||!o.parent.visible||o.userData.skipFallback)return;for(let ancestor=o.parent;ancestor;ancestor=ancestor.parent)if(!ancestor.visible)return;const center=new T.Vector3().setFromMatrixPosition(o.matrixWorld);if(center.distanceTo(camera.position)>95)return;const m=new T.Matrix4().multiplyMatrices(view,o.matrixWorld),pos=o.geometry.attributes.position,idx=o.geometry.index;const verts=[];for(let i=0;i<pos.count;i++)verts.push(new T.Vector3().fromBufferAttribute(pos,i).applyMatrix4(m));for(let i=0;i<(idx?idx.count:pos.count);i+=3){const a=verts[idx?idx.getX(i):i],b=verts[idx?idx.getX(i+1):i+1],d=verts[idx?idx.getX(i+2):i+2];if([a,b,d].some(v=>v.z>1||v.z< -1))continue;if((b.x-a.x)*(d.y-a.y)-(b.y-a.y)*(d.x-a.x)<0)continue;let color=o.material.color||new T.Color('#647b72');faces.push({a,b,d,z:(a.z+b.z+d.z)/3,color:'#'+color.getHexString()})}});faces.sort((a,b)=>b.z-a.z);for(let f of faces){ctx.fillStyle=f.color;ctx.beginPath();ctx.moveTo((f.a.x+1)*sw/2,(1-f.a.y)*sh/2);ctx.lineTo((f.b.x+1)*sw/2,(1-f.b.y)*sh/2);ctx.lineTo((f.d.x+1)*sw/2,(1-f.d.y)*sh/2);ctx.fill()}}};}renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));const camera=new T.PerspectiveCamera(62,1,.1,240);scene.add(new T.HemisphereLight(0xffe9c8,0x637278,2.6));const sun=new T.DirectionalLight(0xffd7a1,2.6);sun.position.set(-30,70,20);scene.add(sun);const solids=[];const mat=c=>new T.MeshLambertMaterial({color:c});const materials=new Map();function box(x,y,z,w,h,d,c,parent=scene){if(!materials.has(c))materials.set(c,mat(c));let m=new T.Mesh(new T.BoxGeometry(w,h,d),materials.get(c));m.position.set(x,y,z);parent.add(m);return m}box(0,-.2,0,460,.3,460,'#baa88a');
 const roads=[-60,-30,0,30,60];for(const n of roads){box(n,.01,0,11,.1,170,'#555e60');box(0,.01,n,170,.1,11,'#555e60');for(let k=-80;k<85;k+=8){box(n,.08,k,.16,.02,3,'#d6cba1');box(k,.08,n,3,.02,.16,'#d6cba1')}}
@@ -110,7 +111,17 @@ const crowd=createEgyptianCrowd(T,scene,(x,z)=>blocked(x,z,.38));
 const walkers=crowd.people; // Forty unique residents
 
 const target=new T.Vector3(62,0,-50);let beacon=new T.Mesh(new T.CylinderGeometry(2,2,.12,32),new T.MeshBasicMaterial({color:0xffcd68,transparent:true,opacity:.7}));scene.add(beacon);let pillar=new T.Mesh(new T.CylinderGeometry(.25,.25,13,12),new T.MeshBasicMaterial({color:0xffd57e,transparent:true,opacity:.45}));scene.add(pillar);
-const sound=createStreetAudio();let pedal=0;for(const [id,value] of [['accelerate',1],['reverse',-1]]){const b=$(id);b.onpointerdown=e=>{pedal=value;b.setPointerCapture(e.pointerId);sound.start()};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>pedal=0;} $('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;keys={};joy.x=joy.y=0;sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;const vehicleState=createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y);const onFoot={vx:0,vz:0};let dragSteer=0,bumpCooldown=0;let toastTimer;function toast(s){$('toast').textContent=s;clearTimeout(toastTimer);$('toast').style.opacity=1;toastTimer=setTimeout(()=>$('toast').style.opacity=.15,4500)}$('start').onclick=()=>{sound.start();active=true;$('intro').style.display='none';toast('قرب من العربية الصفرا واضغط اركب')};function enter(){
+const sound=createStreetAudio();let pedal=0;for(const [id,value] of [['accelerate',1],['reverse',-1]]){const b=$(id);b.onpointerdown=e=>{pedal=value;b.setPointerCapture(e.pointerId);sound.start()};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>pedal=0;} $('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;keys={};joy.x=joy.y=0;sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;const vehicleState=createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y);const onFoot={vx:0,vz:0};let dragSteer=0,bumpCooldown=0;let toastTimer;function toast(s){$('toast').textContent=s;clearTimeout(toastTimer);$('toast').style.opacity=1;toastTimer=setTimeout(()=>$('toast').style.opacity=.15,4500)}const streetEvents=createStreetEvents({
+ T,scene,people:walkers,
+ getPlayer:()=>driving?taxi.position:player.position,
+ getDriving:()=>driving,
+ isWalkable:(x,z)=>!blocked(x,z,.48)&&!traffic.some(c=>Math.hypot(x-c.position.x,z-c.position.z)<1.3),
+ onReward:(amount)=>{cash+=amount;$('money').textContent='ج.م '+cash;},
+ ui:{card:$('eventPanel'),title:$('eventTitle'),text:$('eventText'),
+     interact:$('interact'),dialog:$('npcDialogue')}
+});
+$('interact').onclick=()=>streetEvents.interact();
+$('start').onclick=()=>{sound.start();active=true;$('intro').style.display='none';streetEvents.start();toast('قرب من العربية الصفرا واضغط اركب • فيه أحداث ومهام جانبية في الحي')};function enter(){
  if(driving){
   if(Math.abs(vehicleState.speed)>1.1){toast('وقف العربية الأول عشان تنزل بأمان');return}
   const side=3.4, sin=Math.sin(vehicleState.yaw),cos=Math.cos(vehicleState.yaw);
@@ -129,7 +140,7 @@ const sound=createStreetAudio();let pedal=0;for(const [id,value] of [['accelerat
   document.body.classList.add('driving');$('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
   toast('حرّك العصاية لقدّام للتسارع، واسحب يمين أو شمال للتوجيه، واضغط فرامل للتوقف');
  }else toast('قرب من العربية الصفرا الأول')
-} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>sound.horn();$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if(k===' '){e.preventDefault()}if(k==='e'&&!e.repeat)enter()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;keys={};joy.x=joy.y=0;sprint=false;dragSteer=0};
+} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if(k===' '){e.preventDefault()}if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat)streetEvents.interact()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;keys={};joy.x=joy.y=0;sprint=false;dragSteer=0};
 const pad=$('joy');function move(e){let r=pad.getBoundingClientRect(),x=(e.clientX-r.left-r.width/2)/40,y=(e.clientY-r.top-r.height/2)/40,l=Math.max(1,Math.hypot(x,y));joy={x:x/l,y:y/l};$('knob').style.transform=`translate(${joy.x*34}px,${joy.y*34}px)`}pad.onpointerdown=e=>{pad.setPointerCapture(e.pointerId);move(e)};pad.onpointermove=e=>{if(pad.hasPointerCapture(e.pointerId))move(e)};pad.onpointerup=pad.onpointercancel=()=>{joy={x:0,y:0};$('knob').style.transform=''};$('camera').onclick=()=>{cameraNear=!cameraNear;toast(cameraNear?'كاميرا قريبة':'كاميرا واسعة')};let cameraNear=false;let drag=null;$('world').onpointerdown=e=>drag={id:e.pointerId,x:e.clientX};$('world').onpointermove=e=>{if(drag&&drag.id===e.pointerId){const dx=e.clientX-drag.x;if(driving)dragSteer=Math.max(-1,Math.min(1,dragSteer+dx*.018));else yaw-=dx*.007;drag.x=e.clientX}};$('world').onpointerup=$('world').onpointercancel=()=>drag=null;
 function blocked(x,z,radius=.45){
  if(Math.abs(x)>218-radius||Math.abs(z)>168-radius||cairo.isWater(x,z))return true;
@@ -163,6 +174,11 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
  for(const z of cairo.bridges){
   map.strokeStyle='#e5d5a8';map.lineWidth=6;map.beginPath();
   map.moveTo(mx(103),mz(z));map.lineTo(mx(175),mz(z));map.stroke()
+ }
+ const eventWaypoint=streetEvents.waypoint();
+ if(eventWaypoint){
+  map.strokeStyle='#67e6eb';map.lineWidth=2;
+  map.beginPath();map.arc(mx(eventWaypoint.x),mz(eventWaypoint.z),7,0,Math.PI*2);map.stroke();
  }
  for(const [v,color,r] of [[target,'#ffd373',4],[taxi.position,'#e7b542',3],[p,'#fff',5]]){
   map.fillStyle=color;map.beginPath();map.arc(mx(v.x),mz(v.z),r,0,Math.PI*2);map.fill()
@@ -240,6 +256,7 @@ function frame(t){
   gait+=dt*Math.abs(speed)*2.8;
   animateHero(player,gait,driving?0:Math.min(1,Math.abs(speed)/4.3));
   crowd.update(dt,t,p,traffic,taxi);
+  streetEvents.update(dt,t);
   if(driving&&p.distanceTo(target)<4&&Math.abs(speed)<10){
    cash+=150;completed++;
    $('money').textContent='ج.م '+cash;
