@@ -12,6 +12,7 @@ import { createAutoDriver } from './auto-drive-v6.js';
 import { createGpsV6 } from './gps-v6.js';
 import { createGarageV8 } from './garage-v8.js';
 import { createDrivingRealismV9 } from './driving-realism-v9.js';
+import { createRoadSafetyV21 } from './road-safety-v21.js';
 import { createTaxiDispatchV15 } from './taxi-dispatch-v15.js';
 import { createCockpitV15 } from './cockpit-v15.js';
 import { installStreetDetailsV15 } from './street-details-v15.js';
@@ -388,6 +389,13 @@ const garage=createGarageV8({
 });
 activateGarageVehicle(garage.getVehicle().id);
 const drivingRealism=createDrivingRealismV9({notify:message=>toast(message)});
+const roadSafety=createRoadSafetyV21({
+ storage:walletStorage,
+ ui:{button:$('v21AebToggle'),status:$('v21SafetyStatus')},
+ notify:message=>toast(message),
+ haptic:()=>{if(navigator.vibrate)navigator.vibrate([35,45,35])}
+});
+let lastAbsUiV21=-Infinity;
 const collisionWorld=createCollisionPhysicsV18({
  traffic,pedestrians:walkers,storage:walletStorage,
  getVehicleType:()=>garage.getVehicle().id,
@@ -483,7 +491,7 @@ function worldSnapshot(){
   driving,parkingBrake,cameraYaw,cameraPitch,cameraMode,money:cash,
   mission:{completed,target:{x:target.x,z:target.z}},
   fuel:fuelSystem.getState(),career:career.getStats(),
-  sideEvent:streetEvents.snapshot(),autopilot:autoDriver.getState(),gps:gps.getState(),garage:garage.getState(),drivingRealism:drivingRealism.getState(),rideDispatch:rideDispatch.getState()
+  sideEvent:streetEvents.snapshot(),autopilot:autoDriver.getState(),gps:gps.getState(),garage:garage.getState(),drivingRealism:drivingRealism.getState(),rideDispatch:rideDispatch.getState(),roadSafety:roadSafety.getState()
  };
 }
 function saveWorld(force=false){
@@ -524,6 +532,7 @@ function restoreWorld(state){
  fuelSystem.restore(state.fuel);
  if(driving)drivingRealism.enter(fuelSystem.getState().fuel);else drivingRealism.exit();
  drivingRealism.restore(state.drivingRealism,fuelSystem.getState().fuel);
+ roadSafety.restore(state.roadSafety);
  v9Live={...v9Live,...drivingRealism.getState(),left:false,right:false};
  updateV9Dashboard(Infinity);
  parkingBrake=!!state.parkingBrake;updateParkingUi();
@@ -749,10 +758,19 @@ function frame(t){
      autoDriver.stop();updateAutoPilotLabel();
    }
    const autopilot=autoDriver.controls(vehicleState,traffic,walkers,dt,{cruiseKmh:fuelSystem.getState().target});
+   const tune={...garage.getTuning(),...getVehicleDynamicsV19(garage.getVehicle().id)};
+   const roadSurface=realisticRoads.surfaceAt(vehicleState.x,vehicleState.z);
+   const tyreGrip=roadGrip(p.x,p.z)*cityLife.grip()*streetDetails.grip(p.x,p.z)*
+       roadSurface.grip*tune.gripScale;
+   const safety=roadSafety.update({
+    vehicle:vehicleState,traffic,pedestrians:walkers,grip:tyreGrip,
+    vehicleId:garage.getVehicle().id,driving:true,t,autopilot:autopilot.active
+   });
    const steer=autopilot.active?autopilot.steer:manualSteer;
    const braking=brakePedal||sprint||keys.shift||keys[' ']||
       $('jobsPanel').style.display==='block'||$('garagePanel').style.display==='block'||
-      $('gpsPanel').style.display==='block'||autopilot.brake||parkingBrake||reverseBraking;
+      $('gpsPanel').style.display==='block'||autopilot.brake||parkingBrake||reverseBraking||
+      safety.brake;
    const demandedThrottle=autopilot.active?
       (braking||fuelSystem.getState().fuel<=.01||!fuelSystem.getState().auto?
         0:Math.min(fuelSystem.throttle({manual:1}),autopilot.throttle)):
@@ -765,15 +783,18 @@ function frame(t){
       steer:vehicleState.steer,yaw:vehicleState.yaw,fuel:fuelSystem.getState().fuel,
       parking:parkingBrake,skid:vehicleState.skid,vehicleId:garage.getVehicle().id
    });
-   const throttle=demandedThrottle*v9Live.throttleScale;
+   const throttle=demandedThrottle*v9Live.throttleScale*safety.throttleScale;
    const oldPos={x:vehicleState.x,z:vehicleState.z};
-   const tune={...garage.getTuning(),...getVehicleDynamicsV19(garage.getVehicle().id)};
-   const roadSurface=realisticRoads.surfaceAt(vehicleState.x,vehicleState.z);
    const result=stepVehiclePhysics(vehicleState,{
-     throttle,steer,brake:braking,
-     grip:roadGrip(p.x,p.z)*cityLife.grip()*streetDetails.grip(p.x,p.z)*
-          roadSurface.grip*tune.gripScale,tuning:tune
+     throttle,steer,brake:braking,absEnabled:true,
+     grip:tyreGrip,tuning:tune
    },dt,carCollision);
+   if(t-lastAbsUiV21>170){
+    $('v21AbsStatus').textContent=braking&&result.absActive>.045?
+      '🟠 ABS بينظّم ضغط الفرامل • تماسك '+Math.round(tyreGrip*100)+'%':
+      braking?'🔵 فرملة متحكم فيها • ABS جاهز':'🟢 ABS جاهز • تدخلات طوارئ '+roadSafety.getState().interventions;
+    lastAbsUiV21=t;
+   }
    cityLife.observeDriving(oldPos,vehicleState);
    taxi.position.x=vehicleState.x;taxi.position.z=vehicleState.z;
    taxi.position.y=T.MathUtils.damp(taxi.position.y,roadSurface.height||0,5.5,dt);
