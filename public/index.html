@@ -193,6 +193,54 @@ button:focus-visible{outline:2px solid #ffe293}
  #cityVersion{top:115px;left:10px}
  #eventPanel{top:12px;left:158px;max-width:150px}
 }
+
+/* V5.5 polished, skippable launch menu and dedicated autonomous-driving toggle. */
+#fuelActions #autoPilot{grid-column:1/3;background:#2b607e!important;border:1px solid #98d5fa}
+.v55-intro{z-index:110;inset:0;overflow:auto;overscroll-behavior:contain;
+ justify-content:flex-start;direction:rtl;
+ background:linear-gradient(90deg,#071723ed 0%,#102536da 55%,#112334d6 100%)}
+.v55-intro::before{content:'';position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(135deg,#062336ce,#19304c85),radial-gradient(ellipse at 76% 64%,#f5b35e31,transparent 55%)}
+.v55-glow{position:absolute;left:13%;top:17%;height:40vw;width:40vw;
+ border:2px solid #e7ad6920;border-radius:50%;box-shadow:0 0 130px 35px #f7bc5930;pointer-events:none;
+ animation:v55breathe 4s ease-in-out infinite alternate}
+@keyframes v55breathe{from{opacity:.4;transform:scale(.94)}to{opacity:1;transform:scale(1.07)}}
+.v55-box{position:relative;z-index:1;width:min(620px,100%);max-height:none;margin:5vh auto 4vh 4vw;
+ padding:24px;box-shadow:0 18px 70px #0006;
+ border:1px solid #f5d9a146;background:#071c2eb0;border-radius:24px;
+ backdrop-filter:blur(9px)}
+.v55-eyebrow{letter-spacing:2px;font-size:10px;color:#aee0eb;font-weight:bold}
+.v55-title{font-size:clamp(48px,10vw,100px)!important;line-height:1.15!important;
+ margin:12px 0!important;color:#fff9eb;text-shadow:0 6px 28px #0009}
+.v55-title em{font-style:normal;color:#ffd089}
+.v55-line{height:4px;width:85px;border-radius:5px;background:#ffd089}
+.v55-subtitle{color:#e0e9e7;font-size:14px;line-height:1.9;margin:12px 0}
+.v55-highlights{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.v55-highlights span{border-radius:16px;background:#2953657a;color:#ffeac4;padding:6px 10px;font-size:11px}
+.v55-save{font-size:12px;color:#cfebdd;margin:14px 0;padding:11px;
+ border-radius:13px;background:#143342;line-height:1.7}
+.v55-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.v55-actions button{border-radius:12px;width:100%!important;height:48px!important;
+ font-size:13px!important;font-weight:900}
+.v55-actions .primary{background:#ffc979;color:#15242c}
+#skipIntro{background:transparent;border:1px solid #f6e3bf7d;color:#ffeed3}
+#newGame{background:#344857}
+.v55-tip{font-size:10px;line-height:1.6;color:#aac2c6;margin:11px 0 0}
+@media(max-width:760px){
+ .v55-box{margin:3vh 3vw;width:94vw;padding:18px}
+ .v55-title{font-size:clamp(48px,12vw,70px)!important}
+ .v55-subtitle{font-size:12px}
+ .v55-actions button{height:44px!important;font-size:12px!important}
+ #fuelActions #autoPilot{font-size:9px;height:28px}
+}
+@media(orientation:landscape) and (max-height:520px){
+ .v55-box{margin:2vh 3vw;max-width:530px;padding:12px 16px}
+ .v55-title{font-size:46px!important;margin:5px 0!important}
+ .v55-subtitle{margin:6px 0;font-size:11px}
+ .v55-save{margin:6px 0;padding:6px}
+ .v55-actions button{height:35px!important}
+}
+@media(prefers-reduced-motion:reduce){.v55-glow{animation:none}}
 </style>
 <canvas id="world"></canvas><div class="hud"><div class="tag">OPEN WORLD • EARLY BUILD</div><div class="brand">شوارع مصر<span style="color:#ffca6d">.</span></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><small>● المهمة الحالية</small><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
  <strong id="cityTime">🕒 07:30</strong>
@@ -206,7 +254,8 @@ button:focus-visible{outline:2px solid #ffe293}
  <div id="fuelMode">🚗 بنزين تلقائي</div>
  <div id="fuelAmount">16 / 45 لتر</div><div id="fuelCondition">🔧 حالة العربية 100% • 25°</div>
  <div id="fuelTrack"><div id="fuelFill"></div></div>
- <div id="fuelActions"><button id="autoDrive" type="button">⏸️ وقف التلقائي</button>
+ <div id="fuelActions"><button id="autoDrive" type="button">⏸️ وقف البنزين التلقائي</button>
+ <button id="autoPilot" type="button">🤖 قيادة ذاتية: شغالة</button>
  <button id="fuelSlower" type="button">− سرعة</button><button id="fuelFaster" type="button">+ سرعة</button></div>
  <div id="fuelWarning"></div><div id="fuelStation"></div>
  <button id="fuelBtn" type="button">⛽ فوّل العربية</button><button id="fuelRepair" type="button">🔧 صلّح العربية</button>
@@ -221,4 +270,21 @@ button:focus-visible{outline:2px solid #ffe293}
  <article class="jobCard"><b>☕ عامل قهوة</b><small>قدّم طلبات للمحلات والزبائن</small><em>240 ج.م / وردية</em><button id="careerCafe">قدّم على الشغل</button></article>
  </div><div id="jobsSummary"></div><button id="jobsCancel">إلغاء الوردية الحالية</button></section>
  <section id="workHud" aria-live="polite"><div id="workHudTitle"></div><div id="workHudText"></div></section>
- <button id="workAction" type="button">نفّذ المهمة</button><div id="toast">حي النيل • القاهرة</div><div id="npcDialogue" role="status" aria-live="polite"></div><div id="intro" class="overlay"><div class="intro"><div class="eyebrow">مصر • عالم مفتوح • نسخة أولية</div><h1>الشارع<br><span style="color:#ffca6d">حكايتك.</span></h1><p>انزل الحي، خد لفة بالعربية، ووصّل أول طلب ليك. بطل جديد بتصميم مستوحى من الشخصية المصرية اللي اخترناها. المجسم الحالي نسخة مبسطة للموبايل، ولسه بنطوّر واقعيته.</p><img class="reference" src="character-reference.jpg" alt="تصميم البطل من الأمام والجانب والخلف"><button id="start" class="primary">يلا نلعب ←</button><p class="hint">الموبايل: البنزين بيشتغل تلقائيًا بعد الركوب. العصاية للدريكسيون، «سرعة +» و«− سرعة» لتحديد سرعتك، الفرامل للتوقف، و«وقف التلقائي» للركن. في V5 الإشارات بتتغير والمطر بيقلل تماسك الطريق، وزر «الليل» لتجربة الإضاءة. قرب من بنزينة ووقف عشان تفوّل من رصيدك.<br>كمبيوتر: WASD/الأسهم • E للركوب • F للتفاعل • Shift للجري • Space للقفز مشي/الفرامل قيادة</p></div></div><script type="module" src="game.js"></script></html>
+ <button id="workAction" type="button">نفّذ المهمة</button><div id="toast">حي النيل • القاهرة</div><div id="npcDialogue" role="status" aria-live="polite"></div><div id="intro" class="overlay v55-intro" role="dialog" aria-label="شاشة بداية شوارع مصر">
+ <div class="v55-glow" aria-hidden="true"></div>
+ <section class="v55-box">
+  <span class="v55-eyebrow">EGYPT STREETS · V5.5 · MOBILE OPEN WORLD</span>
+  <h1 class="v55-title">شوارع <em>مصر</em></h1>
+  <div class="v55-line" aria-hidden="true"></div>
+  <p class="v55-subtitle">من أول شارع لحد آخر حكاية. امشي وسط الناس، اشتغل، اسوق العربية، واكتشف القاهرة بطريقتك.</p>
+  <div class="v55-highlights"><span>🚗 قيادة ذاتية</span><span>💾 حفظ تلقائي</span><span>💼 شغل ومهمات</span></div>
+  <div id="savePreview" class="v55-save" aria-live="polite">جاري فحص التقدم المحفوظ...</div>
+  <div class="v55-actions">
+   <button id="continueGame" class="primary" type="button">▶ كمّل لعبك</button>
+   <button id="start" class="primary" type="button">ابدأ اللعب</button>
+   <button id="newGame" type="button">🔄 لعبة جديدة</button>
+   <button id="skipIntro" type="button">تخطي المقدمة ←</button>
+  </div>
+  <p class="v55-tip">التقدم بيتحفظ تلقائيًا على نفس الجهاز والمتصفح حتى بعد الـRefresh. لو مسحت بيانات المتصفح، الحفظ المحلي بيروح.</p>
+ </section>
+ </div><script type="module" src="game.js"></script></html>
