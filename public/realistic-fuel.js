@@ -175,6 +175,15 @@ export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpe
  updateUI();
  return {
   enter,exit,toggle,changeSpeed,reverse,throttle,update,refuel,repair,registerImpact,updateUI,station,
+  restore:state=>{
+   if(!state||typeof state!=='object')return false;
+   if(Number.isFinite(state.fuel))fuel=LIMIT(state.fuel,0,TANK_CAPACITY);
+   if(Number.isFinite(state.condition))condition=LIMIT(state.condition,0,100);
+   if(Number.isFinite(state.totalKm))totalKm=Math.max(0,state.totalKm);
+   if(Number.isFinite(state.target))target=LIMIT(state.target,20,115);
+   auto=!!state.auto&&fuel>.01&&isDriving();
+   warning=false;persist();updateUI();return true;
+  },
   getState:()=>({fuel,capacity:TANK_CAPACITY,auto,target,totalKm,condition,temperature,atStation:station()?.name||null})
  };
 }
