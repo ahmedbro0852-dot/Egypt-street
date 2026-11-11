@@ -1,5 +1,6 @@
 // Egypt Streets V32 — Cairo championships now take place at an empty dedicated racetrack.
 import { createRaceArenaV32, RACE_CIRCUIT_V32 } from './race-arena-v32.js';
+import { createTimedDriftV35, DRIFT_CHALLENGE_V35 } from './drift-challenge-v35.js';
 // Sequential checkpoints prohibit shortcut victories; NPCs race on actual road-grid segments.
 export const CAIRO_RACES_V31=[
  {id:'formula',name:'فورملا القاهرة',icon:'🏎️',laps:2,reward:900,kind:'formula',difficulty:'محترفين',
@@ -10,6 +11,9 @@ export const CAIRO_RACES_V31=[
   points:RACE_CIRCUIT_V32},
  {id:'moto',name:'بطولة الموتوسيكلات',icon:'🏍️',laps:2,reward:700,kind:'moto',difficulty:'مهارة',
   color:0xc5f39c,speed:16.3,
+  points:RACE_CIRCUIT_V32},
+ {id:'drift',name:'تحدّي درفت القاهرة',icon:'🔥',laps:0,reward:950,kind:'drift',
+  difficulty:'مهارة وتحكم',duration:90,color:0xffa85e,speed:0,
   points:RACE_CIRCUIT_V32}
 ];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -89,16 +93,19 @@ function createRacerModel(T,kind,color){
 }
 export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>false,
  getDriving=()=>false,getVehicle=()=>({x:0,z:0,speed:0}),
+ getDriftInput=()=>({holding:false}),
  requestDrive=()=>false,prepareCar=()=>{},restoreCar=()=>{},
  onReward=()=>{},onFinish=()=>{},notify=()=>{},storage=null,fresh=false}={}){
  const KEY='egypt-streets-races-v31';
  if(fresh){try{storage?.removeItem(KEY)}catch(e){}}
- let history={wins:0,races:0,earned:0,best:{},bestLap:{}};
+ let history={wins:0,races:0,earned:0,best:{},bestLap:{},bestDrift:0,driftChallenges:0};
  try{const v=JSON.parse(storage?.getItem(KEY)||'null');
   if(v&&typeof v==='object')history={
    wins:clamp(Number(v.wins)||0,0,99999),races:clamp(Number(v.races)||0,0,99999),
    earned:clamp(Number(v.earned)||0,0,1e7),best:v.best&&typeof v.best==='object'?v.best:{},
-   bestLap:v.bestLap&&typeof v.bestLap==='object'?v.bestLap:{}
+   bestLap:v.bestLap&&typeof v.bestLap==='object'?v.bestLap:{},
+   bestDrift:clamp(Number(v.bestDrift)||0,0,1e8),
+   driftChallenges:clamp(Number(v.driftChallenges)||0,0,99999)
   };
  }catch(e){}
  let active=null,lastUiAt=0,lastCountdown=0;
@@ -180,10 +187,13 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    const b=make('strong','',c);b.textContent=course.icon+' '+course.name;
    const small=make('small','',c);
    const best=history.best[course.id];
-   small.textContent='🏟️ في الحلبة الفاضية بعيد عن زحمة المدينة • 🔁 '+course.laps+' لفة • 👥 3 منافسين • ⭐ '+course.difficulty+
+   small.textContent=course.kind==='drift'?
+    '🏟️ الحلبة الفاضية • ⏱️ 90 ثانية • 🔥 درفت بالنقاط على الأسفلت • 🏅 برونز 200 / فضة 480 / ذهب 850 / أسطوري 1350 • 🏆 حتى 950 جنيه • أفضل رقم: '+history.bestDrift:
+    '🏟️ في الحلبة الفاضية بعيد عن زحمة المدينة • 🔁 '+course.laps+' لفة • 👥 3 منافسين • ⭐ '+course.difficulty+
      ' • 🏆 الأول +'+course.reward+' جنيه • أفضل زمن: '+fmt(best);
    const btn=make('button','',c);
-   btn.type='button';btn.className='start';btn.textContent='🏁 ابدأ السباق';
+   btn.type='button';btn.className='start';
+   btn.textContent=course.kind==='drift'?'🔥 ابدأ تحدّي الدرفت':'🏁 ابدأ السباق';
    btn.disabled=!!active;
    btn.onclick=()=>start(course.id);
   }
@@ -243,8 +253,10 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   const yaw=Math.atan2(second.x-first.x,second.z-first.z);
   if(prepareCar(course,{x:first.x,z:first.z,yaw})===false)return false;
   raceArena.show();
-  configureModels(course.kind);
-  const enemies=models.map((model,i)=>{
+  const driftMode=course.kind==='drift';
+  if(driftMode)resetModels();
+  else configureModels(course.kind);
+  const enemies=driftMode?[]:models.map((model,i)=>{
    // Real starting grid: competitors are staged ahead on the actual asphalt,
    // not in the unpaved infield or outside the circuit.
    const gap=(i+1)*5.8,side=[-1.8,1.8,0][i];
@@ -257,7 +269,9 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
     progress:0};
   });
   active={id,course,points:pts,steps:0,lap:0,elapsed:0,lapStart:0,bestLap:Infinity,
-   count:3.35,phase:'countdown',enemies,lastPosition:null,rank:4,startingHealth:100};
+   count:3.35,phase:'countdown',enemies,lastPosition:null,rank:4,startingHealth:100,
+   driftChallenge:driftMode?createTimedDriftV35({points:pts,duration:course.duration}):null,
+   driftScore:0,driftMedal:'none'};
   panel.hidden=true;podium.hidden=true;hud.hidden=false;
   document.body.classList.add('racingActive');
   if(startingLine){
@@ -266,14 +280,27 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   }
   if(course.kind==='formula')formulaPlayer.visible=true;
   if(course.kind==='moto')motoPlayer.visible=true;
-  updateMarker();lastCountdown=0;
-  notify('🏁 وصلت حلبة السباق الفاضية! '+course.name+' — '+course.laps+' لفة');
+  if(driftMode){if(marker)marker.visible=false;if(beam)beam.visible=false}
+  else updateMarker();
+  lastCountdown=0;
+  notify(driftMode?'🔥 تحدّي الدرفت 90 ثانية: لف واضغط زر درفت على الأسفلت!':
+    '🏁 وصلت حلبة السباق الفاضية! '+course.name+' — '+course.laps+' لفة');
   updateHud(true);return true;
  }
  function updateHud(force=false){
   if(!active){hud.hidden=true;countdown.hidden=true;return}
   const a=active,course=a.course;
   hudTitle.textContent=course.icon+' '+course.name;
+  if(a.driftChallenge){
+   const result=a.driftChallenge.getState();
+   stats.textContent='🔥 نقاط '+result.score+' • ⏱️ متبقي '+Math.ceil(result.remaining)+' ثانية';
+   leaderboard.textContent='🥉 200 • 🥈 480 • 🥇 850 • 👑 1350';
+   hint.textContent=a.phase==='countdown'?'🚦 جهّز الدركسيون وزر درفت':
+     (result.onTrack?'✅ على الأسفلت':'⚠️ ارجع لمسار الحلبة')+
+     ' • '+(result.quality>0?'🔥 درفت ×'+result.comboMultiplier.toFixed(1):'ابدأ اللفة واثبت الانزلاق')+
+     ' • رقمك: '+history.bestDrift;
+   return;
+  }
   stats.textContent='🏆 الترتيب '+a.rank+'/4 • 🔁 اللفة '+Math.min(course.laps,a.lap+1)+'/'+course.laps+
    ' • ⏱️ '+fmt(a.elapsed);
   leaderboard.textContent=a.standings?.length?
@@ -286,9 +313,29 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  }
  function finish(won=false,forfeit=false){
   if(!active)return;
-  const a=active,rank=forfeit?4:a.rank,course=a.course,
+  const a=active,course=a.course,driftMode=!!a.driftChallenge,
+   driftResult=driftMode?a.driftChallenge.getState():null,
+   rank=driftMode?(driftResult.medal==='elite'||driftResult.medal==='gold'?1:
+        driftResult.medal==='silver'?2:driftResult.medal==='bronze'?3:4):
+        (forfeit?4:a.rank),
    completed=a.phase==='racing'&&!forfeit&&won;
-  if(completed){
+  if(completed&&driftMode){
+   // Only time expiry ends a drift event. Quitting or closing gives no prize.
+   history.races++;history.driftChallenges++;
+   if(rank===1)history.wins++;
+   history.bestDrift=Math.max(history.bestDrift,driftResult.score);
+   const amount=driftResult.reward;
+   history.earned+=amount;
+   if(amount>0)onReward(amount,course,rank);
+   persist();
+   podium.hidden=false;
+   const medal=driftResult.medal==='elite'?'👑 أسطوري':
+      driftResult.medal==='gold'?'🥇 ذهب':driftResult.medal==='silver'?'🥈 فضة':
+      driftResult.medal==='bronze'?'🥉 برونز':'بدون ميدالية';
+   podium.textContent='🔥 تحدّي الدرفت انتهى • '+medal+
+    ' • '+driftResult.score+' نقطة • مكافأة '+amount+' جنيه • أفضل رقم '+history.bestDrift;
+   notify('🏁 التحدّي انتهى! '+driftResult.score+' نقطة • '+medal);
+  }else if(completed){
    history.races++;
    if(rank===1)history.wins++;
    if(!Number.isFinite(history.best[a.id])||a.elapsed<history.best[a.id])
@@ -370,6 +417,16 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    updateHud();return;
   }
   const delta=clamp(dt,0,.05);
+  if(a.driftChallenge){
+   const control=getDriftInput()||{};
+   const result=a.driftChallenge.update(delta,{
+    vehicle:car,holding:!!control.holding
+   });
+   a.elapsed=result.elapsed;a.driftScore=result.score;a.driftMedal=result.medal;
+   if(result.finished){finish(true);return}
+   if(t-lastUiAt>130){updateHud();lastUiAt=t}
+   return;
+  }
   a.elapsed+=delta;
   // Sequential ordered checkpoints; unrelated shortcuts never advance a race.
   const updated=checkpointProgressV31(a.points,car.x,car.z,a.steps);
@@ -401,7 +458,9 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  renderPanel();
  return {start,update,finish,openPanel,getRace:()=>active?{
    id:active.id,phase:active.phase,steps:active.steps,lap:active.lap,rank:active.rank,
-   elapsed:active.elapsed,waypoint:active.points[(active.steps+1)%active.points.length]
+   elapsed:active.elapsed,waypoint:active.driftChallenge?null:
+      active.points[(active.steps+1)%active.points.length],
+   driftScore:active.driftScore,driftMedal:active.driftMedal
   }:null,
   getArena:()=>raceArena,
   isFormula:()=>active?.id==='formula',
