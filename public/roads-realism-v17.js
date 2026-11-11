@@ -195,7 +195,7 @@ export function createRealisticRoads({T,scene,enableWet=true}={}){
   const y=(road?.height||.065)+.028;
   quad(puddles,p.x-1.25,p.z-2.1,p.x+1.25,p.z+2.1,y,1,true);
  }
- const asphaltMat=new T.MeshStandardMaterial({map:asphalt,color:0xf9f8f4,roughness:.95,metalness:.015,side:T.DoubleSide});
+ const asphaltMat=new T.MeshPhysicalMaterial({map:asphalt,bumpMap:asphalt,bumpScale:.014,color:0xf9f8f4,roughness:.95,metalness:0,clearcoat:0,clearcoatRoughness:.12,side:T.DoubleSide});
  const kerbMat=new T.MeshLambertMaterial({color:0xb9aa8c,side:T.DoubleSide});
  const pathMat=new T.MeshLambertMaterial({map:sidewalk,color:0xe6d5b2,side:T.DoubleSide});
  const paint=(color,alpha=1)=>new T.MeshBasicMaterial({
@@ -217,20 +217,23 @@ export function createRealisticRoads({T,scene,enableWet=true}={}){
  rad.addColorStop(1,'rgba(95,139,150,0)');
  pc.fillStyle=rad;pc.fillRect(0,0,128,128);
  const pondTexture=new T.CanvasTexture(pondCanvas);pondTexture.needsUpdate=true;
- const pondMat=new T.MeshBasicMaterial({map:pondTexture,color:0xb4ced0,
+ const pondMat=new T.MeshPhysicalMaterial({map:pondTexture,color:0x677c83,roughness:.12,metalness:0,clearcoat:1,clearcoatRoughness:.07,
    transparent:true,opacity:0,depthWrite:false,side:T.DoubleSide});
  const pondMesh=build(T,scene,puddles,pondMat);
  if(pondMesh){all.push(pondMesh);pondMesh.visible=false}
- let lastWet=-1;
- function update(weather='صحو'){
-  const isWet=weather==='مطر',wet=isWet?1:weather==='غائم'?.28:0;
-  if(wet===lastWet)return;
-  lastWet=wet;
-  asphaltMat.roughness=.95-wet*.43;
-  asphaltMat.metalness=.015+wet*.095;
-  asphaltMat.color.setHex(isWet?0xc5d2d4:weather==='غائم'?0xe2e3de:0xf9f8f4);
-  asphaltMat.needsUpdate=true;
-  pondMat.opacity=isWet?.64:weather==='غائم'?.15:0;
+ let lastWet=0,initialized=false;
+ const dryColor=new T.Color(0xf9f8f4),wetColor=new T.Color(0xa7b4b9);
+ function update(weather='صحو',dt=1/60){
+  const target=weather==='مطر'?1:0;
+  // Standing water accumulates in seconds and dries slowly after rain stops.
+  const delta=clamp(Number.isFinite(dt)?dt:0,0,.1);
+  if(!initialized){lastWet=target;initialized=true;}
+  else lastWet+=(target-lastWet)*(1-Math.exp(-delta/(target>lastWet?7:55)));
+  asphaltMat.roughness=.95-lastWet*.62;
+  asphaltMat.clearcoat=lastWet*.82;
+  asphaltMat.bumpScale=.014-lastWet*.009;
+  asphaltMat.color.copy(dryColor).lerp(wetColor,lastWet);
+  pondMat.opacity=clamp((lastWet-.12)/.88,0,1)*.70;
   if(pondMesh)pondMesh.visible=pondMat.opacity>.02;
  }
  function surfaceAt(x,z){

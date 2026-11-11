@@ -84,7 +84,7 @@ export function createCityLife({T,scene,sun,ambient,box,ui,storage,getPosition,i
   const d=light*haze;
   if(scene.background?.setRGB)scene.background.setRGB(.055+.65*d,.082+.73*d,.15+.69*d);
   if(scene.fog?.color?.setRGB)scene.fog.color.setRGB(.07+.63*d,.09+.66*d,.15+.65*d);
-  if(sun){sun.intensity=.22+2.6*d;sun.position.set(Math.cos(gameHour*Math.PI/12)*85,14+75*light,42);}
+  if(sun){sun.intensity=.22+2.6*d;sun.position.set(Math.cos(gameHour*Math.PI/12)*85,14+75*light,42).add(sun.target.position);}
   if(ambient)ambient.intensity=.40+1.6*d;
   rain.visible=weather===2;
   for(const l of lamps){

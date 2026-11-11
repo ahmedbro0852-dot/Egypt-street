@@ -1,3 +1,4 @@
+import { installTravelLightingV44 } from './travel-lighting-v44.js';
 import { prepareDetailedCar } from './detailed-car-v42.js';
 import { installDesktopWorldV43 } from './desktop-world-v43.js';
 import { createMobileExperienceV40, tuneStickV40 } from './mobile-experience-v40.js';
@@ -897,7 +898,7 @@ function frame(t){
  const p=driving?taxi.position:player.position;
  if(active&&!paused){
   cityLife.update(dt,t,p);
-  realisticRoads.update(cityLife.getState().weather);
+  realisticRoads.update(cityLife.getState().weather,dt);
   streetDetails.update(cityLife.illumination());
   let f=-joy.y+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);
   let turn=joy.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
@@ -935,7 +936,7 @@ function frame(t){
    const roadSurface=raceModeV32&&isRaceArenaV32(vehicleState.x,vehicleState.z)?
     {grip:1.05,bump:0,height:0,onRoad:true,roadType:'race circuit'}:
     realisticRoads.surfaceAt(vehicleState.x,vehicleState.z);
-   const tyreGrip=roadGrip(p.x,p.z)*cityLife.grip()*streetDetails.grip(p.x,p.z)*
+   const tyreGrip=roadGrip(p.x,p.z)*Math.min(cityLife.grip(),1-.24*(roadSurface.wet||0))*streetDetails.grip(p.x,p.z)*
        roadSurface.grip*tune.gripScale;
    const steer=autopilot.active?autopilot.steer:manualSteer;
    const braking=brakePedal||sprint||keys.shift||keys[' ']||
@@ -1151,11 +1152,12 @@ function frame(t){
  rpm:v9Live.rpm,engineOn:driving&&drivingRealism.getState().engineOn,
  throttle:driving?Math.max(0,v9Live.throttleScale):0,
  skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather
-});v30.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});desktopWorldV43.update(dt);renderer.render(scene,camera);
+});v30.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});desktopWorldV43.update(dt);travelLightingV44.update(dt);renderer.render(scene,camera);
 }
 try { installRealismRender({T,scene,renderer,sun}); } catch(error) { console.warn('Material quality pass unavailable',error); }
 const v30=createV30({getPlayer:()=>driving?taxi.position:player.position,getDriving:()=>driving,getActive:()=>active,getPaused:()=>paused,renderer,fresh:freshStartV55,onReward:amount=>{cash+=amount;$('money').textContent='ج.م '+Math.round(cash);saveWallet();toast('مكافأة رحلتك • +'+amount+' جنيه')}});
 const visualPolishV31=createVisualPolishV31({T,scene,renderer,player});
 const mobileV40=createMobileExperienceV40({getActive:()=>active,getPaused:()=>paused,setPaused:value=>{paused=value;$('pause').textContent=paused?'▶':'Ⅱ'},resetInput:()=>{keys={};pedal=0;brakePedal=false;sprint=false;reverseKeyHeld=false;reversePressed=false;driftHeldV34=false;jumpRequested=false;drag=null;resetPad()},notify:toast});
 const desktopWorldV43=installDesktopWorldV43({T,scene,renderer,sun,getVehicle:()=>activeVehicle,getState:()=>({driving,illumination:cityLife.illumination(),weather:cityLife.getState().weather,yaw:vehicleState.yaw,speed:vehicleState.speed,skid:vehicleState.skid}),notify:toast});
+const travelLightingV44=installTravelLightingV44({T,scene,renderer,sun,getPosition:()=>driving?taxi.position:player.position,getDaylight:()=>cityLife.illumination()});
 requestAnimationFrame(frame);
