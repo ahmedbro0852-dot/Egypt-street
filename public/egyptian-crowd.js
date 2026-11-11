@@ -42,199 +42,258 @@ export const EGYPTIAN_RESIDENTS = [
   ['آية','فنانة','f','casual','#527b70','ponytail','phone'],
   ['الحاجة زينب','سيدة مسنّة','f','galabeya','#aa9f83','hijab','cane']
 ];
-// Different faces, complexions and silhouettes; styles are outfits, not identity labels.
+// Mobile-aware Egyptian pedestrian rigs: better anatomy, facial identity and local clothing.
 export function createEgyptianCrowd(T,scene,isBlocked){
-  let rngSeed=173;
-  const rng=()=>{rngSeed=(rngSeed*16807)%2147483647;return rngSeed/2147483647};
-  const skin=['#b77e5c','#cd9471','#a96f50','#d5a985','#926148','#b78563'];
-  const trouser=['#253f5d','#454d58','#6c5d4d','#314f4b','#394254','#6c5145'];
-  const hair='#29231f';
-  const materialCache=new Map(),geometryCache=new Map();
-  const mat=c=>{if(!materialCache.has(c))materialCache.set(c,new T.MeshLambertMaterial({color:c}));return materialCache.get(c)};
-  const geo=(kind,vals)=>{
-    const key=kind+vals.join(',');
-    if(!geometryCache.has(key)){
-      const g=kind==='sphere'?new T.SphereGeometry(...vals):
-       kind==='box'?new T.BoxGeometry(...vals):
-       kind==='cone'?new T.ConeGeometry(...vals):new T.CylinderGeometry(...vals);
-      geometryCache.set(key,g);
-    }
-    return geometryCache.get(key);
-  };
-  const sphere=geo('sphere',[1,9,7]),cube=geo('box',[1,1,1]),cylinder=geo('cylinder',[1,1,1,9]);
-  function mesh(parent,g,m,x,y,z,sx=1,sy=1,sz=1){
-    const obj=new T.Mesh(g,mat(m));obj.position.set(x,y,z);obj.scale.set(sx,sy,sz);parent.add(obj);return obj;
-  }
-  function ell(parent,m,x,y,z,sx,sy,sz){return mesh(parent,sphere,m,x,y,z,sx,sy,sz)}
-  function rect(parent,m,x,y,z,sx,sy,sz){return mesh(parent,cube,m,x,y,z,sx,sy,sz)}
-  function npc(row,i){
-    const [name,role,gender,style,cloth,headwear,item]=row;
-    const height=(i===9||i===17||i===39?.88:1)*(1+(i%7-3)*.026);
-    const tone=skin[(i*7+Math.floor(i/5))%skin.length];
-    const pants=trouser[(i+Math.floor(i/3))%trouser.length];
-    const outer=style==='coat'?'#f0ece0':cloth;
-    const group=new T.Group(),body=new T.Group();group.add(body);
-    const skirt=(style==='galabeya'||(gender==='f'&&i%5===0));
-    // Legs are pivoted to alternate a grounded walk cycle.
-    const legs=[];
+ const skintones=['#bb8565','#cb9777','#ad7555','#d3a17d','#99664e','#c48e6c','#b47c5c','#dda988'];
+ const denim=['#40536d','#3b4a51','#4c4c53','#606057','#263f62','#4e4d48'];
+ const haircolors=['#221c19','#332822','#201d1b','#413127'];
+ const skinMat=new Map();
+ function mat(color,unlit=false){
+  const k=color+(unlit?'b':'s');
+  if(!skinMat.has(k))skinMat.set(k,unlit?
+    new T.MeshBasicMaterial({color,side:T.DoubleSide}):
+    new T.MeshStandardMaterial({color,roughness:.89,metalness:0}));
+  return skinMat.get(k);
+ }
+ // Reuse geometry between all forty models to keep VRAM and CPU allocations down.
+ const geom={
+  egg:new T.SphereGeometry(1,12,9),
+  small:new T.SphereGeometry(1,8,6),
+  box:new T.BoxGeometry(1,1,1),
+  cone:new T.ConeGeometry(1,1,12),
+  cyl:new T.CylinderGeometry(1,1,1,10),
+  flat:new T.CircleGeometry(1,14)
+ };
+ const root=new T.Group();root.name='EgyptianResidents';scene.add(root);
+ let seed=1997;
+ const rand=()=>{seed=(seed*48271)%2147483647;return seed/2147483647};
+ function group(parent,x=0,y=0,z=0){
+  const o=new T.Group();o.position.set(x,y,z);parent.add(o);return o;
+ }
+ function shape(parent,kind,color,x,y,z,sx,sy,sz,material=null){
+  const o=new T.Mesh(geom[kind],material||mat(color));
+  o.position.set(x,y,z);o.scale.set(sx,sy,sz);parent.add(o);return o;
+ }
+ const egg=(parent,color,x,y,z,w,h,d)=>shape(parent,'egg',color,x,y,z,w,h,d);
+ const box=(parent,color,x,y,z,w,h,d)=>shape(parent,'box',color,x,y,z,w,h,d);
+ const cyl=(parent,color,x,y,z,w,h,d)=>shape(parent,'cyl',color,x,y,z,w,h,d);
+ function makeResident(profile,index){
+  const [name,role,gender,style,cloth,headwear,accessory]=profile;
+  const elderly=role.includes('مسن')||role.includes('مسنّة')||name==='الحاجة زينب';
+  const size=(elderly?.91:1)*(0.94+(index%8)*.017);
+  const frame=gender==='f'?.92:1;
+  const build=.9+(index%5)*.042;
+  const skin=skintones[(index*11+Math.floor(index/3))%skintones.length];
+  const pants=denim[index%denim.length];
+  const hair=haircolors[index%haircolors.length];
+  const outer=style==='coat'?'#edece5':cloth;
+  const longRobe=style==='galabeya';
+  const man=group(root),rig=group(man),details=group(rig),faceDetails=group(rig);
+  man.scale.set(size,size,size);
+  man.name=name+' | '+role;
+  // Grounding shadow tracks the person but never pretends to be physical lighting.
+  const sh=shape(man,'flat','#111c1c',0,.025,0,.43,.34,.34,
+    new T.MeshBasicMaterial({color:'#142126',transparent:true,opacity:.19,depthWrite:false,side:T.DoubleSide}));
+  sh.rotation.x=-Math.PI/2;
+  // Anatomical proportions: pelvis, waist, chest, shoulders, neck.
+  egg(rig,pants,0,.92,0,.235*frame,.16,.16);
+  egg(rig,outer,0,1.20,0,.29*build*frame,.35,.18*build);
+  egg(rig,outer,0,1.42,0,.30*build*frame,.15,.18*build);
+  egg(rig,skin,0,1.565,.007,.085,.112,.077);
+  if(longRobe){
+    shape(rig,'cone',outer,0,.72,0,.43,.98,.43);
+    box(details,'#d4c6b1',0,.96,.196,.035,.57,.01);
+  } else if(style==='formal'){
+    box(details,'#dfd7c7',0,1.29,.169,.15,.27,.022);
+    box(details,'#394459',0,1.21,.193,.048,.26,.018);
     for(const side of [-1,1]){
-      const leg=new T.Group();leg.position.set(side*.115,.80,0);body.add(leg);legs.push(leg);
-      ell(leg,skirt?outer:pants,0,-.325,0,.112,.37,.115);
-      ell(leg,i%4===0?'#dfd9ca':'#393b3d',0,-.71,.075,.13,.08,.205);
+      const lapel=box(details,outer,side*.11,1.30,.202,.095,.22,.027);
+      lapel.rotation.z=side*.27;
     }
-    ell(body,outer,0,1.17,0,gender==='f'?.29:.32,.39,.205);
-    if(skirt){
-      // Cone is wide at the bottom so the galabeya has a natural hem.
-      mesh(body,geo('cone',[.37,.92,9]),outer,0,.59,0);
-    }else{
-      rect(body,pants,0,.84,0,.26,.17,.15);
-    }
-    if(style==='formal'){
-      rect(body,'#e3d6c4',0,1.24,.195,.11,.27,.015);
-      rect(body,'#4f4c55',0,1.19,.212,.042,.19,.02);
-    }else if(style==='sports')rect(body,'#e8ddd1',0,1.22,.203,.17,.05,.016);
-    else if(style==='coat'){
-      rect(body,'#d6d0c5',0,1.12,.22,.075,.59,.026);
-    }
-    ell(body,tone,0,1.56,0,.075,.105,.075);
-    const arms=[];
-    for(const side of [-1,1]){
-      const arm=new T.Group();arm.position.set(side*.34,1.38,0);body.add(arm);arms.push(arm);
-      const sleeve=style==='coat'?'#eeeae0':cloth;
-      ell(arm,sleeve,0,-.19,0,.094,.25,.105);
-      ell(arm,tone,0,-.44,.018,.068,.12,.072);
-    }
-    // Personalised head proportions and facial details.
-    const head=new T.Group();head.position.set(0,1.75,0);body.add(head);
-    ell(head,tone,0,0,0,.16+(i%3)*.008,.195,.15);
-    ell(head,tone,0,-.035,.153,.034,.057,.046);
-    for(const side of [-1,1]){
-      ell(head,'#2d2926',side*.064,.018,.142,.013,.012,.008);
-      ell(head,hair,side*.063,.066,.146,.039,.009,.01);
-      ell(head,tone,side*.16,-.025,0,.021,.045,.028);
-    }
-    if(headwear==='hijab'){
-      ell(head,(i%2?'#d5bfab':cloth),0,.105,-.01,.184,.151,.175);
-      rect(body,(i%2?'#d5bfab':cloth),0,1.47,-.045,.36,.25,.19);
-    }else if(headwear==='white'){
-      ell(head,'#c4c5c1',0,.115,-.026,.16,.105,.148);
-      ell(head,'#c4c5c1',-.095,.06,0,.08,.073,.15);
-    }else if(headwear==='cap'){
-      ell(head,'#414b50',0,.145,-.011,.18,.091,.16);
-      rect(head,'#414b50',0,.11,.17,.28,.035,.16);
-    }else{
-      ell(head,headwear==='curly'?'#302622':'#25221f',0,.116,-.035,.169,.13,.153);
-      if(headwear==='long'){
-        ell(head,'#302722',-.15,-.08,-.055,.07,.23,.12);
-        ell(head,'#302722',.15,-.08,-.055,.07,.23,.12);
-      }else if(headwear==='ponytail'){
-        ell(head,'#2d2520',0,.0,-.19,.09,.19,.095);
-      }else if(headwear==='curly'){
-        for(let k=0;k<5;k++)ell(head,'#302622',-.145+k*.072,.17,-.02,.06,.065,.07);
-      }
-    }
-    // Optional distinctive work accessories.
-    if(item==='backpack'){
-      rect(body,'#40474c',0,1.14,-.245,.43,.54,.19);
-      for(const side of [-1,1])rect(body,'#77736f',side*.225,1.14,.07,.035,.43,.06);
-    }else if(item==='bag'){
-      rect(body,'#80604d',.31,.76,.06,.23,.35,.12);
-      rect(body,'#b7a68f',.24,1.15,.025,.032,.54,.03);
-    }else if(item==='apron'){
-      rect(body,'#e7ddc2',0,.99,.215,.48,.60,.03);
-      rect(body,'#c6bca4',0,.91,.244,.24,.17,.02);
-    }else if(item==='vest'){
-      rect(body,'#f4ca52',0,1.22,.214,.48,.41,.04);
-      rect(body,'#d8ddcf',0,1.24,.244,.045,.40,.045);
-    }else if(item==='camera'){
-      rect(body,'#25272e',.20,.89,.225,.21,.18,.145);
-      ell(body,'#6c7376',.20,.9,.311,.06,.06,.028);
-    }else if(item==='glasses'){
-      for(const side of [-1,1])rect(head,'#3e3c3a',side*.067,.014,.161,.10,.024,.022);
-      rect(head,'#3e3c3a',0,.017,.169,.044,.013,.025);
-    }else if(item==='phone'){
-      rect(arms[1],'#242b38',.014,-.48,.095,.10,.16,.035);
-    }else if(item==='cane'){
-      rect(arms[1],'#967758',.09,-.79,.075,.045,.74,.045);
-    }
-    group.scale.set(height,height,height);
-    group.userData={id:i+1,name,role,arms,legs,body,phase:(i*.73)%6.28,
-      speed:style==='galabeya'?.63:.73+(i%5)*.075,dir:i%2?1:-1,
-      walkZ:0,minX:-73,maxX:75,rest:i%11===0?0.5:0,groundY:0};
-    return group;
+  } else if(style==='work'&&accessory==='vest'){
+    box(details,'#e1b538',0,1.24,.190,.51,.39,.045);
+    box(details,'#e7eadc',0,1.25,.218,.042,.37,.022);
+    for(const side of [-1,1])box(details,'#e7eadc',side*.13,1.1,.222,.16,.035,.025);
+  } else if(style==='coat'){
+    box(details,'#c5d2cf',0,1.2,.181,.075,.59,.018);
+    for(const side of [-1,1])box(details,'#d3d3cd',side*.12,1.28,.191,.09,.35,.025);
+    box(details,'#b8d2d0',.18,1.30,.185,.085,.06,.024);
+  } else if(style==='sports'){
+    box(details,'#d6dedc',0,1.30,.18,.22,.056,.02);
+  }else{
+    box(details,'#927866',0,1.44,.163,.15,.025,.018);
   }
-  const people=[];
-  const rows=[-93,-60,-30,0,30,60,93,133];
-  const occupied=[];
-  for(let i=0;i<EGYPTIAN_RESIDENTS.length;i++){
-    const g=npc(EGYPTIAN_RESIDENTS[i],i);const lane=Math.floor(i/5);
-    const nearRoad=rows[lane];const z=nearRoad+(i%2===0?4.5:-4.5);
-    const u=g.userData;u.walkZ=z;
-    u.minX=(lane===7?-117:-77);u.maxX=(lane===7?67:74);
-    let x=(lane===7?-108:-69)+(i%5)*31+(i%3)*3.6;
-    let placed=false;
-    // Avoid buildings, river and residents at spawn.
-    for(let tries=0;tries<60;tries++){
-      const nx=u.minX+rng()*(u.maxX-u.minX);
-      if(tries===0&&x>u.minX&&x<u.maxX)x=nx;
-      else x=nx;
-      if(isBlocked?.(x,z))continue;
-      if(occupied.some(v=>Math.hypot(v.x-x,v.z-z)<4))continue;
-      placed=true;break;
-    }
-    if(!placed){x=u.minX+(i%5)*6;for(let j=0;j<30&&isBlocked?.(x,z);j++)x+=3;}
-    g.position.set(x,0,z);
-    occupied.push({x,z});scene.add(g);people.push(g);
+  // Hip pivots with proper knee hinges and long shoes.
+  const legs=[],knees=[];
+  for(const side of [-1,1]){
+    const leg=group(rig,side*.135,.87,0);legs.push(leg);
+    const upper=egg(leg,longRobe?outer:pants,0,-.20,0,.116,.232,.125);
+    const knee=group(leg,0,-.39,0);knees.push(knee);
+    egg(knee,longRobe?outer:pants,0,-.16,0,.098,.20,.112);
+    egg(knee,index%6===0?'#d6d0c3':'#34383b',0,-.31,.096,.128,.074,.217);
+    box(knee,index%6===0?'#b9b3a8':'#858582',0,-.357,.11,.22,.024,.30);
   }
-  // Time updates do not allocate geometry; far residents do not render on mobile.
-  let tick=0;
-  function update(dt,t,focus,cars,controlledCar){
-    tick++;const f=focus || {x:0,z:0};
-    const nearCars=cars || [];
-    for(const p of people){
-      const u=p.userData;
-      const dx=p.position.x-f.x,dz=p.position.z-f.z;
-      const dist2=dx*dx+dz*dz;
-      const drawRange=(typeof innerWidth==='number'&&innerWidth<760)?78:112;
-      p.visible=dist2<drawRange*drawRange;
-      if(dist2>(drawRange+20)*(drawRange+20))continue;
-      const pauseNearPlayer=dist2<2.8*2.8;
-      let yieldCar=false;
-      if(controlledCar){
-        const dx2=p.position.x-controlledCar.position.x,dz2=p.position.z-controlledCar.position.z;
-        yieldCar=(dx2*dx2+dz2*dz2<3.2*3.2);
-      }
-      // Check traffic only for NPCs near the player (avoids 400 distance checks/frame).
-      if(!yieldCar && dist2<55*55){
-        for(const car of nearCars){
-          const xx=p.position.x-car.position.x,zz=p.position.z-car.position.z;
-          if(xx*xx+zz*zz<2.7*2.7){yieldCar=true;break;}
-        }
-      }
-      const startled=(u.startledUntil||0)>t;
-      const moving=!pauseNearPlayer&&!yieldCar&&!u.rest&&!startled;
-      const delta=moving?u.speed*dt*u.dir:0;
-      const next=p.position.x+delta;
-      if(next<u.minX||next>u.maxX||isBlocked?.(next,p.position.z)){
-        u.dir*=-1;u.rest=.32+(u.id%3)*.16;
-      }else p.position.x=next;
-      if(u.rest>0)u.rest=Math.max(0,u.rest-dt);
-      p.rotation.y=u.dir>0?Math.PI/2:-Math.PI/2;
-      const phase=(u.phase+=moving?dt*u.speed*7:0);
-      const swing=moving?Math.sin(phase)*.54:0;
-      u.legs[0].rotation.x=swing;u.legs[1].rotation.x=-swing;
-      u.arms[0].rotation.x=-swing*.7;u.arms[1].rotation.x=swing*.7;
-      u.body.position.y=moving?Math.abs(Math.sin(phase))*.035:0;
-      // Conversations trigger an actual wave; horns make nearby people flinch briefly.
-      if((u.waveUntil||0)>t){
-        u.arms[1].rotation.x=-1.2;u.arms[1].rotation.z=-.22;
-        u.body.rotation.y=Math.sin(t*.005)*.10;
-      }else{u.arms[1].rotation.z=0;u.body.rotation.y=0;}
-      if(startled){
-        u.body.rotation.x=-.08;
-        u.arms[0].rotation.x=-.55;
-      }else u.body.rotation.x=0;
+  // Shoulder + elbow hierarchy, open hands with subtle sleeves.
+  const arms=[],elbows=[];
+  for(const side of [-1,1]){
+    const arm=group(rig,side*.335*frame,1.44,0);arms.push(arm);
+    arm.rotation.z=side*.08;
+    const sleeve=style==='coat'?'#eae7df':outer;
+    egg(arm,sleeve,0,-.155,0,.092,.199,.112);
+    const elbow=group(arm,0,-.33,0);elbows.push(elbow);
+    egg(elbow,style==='formal'?outer:sleeve,0,-.115,0,.079,.149,.091);
+    egg(elbow,skin,0,-.245,.012,.067,.094,.07);
+  }
+  // Face: eye whites, pupils, brows, nose, ears, mouth, haircut, scarf, glasses.
+  const head=group(rig,0,1.77,0);
+  const breadth=.161+(index%4)*.006;
+  egg(head,skin,0,0,0,breadth,.204,.152);
+  egg(head,skin,0,-.037,.15,.035,.056,.044);
+  for(const side of [-1,1])egg(head,skin,side*breadth,-.014,-.004,.027,.054,.032);
+  const eyes=[];
+  for(const side of [-1,1]){
+    egg(faceDetails,'#f3e8d7',side*.064,1.792,.144,.039,.022,.017);
+    const pupil=egg(faceDetails,'#2b241e',side*.064,1.792,.158,.014,.019,.008);
+    eyes.push(pupil);
+    const brow=box(faceDetails,hair,side*.062,1.837,.141,.08,.012,.015);
+    brow.rotation.z=-side*.06;
+  }
+  const mouth=box(faceDetails,elderly?'#77574e':'#946258',0,1.688,.148,.069,.010,.012);
+  mouth.rotation.x=-.08;
+  if(gender==='m'&&index%4===1){
+    egg(faceDetails,hair,0,1.688,.125,.109,.061,.066); // short beard
+    box(faceDetails,skin,0,1.726,.165,.063,.035,.014);
+  }else if(gender==='m'&&index%3===0){
+    egg(faceDetails,hair,0,1.713,.161,.064,.018,.017);
+  }
+  const scarfColor=index%4===0?'#ded3b4':index%4===1?'#d0b0a5':index%4===2?cloth:'#9caeb5';
+  if(headwear==='hijab'){
+    egg(head,scarfColor,0,.105,-.077,.195,.145,.158);
+    egg(head,scarfColor,-.155,-.075,-.05,.062,.175,.119);
+    egg(head,scarfColor,.155,-.075,-.05,.062,.175,.119);
+    egg(rig,scarfColor,0,1.485,-.063,.25,.175,.166);
+  }else if(headwear==='white'){
+    egg(head,'#b4b4ab',0,.117,-.027,.17,.115,.16);
+    egg(head,'#b4b4ab',-.12,.065,-.05,.085,.1,.1);
+  }else if(headwear==='cap'){
+    egg(head,index%2?'#455c66':'#77654c',0,.131,-.019,.185,.098,.169);
+    box(head,index%2?'#455c66':'#77654c',0,.10,.162,.27,.028,.14);
+  }else{
+    egg(head,hair,0,.128,-.035,.172,.115,.168);
+    if(headwear==='long'){
+      egg(head,hair,-.145,-.075,-.06,.058,.245,.09);
+      egg(head,hair,.145,-.075,-.06,.058,.245,.09);
+    }else if(headwear==='ponytail'){
+      egg(head,hair,0,.00,-.175,.087,.205,.092);
+    }else if(headwear==='curly'){
+      for(let k=0;k<4;k++)egg(head,hair,-.133+k*.087,.183,-.025,.062,.062,.07);
     }
   }
-  return {people,update,profiles:EGYPTIAN_RESIDENTS};
+  if(accessory==='glasses'){
+    for(const side of [-1,1])box(faceDetails,'#403e3b',side*.064,1.791,.176,.092,.056,.012);
+    box(faceDetails,'#403e3b',0,1.792,.178,.04,.008,.014);
+  }
+  // Profession accessories: no branding or skin-color stereotyping.
+  if(accessory==='backpack'){
+    egg(rig,'#394956',0,1.19,-.235,.248,.29,.13);
+    for(const side of [-1,1])box(details,'#9d8f75',side*.232,1.18,.045,.027,.44,.042);
+  }else if(accessory==='bag'){
+    box(rig,'#7c604b',.32,.78,.025,.235,.31,.14);
+    box(details,'#b5a48a',.245,1.13,.06,.025,.49,.025);
+  }else if(accessory==='apron'){
+    box(details,'#e7dac0',0,1.05,.2,.43,.59,.032);
+    box(details,'#bca88e',0,.94,.222,.21,.15,.013);
+  }else if(accessory==='camera'){
+    box(details,'#292b32',.20,.85,.225,.23,.20,.14);
+    shape(details,'cyl','#778286',.20,.9,.318,.068,.026,.068);
+  }else if(accessory==='phone'){
+    box(elbows[1],'#262d37',.01,-.27,.085,.108,.16,.035);
+  }else if(accessory==='cane'){
+    box(elbows[1],'#9b7451',.105,-.50,.055,.041,.59,.04);
+  }
+  const u={id:index+1,name,role,style,gender,accessory,
+    arms,elbows,legs,knees,head,body:rig,details,faceDetails,eyes,
+    phase:index*1.07,speed:(elderly?.57:.72+(index%5)*.08),
+    dir:index%2?1:-1,minX:-73,maxX:75,rest:index%11===0?.5:0,
+    motion:0,blink:0,blinkTimer:1.4+(index%5)*.61};
+  man.userData=u;
+  return man;
+ }
+ const residents=[],paths=[-93,-60,-30,0,30,60,93,133],occupied=[];
+ for(let i=0;i<EGYPTIAN_RESIDENTS.length;i++){
+   const g=makeResident(EGYPTIAN_RESIDENTS[i],i);
+   const lane=Math.floor(i/5),z=paths[lane]+(i%2? -4.5:4.5),u=g.userData;
+   u.minX=lane===7?-117:-77;u.maxX=lane===7?67:74;
+   let x=u.minX+2;
+   for(let t=0;t<90;t++){
+    const candidate=u.minX+rand()*(u.maxX-u.minX);
+    if(isBlocked?.(candidate,z))continue;
+    if(occupied.some(v=>Math.hypot(candidate-v.x,z-v.z)<3.4))continue;
+    x=candidate;break;
+   }
+   g.position.set(x,0,z);root.add(g);
+   residents.push(g);occupied.push({x,z});
+ }
+ const setLerp=(current,target,k,dt)=>current+(target-current)*(1-Math.exp(-k*dt));
+ // NPCs move only within the current districts; visual LOD has three tiers.
+ function update(dt,t,focus,cars=[],controlledCar=null){
+  dt=Math.min(Math.max(dt||0,0),.05);
+  const f=focus||{x:0,z:0},maxDraw=(typeof innerWidth==='number'&&innerWidth<760)?79:110;
+  for(const p of residents){
+   const u=p.userData;
+   const dx=p.position.x-f.x,dz=p.position.z-f.z;
+   const distSq=dx*dx+dz*dz;
+   p.visible=distSq<maxDraw*maxDraw;
+   if(distSq>(maxDraw+16)*(maxDraw+16))continue;
+   const faceNear=distSq<28*28,detailNear=distSq<50*50;
+   u.faceDetails.visible=faceNear;
+   u.details.visible=detailNear;
+   let nearCar=false;
+   if(controlledCar){
+     const d=Math.hypot(p.position.x-controlledCar.position.x,p.position.z-controlledCar.position.z);
+     nearCar=d<3.25;
+   }
+   if(!nearCar&&distSq<57*57)for(const c of cars){
+    if(Math.hypot(p.position.x-c.position.x,p.position.z-c.position.z)<2.7){nearCar=true;break;}
+   }
+   const frightened=(u.startledUntil||0)>t;
+   const locked=!!u.streetEventLock;
+   const walking=!locked&&!nearCar&&distSq>2.45*2.45&&!frightened&&u.rest<=0;
+   u.motion=setLerp(u.motion,walking?1:0,walking?7:11,dt);
+   const nx=p.position.x+u.dir*u.motion*u.speed*dt;
+   if(walking){
+    if(nx<u.minX||nx>u.maxX||isBlocked?.(nx,p.position.z)){
+     u.dir*=-1;u.rest=.36+(u.id%4)*.18;
+    }else p.position.x=nx;
+   }
+   if(u.rest>0&&u.rest<1e8)u.rest=Math.max(0,u.rest-dt);
+   p.rotation.y=setLerp(p.rotation.y,u.dir>0?Math.PI/2:-Math.PI/2,8,dt);
+   const phase=u.phase+=dt*u.speed*7*u.motion,step=Math.sin(phase),lift=Math.max(0,Math.sin(phase+Math.PI/2));
+   u.legs[0].rotation.x=step*.50*u.motion;
+   u.legs[1].rotation.x=-step*.50*u.motion;
+   u.knees[0].rotation.x=-Math.max(0,-step)*.40*u.motion;
+   u.knees[1].rotation.x=-Math.max(0,step)*.40*u.motion;
+   u.arms[0].rotation.x=-step*.33*u.motion;
+   u.arms[1].rotation.x=step*.33*u.motion;
+   u.elbows[0].rotation.x=.13+Math.max(0,step)*.13*u.motion;
+   u.elbows[1].rotation.x=.13+Math.max(0,-step)*.13*u.motion;
+   u.body.position.y=Math.max(0,Math.sin(phase*2))*.025*u.motion;
+   u.body.rotation.z=step*.015*u.motion;
+   u.head.rotation.y=Math.sin(t*.0007+u.id)*.065;
+   // Slow idle breathing with occasional blinking.
+   u.body.scale.y=1+.006*Math.sin(t*.0022+u.id);
+   u.blinkTimer-=dt;
+   if(u.blinkTimer<0){u.blinkTimer=1.7+(u.id%6)*.44;u.blink=.11;}
+   if(u.blink>0)u.blink-=dt;
+   if(faceNear)for(const eye of u.eyes)eye.scale.y=u.blink>0?.15:.019;
+   if((u.waveUntil||0)>t){
+    u.arms[1].rotation.x=-1.22;u.arms[1].rotation.z=-.24;
+    u.elbows[1].rotation.x=-.56+Math.sin(t*.012)*.20;
+    u.body.rotation.y=Math.sin(t*.004)*.055;
+   }else{u.arms[1].rotation.z=0;u.body.rotation.y=0;}
+   if(frightened){u.arms[0].rotation.x=-.7;u.head.rotation.z=.12;}
+   else u.head.rotation.z=0;
+  }
+ }
+ return {people:residents,update,profiles:EGYPTIAN_RESIDENTS};
 }
