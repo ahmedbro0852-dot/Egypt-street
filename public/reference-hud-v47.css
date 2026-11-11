@@ -36,3 +36,9 @@ body.reference-v47{--hud-glass:linear-gradient(135deg,#211e1bc9,#111315b0);--hud
 body.reference-v47.v43-photo .hud,body.reference-v47.v43-photo .bottom,body.reference-v47.v43-photo #interact,body.reference-v47.v43-photo #lifeV5,body.reference-v47.v43-photo #fuelHud{display:none!important}
 
 .reference-v47 #money{z-index:60}.reference-v47 .v47-profile-name{font:700 12px Tahoma;color:#f8e9cb}.reference-v47 .hud #modeLabel{font-size:10px!important;margin-top:4px!important}
+/* Explicit IDs override the former keyboard-only button hiding rules. */
+.reference-v47 .bottom :is(#enter,#run,#jump,#camera,#horn){display:block!important}
+.reference-v47.driving .bottom :is(#run,#jump){display:none!important}
+.reference-v47 .v47-avatar{overflow:hidden;box-sizing:border-box}
+.reference-v47 .v47-avatar img{position:absolute;width:270%;height:270%;max-width:none;object-fit:cover;object-position:center top;left:-85%;top:-8%}
+body.reference-v47.v43-photo .bottom{display:none!important}

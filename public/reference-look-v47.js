@@ -46,7 +46,7 @@ export function dressReferenceHeroV47({T,player,renderer}){
 export function installReferenceHudV47(){
  document.body.classList.add('reference-v47');
  const hud=document.querySelector('.hud');
- const avatar=document.createElement('img');avatar.src='character-reference.jpg';avatar.alt='بطل شوارع مصر';avatar.className='v47-avatar';hud?.prepend(avatar);
+ const avatar=document.createElement('div');avatar.className='v47-avatar';const portrait=document.createElement('img');portrait.src='character-reference.jpg';portrait.alt='بطل شوارع مصر';avatar.append(portrait);hud?.prepend(avatar);
  const brand=hud?.querySelector('.brand');if(brand){brand.classList.add('v47-brand');document.body.append(brand)}
  const money=document.getElementById('money');if(money)document.body.append(money);
  const name=document.createElement('strong');name.className='v47-profile-name';name.textContent='بطل شوارع مصر';hud?.insertBefore(name,document.getElementById('modeLabel'));
