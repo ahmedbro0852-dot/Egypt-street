@@ -1,3 +1,4 @@
+import { prepareDetailedCar } from './detailed-car-v42.js';
 import { createMobileExperienceV40, tuneStickV40 } from './mobile-experience-v40.js';
 import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
@@ -114,7 +115,7 @@ function car(color){
  g.userData.wheels=wheels;g.userData.chassis=chassis;
  scene.add(g);return g;
 }
-const taxi=car('#d7a52f');taxi.position.set(2,0,8);box(0,1.72,0,.52,.20,.32,'#fff1c8',taxi.userData.chassis);
+const taxi=car('#d7a52f');prepareDetailedCar(taxi,'#d7a52f',{enabled:!!renderer.isWebGLRenderer});taxi.position.set(2,0,8);box(0,1.72,0,.52,.20,.32,'#fff1c8',taxi.userData.chassis);
 function motorcycle(color){
  const g=new T.Group();g.userData.wheels=[];
  box(0,.52,0,.26,.13,1.22,'#35383b',g);box(0,.85,-.25,.40,.13,.68,'#25272b',g);
@@ -357,6 +358,7 @@ function activateGarageVehicle(id){
    model.scale.set(.96,1.02,.95);
    box(0,1.66,-.13,1.27,.10,1.18,'#3c7886',model.userData.chassis);
   }
+  if(id!=='motorbike')prepareDetailedCar(model,id==='sport'?'#a91e32':'#294f60',{enabled:!!renderer.isWebGLRenderer});
   garageModels[id]=model;
  }
  activeVehicle=garageModels[id]||taxi;
