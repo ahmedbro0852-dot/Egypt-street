@@ -1,3 +1,4 @@
+import { dressReferenceHeroV47, installReferenceHudV47 } from './reference-look-v47.js';
 import { installFacadeDepthV46 } from './facade-depth-v46.js';
 import { installTravelLightingV44 } from './travel-lighting-v44.js';
 import { installCairoGraphicsV45 } from './cairo-graphics-v45.js';
@@ -194,7 +195,7 @@ function makeHero(){
   leftKnee:leftLeg.userData.joint,rightKnee:rightLeg.userData.joint,head};
  return root;
 }
-const player=makeHero();scene.add(player);player.position.set(0,0,12);
+const player=makeHero();dressReferenceHeroV47({T,player,renderer});scene.add(player);player.position.set(0,0,12);
 const crowd=createEgyptianCrowd(T,scene,(x,z)=>blocked(x,z,.38));
 const walkers=crowd.people; // Forty unique residents
 
@@ -1099,7 +1100,7 @@ function frame(t){
  else document.body.classList.remove('cockpitActive');
  if(driving)activeVehicle.visible=!interior;
  else activeVehicle.visible=true;
- const desiredFov=interior?68:62+(driving&&!mobileV40.getSettings().steady?Math.min(6,Math.abs(speed)*.16):0);
+ const desiredFov=interior?68:(driving?62:58)+(driving&&!mobileV40.getSettings().steady?Math.min(6,Math.abs(speed)*.16):0);
  const nextFov=camera.fov+(desiredFov-camera.fov)*(1-Math.exp(-dt*2.5));
  if(Math.abs(nextFov-camera.fov)>.018){camera.fov=nextFov;camera.updateProjectionMatrix();}
  if(interior){
@@ -1116,12 +1117,12 @@ function frame(t){
    // Smooth chase camera or walking orbit; wall avoidance stays intact.
    if(driving&&t>cameraFreeUntil)cameraYaw=blendHeading(cameraYaw,vehicleState.yaw,1.8,dt);
    const angle=cameraYaw;
-   let distance=driving?(cameraNear?6.5:10.8)+Math.min(2.0,Math.abs(speed)*.08):(cameraNear?3.8:6.6);
+   let distance=driving?(cameraNear?6.5:10.8)+Math.min(2.0,Math.abs(speed)*.08):(cameraNear?3.2:4.8);
    for(let i=1;i<=10;i++){
     const f=i/10, cx=p.x-Math.sin(angle)*distance*f,cz=p.z-Math.cos(angle)*distance*f;
     if(blocked(cx,cz,.16)){distance=Math.max(2.35,distance*((i-1)/10));break;}
    }
-   const baseH=driving?4.2:3.4;
+   const baseH=driving?4.2:2.35;
    const height=baseH+Math.sin(cameraPitch)*distance+(driving?Math.min(1.0,Math.abs(speed)*.03):0);
    const chase=new T.Vector3(p.x-Math.sin(angle)*distance,height,p.z-Math.cos(angle)*distance);
    camera.position.lerp(chase,1-Math.exp(-dt*(driving?5.3:7.0)));
@@ -1164,4 +1165,5 @@ const desktopWorldV43=installDesktopWorldV43({T,scene,renderer,sun,getVehicle:()
 const travelLightingV44=installTravelLightingV44({T,scene,renderer,sun,getPosition:()=>driving?taxi.position:player.position,getDaylight:()=>cityLife.illumination()});
 const cairoGraphicsV45=installCairoGraphicsV45({T,scene,renderer,camera,sun,getFocus:()=>driving?taxi.position:player.position,getState:()=>({illumination:cityLife.illumination(),weather:cityLife.getState().weather})});
 installFacadeDepthV46({T,scene,renderer});
+installReferenceHudV47();
 requestAnimationFrame(frame);
