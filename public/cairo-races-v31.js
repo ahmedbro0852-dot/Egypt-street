@@ -120,6 +120,9 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  #v31RacePanel button{min-height:38px;border-radius:10px;padding:7px 12px;
  border:1px solid #91b4be;background:#2b5362;color:white;font:bold 12px Tahoma,Arial}
  #v31RacePanel .start{background:#d7a34e;border-color:#f7dc98;color:#192b30;width:100%}
+ #v31RaceResult{background:#244936;color:#f5e9bd;padding:12px;margin:12px 0;
+ border:1px solid #c5d479;border-radius:12px;line-height:1.8;font-weight:700}
+ #v31RaceResult[hidden]{display:none}
  #v31RaceClose{float:left}
  #v31RaceHud{position:fixed;z-index:56;top:84px;left:50%;transform:translateX(-50%);
  width:min(340px,92vw);background:#112630ed;border:1px solid #f0bc68;border-radius:15px;
@@ -127,6 +130,8 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  pointer-events:auto;padding:10px;font:bold 12px Tahoma,Arial}
  #v31RaceHud b{display:block;color:#ffcf7b;font-size:15px;margin-bottom:4px}
  #v31RaceStats{font-size:12px;line-height:1.8}
+ #v31RaceLeaderboard{font-size:10px;line-height:1.6;color:#e3e6c3;
+ border-top:1px solid #75868c8c;border-bottom:1px solid #75868c8c;padding:3px}
  #v31RaceHint{font-size:11px;color:#b9e7d6;line-height:1.5}
  #v31RaceQuit{border:1px solid #a57b68;border-radius:8px;color:#ffd4c1;background:#513129;
  padding:4px 9px;margin-top:5px;min-height:28px;font:10px Tahoma}
@@ -152,8 +157,10 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  const header=make('h2','v31RaceTitle',panel);header.textContent='🏆 بطولات شوارع مصر';
  const close=make('button','v31RaceClose',panel);close.textContent='✕ إغلاق';
  const summary=make('p','v31RaceSummary',panel);
+ const podium=make('div','v31RaceResult',panel);podium.hidden=true;
  const list=make('div','v31RaceList',panel);
  const hudTitle=make('b','v31RaceHudTitle',hud),stats=make('div','v31RaceStats',hud),
+ leaderboard=make('div','v31RaceLeaderboard',hud),
  hint=make('div','v31RaceHint',hud),quit=make('button','v31RaceQuit',hud);
  quit.textContent='إلغاء السباق';quit.type='button';
  function persist(){try{storage?.setItem(KEY,JSON.stringify(history))}catch(e){}}
@@ -219,6 +226,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  function configureModels(kind){
   for(let i=0;i<3;i++){
    const old=models[i];scene.remove(old);
+   old.traverse?.(obj=>{obj.geometry?.dispose?.();obj.material?.dispose?.()});
    models[i]=createRacerModel(T,kind,[0x3c89ad,0xd34143,0xe8be58][i]);
    scene.add(models[i]);models[i].visible=true;
   }
@@ -243,7 +251,8 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   });
   active={id,course,points:pts,steps:0,lap:0,elapsed:0,lapStart:0,bestLap:Infinity,
    count:3.35,phase:'countdown',enemies,lastPosition:null,rank:4,startingHealth:100};
-  panel.hidden=true;hud.hidden=false;document.body.classList.add('racingActive');
+  panel.hidden=true;podium.hidden=true;hud.hidden=false;
+  document.body.classList.add('racingActive');
   if(startingLine){
    startingLine.position.set(first.x,.11,first.z);startingLine.rotation.y=yaw;
    startingLine.visible=true;
@@ -260,6 +269,9 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   hudTitle.textContent=course.icon+' '+course.name;
   stats.textContent='🏆 الترتيب '+a.rank+'/4 • 🔁 اللفة '+Math.min(course.laps,a.lap+1)+'/'+course.laps+
    ' • ⏱️ '+fmt(a.elapsed);
+  leaderboard.textContent=a.standings?.length?
+   a.standings.map((p,i)=>(i+1)+'-'+p.name).join(' • '):
+   '1-الذهبي • 2-الأزرق • 3-الأحمر • 4-إنت';
   const next=a.points[(a.steps+1)%a.points.length];
   hint.textContent=a.phase==='countdown'?'🚦 الاستعداد للانطلاق...':
    '🟡 نقطة المرور: '+(a.steps%a.points.length+1)+'/'+a.points.length+
@@ -280,8 +292,12 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
     rank===3?Math.round(course.reward*.22):100;
    history.earned+=amount;
    onReward(amount,course,rank);persist();
+   podium.hidden=false;
+   podium.textContent=(rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'🏁')+
+     ' '+course.name+' — المركز '+rank+'/4 • الزمن '+fmt(a.elapsed)+
+     ' • أسرع لفة '+fmt(a.bestLap)+' • المكافأة +'+amount+' جنيه';
    notify('🏆 خلصت '+course.name+' • المركز '+rank+'/4 • +'+amount+' جنيه');
-  }else notify('⛔ خرجت من سباق '+course.name);
+  }else{podium.hidden=true;notify('⛔ خرجت من سباق '+course.name)}
   active=null;resetModels();restoreCar(course);
   hud.hidden=true;countdown.hidden=true;document.body.classList.remove('racingActive');
   onFinish(course,completed,rank);
@@ -366,6 +382,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    {name:'إنت',player:true,progress:playerProgress,time:a.elapsed},
    ...a.enemies.map(enemy=>({name:enemy.name,progress:enemy.progress,time:enemy.finishTime}))
   ]);
+  a.standings=standings;
   a.rank=standings.findIndex(x=>x.player)+1;
   if(a.steps>=a.course.laps*a.points.length){finish(true);return}
   // Race timeout: players cannot farm awards by leaving the game idling.
