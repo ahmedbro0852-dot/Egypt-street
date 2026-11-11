@@ -555,6 +555,13 @@ button:focus-visible{outline:2px solid #fff0a5;outline-offset:3px}
  #v9SignalStrip{right:8px;bottom:289px;width:156px;height:31px;gap:3px}
  #v9SignalStrip button{height:31px;font-size:12px}
 }
+@media(max-width:760px) and (orientation:portrait){
+ #fuelHud{max-height:calc(100dvh - 348px);overflow-y:auto;
+ overscroll-behavior:contain;touch-action:pan-y;scrollbar-width:thin}
+}
+@media(orientation:landscape) and (max-height:520px){
+ #fuelHud{overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+}
 @media(orientation:landscape) and (max-height:520px){
  #v9SignalStrip{top:calc(100vh - 142px);bottom:auto;right:8px;width:155px;height:28px}
  #v9SignalStrip button{height:28px;font-size:11px}
