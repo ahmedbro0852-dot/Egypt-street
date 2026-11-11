@@ -141,7 +141,15 @@ const crowd=createEgyptianCrowd(T,scene,(x,z)=>blocked(x,z,.38));
 const walkers=crowd.people; // Forty unique residents
 
 const target=new T.Vector3(62,0,-50);let beacon=new T.Mesh(new T.CylinderGeometry(2,2,.12,32),new T.MeshBasicMaterial({color:0xffcd68,transparent:true,opacity:.7}));scene.add(beacon);let pillar=new T.Mesh(new T.CylinderGeometry(.25,.25,13,12),new T.MeshBasicMaterial({color:0xffd57e,transparent:true,opacity:.45}));scene.add(pillar);
-const sound=createStreetAudio();let pedal=0;for(const [id,value] of [['accelerate',1],['reverse',-1]]){const b=$(id);b.onpointerdown=e=>{pedal=value;b.setPointerCapture(e.pointerId);sound.start()};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>pedal=0;} $('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;keys={};resetPad();sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;const vehicleState=createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y);const onFoot={vx:0,vz:0};let cameraYaw=0,cameraPitch=.13,cameraFreeUntil=0,bumpCooldown=0;let toastTimer;function toast(s){$('toast').textContent=s;clearTimeout(toastTimer);$('toast').style.opacity=1;toastTimer=setTimeout(()=>$('toast').style.opacity=.15,4500)}const streetEvents=createStreetEvents({
+const sound=createStreetAudio();let pedal=0,brakePedal=false,jumpRequested=false;for(const [id,value] of [['accelerate',1],['reverse',-1]]){const b=$(id);b.onpointerdown=e=>{pedal=value;b.setPointerCapture(e.pointerId);sound.start()};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>pedal=0;}
+// Genuine independently held mobile brake. Lost capture never leaves the pedal pressed.
+const brakeButton=$('brakePedal');
+brakeButton.onpointerdown=e=>{e.preventDefault();brakePedal=true;brakeButton.setPointerCapture(e.pointerId)};
+brakeButton.onpointerup=brakeButton.onpointercancel=brakeButton.onlostpointercapture=()=>{brakePedal=false};
+const jumpButton=$('jump');
+jumpButton.onpointerdown=e=>{e.preventDefault();if(!driving)jumpRequested=true;jumpButton.setPointerCapture(e.pointerId)};
+jumpButton.onpointerup=jumpButton.onpointercancel=()=>{};
+$('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;brakePedal=false;jumpRequested=false;keys={};resetPad();sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;const vehicleState=createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y);const onFoot={vx:0,vz:0,vy:0,y:0,grounded:true};let cameraYaw=0,cameraPitch=.13,cameraFreeUntil=0,bumpCooldown=0;let toastTimer;function toast(s){$('toast').textContent=s;clearTimeout(toastTimer);$('toast').style.opacity=1;toastTimer=setTimeout(()=>$('toast').style.opacity=.15,4500)}const streetEvents=createStreetEvents({
  T,scene,people:walkers,
  getPlayer:()=>driving?taxi.position:player.position,
  getDriving:()=>driving,
@@ -161,17 +169,17 @@ $('start').onclick=()=>{sound.start();active=true;$('intro').style.display='none
   const safe=exits.find(([x,z])=>!blocked(x,z,.55));
   if(!safe){toast('حرّك العربية شوية عشان تلاقي مكان تنزل فيه');return}
   driving=false;player.visible=true;player.position.set(safe[0],0,safe[1]);
-  speed=0;onFoot.vx=onFoot.vz=0;vehicleState.speed=0;vehicleState.lateralSpeed=0;vehicleState.yawRate=0;
-  document.body.classList.remove('driving');pedal=0;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
+  speed=0;onFoot.vx=onFoot.vz=0;onFoot.vy=onFoot.y=0;onFoot.grounded=true;jumpRequested=false;vehicleState.speed=0;vehicleState.lateralSpeed=0;vehicleState.yawRate=0;
+  document.body.classList.remove('driving');pedal=0;brakePedal=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
  }else if(player.position.distanceTo(taxi.position)<6){
   driving=true;player.visible=false;
   Object.assign(vehicleState,createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y));
-  yaw=taxi.rotation.y;cameraYaw=yaw;cameraFreeUntil=0;speed=0;resetPad();
+  yaw=taxi.rotation.y;cameraYaw=yaw;cameraFreeUntil=0;speed=0;brakePedal=false;jumpRequested=false;resetPad();
   document.body.classList.add('driving');$('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
   $('controlsHint').textContent='↔ العصاية للتوجيه • البنزين من اليمين';
   toast('العصاية يمين وشمال للدريكسيون • زر بنزين للتسارع • اسحب الشاشة لتلف الكاميرا');
  }else toast('قرب من العربية الصفرا الأول')
-} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if(k===' '){e.preventDefault()}if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat)streetEvents.interact()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;keys={};resetPad();sprint=false};
+} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat)streetEvents.interact()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;jumpRequested=false;keys={};resetPad();sprint=false};
 const pad=$('joy'),knob=$('knob'),worldCanvas=$('world');
 function resetPad(){joy.x=0;joy.y=0;if(knob)knob.style.transform='translate(0px,0px)'}
 function stickMove(e){
@@ -208,6 +216,15 @@ worldCanvas.onpointerup=worldCanvas.onpointercancel=worldCanvas.onlostpointercap
 function blocked(x,z,radius=.45){
  if(Math.abs(x)>218-radius||Math.abs(z)>168-radius||cairo.isWater(x,z))return true;
  return solids.some(b=>Math.abs(x-b.x)<b.w+radius&&Math.abs(z-b.z)<b.d+radius)
+}
+function roadGrip(x,z){
+ // Asphalt grips better than dusty pavements and unpaved blocks.
+ const localRoad=(Math.abs(z)<84&&roads.some(n=>Math.abs(x-n)<6.8)) ||
+        (Math.abs(x)<84&&roads.some(n=>Math.abs(z-n)<6.8));
+ const outerRoad=([-133,-93,93,133].some(n=>Math.abs(z-n)<6.8)&&x>-151&&x<115) ||
+        ([-139,-95,84,94,170].some(n=>Math.abs(x-n)<6.8)&&Math.abs(z)<169);
+ const bridge=[-60,0,60].some(n=>Math.abs(z-n)<6.2)&&x>91&&x<177;
+ return localRoad||outerRoad||bridge?1:.65;
 }
 function carCollision(x,z,angle){
  const sin=Math.sin(angle),cos=Math.cos(angle);
@@ -260,7 +277,7 @@ function frame(t){
    // Right on screen steers right. Swiping the world now moves the camera only.
    const steer=steeringFromStick(joy.x,(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0));
    const result=stepVehiclePhysics(vehicleState,{
-    throttle:f,steer,brake:sprint||keys.shift||keys[' ']
+    throttle:f,steer,brake:brakePedal||sprint||keys.shift||keys[' '],grip:roadGrip(p.x,p.z)
    },dt,carCollision);
    taxi.position.x=vehicleState.x;taxi.position.z=vehicleState.z;
    taxi.rotation.y=vehicleState.yaw;yaw=vehicleState.yaw;speed=vehicleState.speed;
@@ -276,6 +293,7 @@ function frame(t){
    }
    if(result.collision&&t>bumpCooldown){
     toast(result.impact>6?'خد بالك من الطريق! العربية خبطت':'في عائق قدّامك');
+    if(result.impact>4&&navigator.vibrate)navigator.vibrate(Math.min(95,Math.round(result.impact*4)));
     bumpCooldown=t+1700;
    }
   }else{
@@ -292,6 +310,14 @@ function frame(t){
    if(!footBlocked(nx,p.z))p.x=nx;else onFoot.vx=0;
    if(!footBlocked(p.x,nz))p.z=nz;else onFoot.vz=0;
    speed=Math.hypot(onFoot.vx,onFoot.vz);
+   if(onFoot.grounded&&jumpRequested){
+     onFoot.grounded=false;onFoot.vy=5.4;jumpRequested=false;
+   }
+   if(!onFoot.grounded){
+     onFoot.vy-=16.5*dt;onFoot.y=Math.max(0,onFoot.y+onFoot.vy*dt);
+     if(onFoot.y===0&&onFoot.vy<=0){onFoot.grounded=true;onFoot.vy=0;}
+   }else{onFoot.y=0;jumpRequested=false;}
+   player.position.y=onFoot.y;
    if(speed>.12){
      const heading=Math.atan2(onFoot.vx,onFoot.vz);
      player.rotation.y=blendHeading(player.rotation.y,heading,9.0,dt);
@@ -310,7 +336,7 @@ function frame(t){
    }
   }
   gait+=dt*Math.abs(speed)*2.8;
-  animateHero(player,gait,driving?0:Math.min(1,Math.abs(speed)/4.3));
+  animateHero(player,gait,driving||!onFoot.grounded?0:Math.min(1,Math.abs(speed)/4.3));
   crowd.update(dt,t,p,traffic,taxi);
   streetEvents.update(dt,t);
   if(driving&&p.distanceTo(target)<4&&Math.abs(speed)<10){
