@@ -364,8 +364,8 @@ function updateV9Lamps(){
  }
 }
 function updateV9Dashboard(t=0){
- if(t-v9UiLast<125&&v9UiLast>=0)return;
- v9UiLast=t;
+ if(t!==Infinity&&t-v9UiLast<125&&v9UiLast>=0)return;
+ v9UiLast=t===Infinity?-1:t;
  const state=drivingRealism.getState();
  $('v9RpmValue').textContent=Math.round(state.rpm)+' RPM';
  $('v9RpmFill').style.width=Math.min(100,Math.max(0,state.rpm/7500*100)).toFixed(1)+'%';
@@ -492,12 +492,15 @@ function enter(){
   if(!safe){toast('حرّك العربية شوية عشان تلاقي مكان تنزل فيه');return}
   driving=false;player.visible=true;player.position.set(safe[0],0,safe[1]);
   speed=0;onFoot.vx=onFoot.vz=0;onFoot.vy=onFoot.y=0;onFoot.grounded=true;jumpRequested=false;vehicleState.speed=0;vehicleState.lateralSpeed=0;vehicleState.yawRate=0;
-  autoDriver.stop();drivingRealism.exit();parkingBrake=false;updateParkingUi();fuelSystem.exit();document.body.classList.remove('driving');pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
+  autoDriver.stop();drivingRealism.exit();
+  v9Live={...v9Live,left:false,right:false,engineOn:false,rpm:0};updateV9Lamps();
+  parkingBrake=false;updateParkingUi();fuelSystem.exit();document.body.classList.remove('driving');pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
  }else if(player.position.distanceTo(taxi.position)<6){
   driving=true;player.visible=false;
   Object.assign(vehicleState,createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y));
   yaw=taxi.rotation.y;cameraYaw=yaw;cameraFreeUntil=0;speed=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;resetPad();
-  document.body.classList.add('driving');parkingBrake=false;updateParkingUi();fuelSystem.enter();drivingRealism.enter(fuelSystem.getState().fuel);autoDriver.start(vehicleState.x,vehicleState.z);
+  document.body.classList.add('driving');parkingBrake=false;updateParkingUi();fuelSystem.enter();drivingRealism.enter(fuelSystem.getState().fuel);updateV9Dashboard(Infinity);
+  autoDriver.start(vehicleState.x,vehicleState.z);
   updateAutoPilotLabel();$('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
   $('controlsHint').textContent='🧭 GPS للمهمات • العصاية للتحكم اليدوي';
   toast('🤖 العربية بتسوق لوحدها. حرك العصاية للتوجيه اليدوي أو دوس فرامل.');
