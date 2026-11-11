@@ -10,7 +10,7 @@ export const TANK_CAPACITY=45;
 export const FUEL_PRICE=6; // purely fictional gameplay rate, not a real-world price.
 const SAVE_KEY='egypt-street-fuel-v4';
 export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpeed,isDriving,getMoney,charge,notify}){
- let fuel=16,auto=true,target=60,spent=0,totalKm=0,lastSave=0,warning=false,atStation=null,condition=100,temperature=25,lastDamageWarn=0;
+ let fuel=16,auto=true,target=75,spent=0,totalKm=0,lastSave=0,warning=false,atStation=null,condition=100,temperature=25,lastDamageWarn=0;
  try{
   const saved=JSON.parse(storage?.getItem(SAVE_KEY)||'null');
   if(saved&&Number.isFinite(saved.fuel)){
@@ -75,7 +75,8 @@ export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpe
  }
  function enter(){
   auto=fuel>.01;
-  target=60;warning=false;updateUI();
+  // Preserve the chosen speed preset when the player gets in again.
+  warning=false;updateUI();
   if(!auto)notify('التانك فاضي! لازم توقف عند بنزينة أو تكلم الدعم.');
  }
  function exit(){auto=false;updateUI();persist()}
@@ -89,7 +90,7 @@ export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpe
  function changeSpeed(delta){
   if(!isDriving())return;
   if(fuel<.01){notify('مافيش بنزين. لازم تفوّل الأول.');return}
-  target=LIMIT(target+delta,20,115);
+  target=LIMIT(target+delta,20,145);
   auto=true;updateUI();
   notify('السرعة المستهدفة '+target+' كم/ساعة');
  }
@@ -106,7 +107,9 @@ export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpe
   if(!auto)return 0;
   const speed=Math.max(0,getSpeed())*3.6;
   const difference=target-speed;
-  return LIMIT(difference*.028+.11,0,Math.max(.36,condition/100));
+  // Smooth cruise control: no throttle oscillations around the set speed.
+  const pedal=LIMIT(difference*.035+.085,0,1);
+  return Math.min(pedal,Math.max(.36,condition/100));
  }
  function update(dt,time,actualThrottle=0,engineOn=false){
   dt=LIMIT(Number.isFinite(dt)?dt:0,0,.05);
@@ -180,7 +183,7 @@ export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpe
    if(Number.isFinite(state.fuel))fuel=LIMIT(state.fuel,0,TANK_CAPACITY);
    if(Number.isFinite(state.condition))condition=LIMIT(state.condition,0,100);
    if(Number.isFinite(state.totalKm))totalKm=Math.max(0,state.totalKm);
-   if(Number.isFinite(state.target))target=LIMIT(state.target,20,115);
+   if(Number.isFinite(state.target))target=LIMIT(state.target,20,145);
    auto=!!state.auto&&fuel>.01&&isDriving();
    warning=false;persist();updateUI();return true;
   },
