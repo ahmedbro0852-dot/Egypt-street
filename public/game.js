@@ -843,6 +843,12 @@ function frame(t){
    const autopilot=autoDriver.controls(vehicleState,traffic,walkers,dt,{cruiseKmh:fuelSystem.getState().target});
    const racingId=currentRaceVehicleId();
    const tune={...garage.getTuning(),...getVehicleDynamicsV19(racingId)};
+   // V33: quicker steering all over Cairo, extra turning authority at the
+   // dedicated track. Existing garage steering upgrades still stack.
+   const racingNow=raceSystem?.isRunning();
+   tune.steerScale=Math.min(1.75,(tune.steerScale||1)*
+      (racingNow?(racingId==='motorbike'?1.24:1.22):1.06));
+   tune.turnAssist=racingNow?(racingId==='motorbike'?4.9:5.15):4.0;
    if(racingId==='sport'&&raceSystem?.isFormula()){tune.topSpeed=52;tune.engineForce=10100}
    const roadSurface=raceModeV32&&isRaceArenaV32(vehicleState.x,vehicleState.z)?
     {grip:1.05,bump:0,height:0,onRoad:true,roadType:'race circuit'}:
