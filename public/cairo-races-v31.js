@@ -190,7 +190,8 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   scene.add(m);models.push(m);
  }
  const formulaPlayer=createRacerModel(T,'formula',0xd52e3e);
- scene.add(formulaPlayer);
+ const motoPlayer=createRacerModel(T,'moto',0xc83b3b);
+ scene.add(formulaPlayer,motoPlayer);
  let marker=null,beam=null,startingLine=null;
  if(T.TorusGeometry&&T.CylinderGeometry){
   marker=new T.Mesh(new T.TorusGeometry(2.3,.22,6,24),
@@ -213,7 +214,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  function resetModels(){
   for(const m of models)m.visible=false;
   if(marker)marker.visible=beam.visible=startingLine.visible=false;
-  formulaPlayer.visible=false;
+  formulaPlayer.visible=false;motoPlayer.visible=false;
  }
  function configureModels(kind){
   for(let i=0;i<3;i++){
@@ -247,7 +248,8 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    startingLine.position.set(first.x,.11,first.z);startingLine.rotation.y=yaw;
    startingLine.visible=true;
   }
-  formulaPlayer.visible=false;
+  if(course.kind==='formula')formulaPlayer.visible=true;
+  if(course.kind==='moto')motoPlayer.visible=true;
   updateMarker();lastCountdown=0;
   notify('🏁 '+course.name+' — استعد! سباق '+course.laps+' لفة');
   updateHud(true);return true;
@@ -296,7 +298,11 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    const i=enemy.steps%n,from=a.points[i],to=a.points[(i+1)%n];
    let len=dist(from,to);
    const turnFactor=enemy.segment>len-7?.65:enemy.segment<5?.74:1;
-   remaining*=turnFactor;
+   // A collision reduces pace for a moment; the opponent rejoins gradually.
+   const u=enemy.model.userData;
+   const collisionHold=u.crashHold>t?0.12:1;
+   remaining*=turnFactor*collisionHold;
+   u.actualCruise=enemy.speed*turnFactor*collisionHold;
    for(let guard=0;guard<3&&remaining>0;guard++){
     const index=enemy.steps%n,pointA=a.points[index],pointB=a.points[(index+1)%n];
     len=Math.max(.01,dist(pointA,pointB));
@@ -317,6 +323,9 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    enemy.model.position.set(p0.x+(p1.x-p0.x)*fraction+sideX,0,
     p0.z+(p1.z-p0.z)*fraction+sideZ);
    enemy.model.rotation.y=face;
+   enemy.model.userData.axis=Math.abs(Math.sin(face))>.5?'x':'z';
+   enemy.model.userData.direction=enemy.model.userData.axis==='x'?
+      (Math.sin(face)>=0?1:-1):(Math.cos(face)>=0?1:-1);
    enemy.progress=enemy.steps+fraction;
    for(const wheel of enemy.model.userData.wheels||[])
     wheel.userData.rolling.rotation.x+=enemy.speed*dt/(wheel.userData.radius||.4);
@@ -371,8 +380,9 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    elapsed:active.elapsed,waypoint:active.points[(active.steps+1)%active.points.length]
   }:null,
   isFormula:()=>active?.id==='formula',
+  getPlayerRaceModel:kind=>kind==='moto'?motoPlayer:formulaPlayer,
   getPlayerFormula:()=>formulaPlayer,
-  getOpponents:()=>active?active.enemies.map(x=>x.model):[],
+  getOpponents:()=>active?active.enemies.filter(x=>!x.finished).map(x=>x.model):[],
   getHistory:()=>({...history}),getCourses:()=>CAIRO_RACES_V31,
   isRunning:()=>!!active};
 }
