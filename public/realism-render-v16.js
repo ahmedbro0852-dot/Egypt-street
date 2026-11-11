@@ -13,11 +13,15 @@ export function installRealismRender({T,scene,renderer,sun}){
  // A low resolution studio-sky reflection provides highlights without remote assets.
  const sides=[];for(let i=0;i<6;i++){const c=document.createElement('canvas');c.width=c.height=64;const q=c.getContext('2d');const gr=q.createLinearGradient(0,0,0,64);gr.addColorStop(0,'#8ea9bc');gr.addColorStop(.55,'#d2d5cd');gr.addColorStop(1,'#746f64');q.fillStyle=gr;q.fillRect(0,0,64,64);q.fillStyle='rgba(255,241,211,.4)';q.fillRect(i%2?12:40,5,10,17);sides.push(c)}const cube=new T.CubeTexture(sides);cube.needsUpdate=true;cube.colorSpace=T.SRGBColorSpace;
  const pmrem=new T.PMREMGenerator(renderer);const env=pmrem.fromCubemap(cube);scene.environment=env.texture;pmrem.dispose();cube.dispose();
+ // Compact local shadow footprint keeps mobile draw cost bounded.
+ renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
+ sun.castShadow=true;sun.shadow.mapSize.set(768,768);sun.shadow.camera.left=-42;sun.shadow.camera.right=42;sun.shadow.camera.top=42;sun.shadow.camera.bottom=-42;sun.shadow.camera.near=.5;sun.shadow.camera.far=160;sun.shadow.bias=-.0005;sun.shadow.normalBias=.025;
+ scene.updateMatrixWorld(true);let shadowCasters=0;
  let changed=0;
- scene.traverse(o=>{if(!o.isMesh||!o.material||Array.isArray(o.material))return;const m=o.material;if(m.map||m.transparent||m.emissive?.getHex()>0)return;
+ scene.traverse(o=>{if(!o.isMesh||!o.material||Array.isArray(o.material))return;const world=new T.Vector3();o.getWorldPosition(world);o.receiveShadow=true;if(world.length()<48&&shadowCasters<110&&o.geometry?.type==='BoxGeometry'&&(o.geometry.parameters.height||0)>1){o.castShadow=true;shadowCasters++}const m=o.material;if(m.map||m.transparent||m.emissive?.getHex()>0)return;
  const size=o.geometry?.parameters||{},h=size.height||0,w=size.width||0,d=size.depth||0;
  // Only masonry and broad road surfaces receive these UV textures.
- if(m.isMeshLambertMaterial&&o.geometry?.type==='BoxGeometry'&&((h>4&&w>3&&d>3)||(h<.4&&w>8&&d>8))){const road=h<.4&&m.color.r<.48;const kind=road?'asphalt':'plaster';const key=m.uuid+kind;let next=converted.get(key);if(!next){next=new T.MeshStandardMaterial({color:m.color.clone(),map:texture(kind),roughness:road?.97:.9,metalness:0,bumpMap:texture(kind),bumpScale:road?.025:.018});converted.set(key,next)}o.material=next;changed++}
+ if(m.isMeshLambertMaterial&&o.geometry?.type==='BoxGeometry'&&((h>4&&w>3&&d>3)||(h<.4&&w>8&&d>8))){const road=h<.4&&m.color.r<.48;const kind=road?'asphalt':'plaster';const tx=road?Math.max(1,Math.round(w/6)):Math.max(1,Math.round(w/4)),ty=road?Math.max(1,Math.round(d/6)):Math.max(1,Math.round(h/4));const key=m.uuid+kind+tx+':'+ty;let next=converted.get(key);if(!next){const tiled=texture(kind).clone();tiled.repeat.set(tx,ty);tiled.needsUpdate=true;next=new T.MeshStandardMaterial({color:m.color.clone(),map:tiled,roughness:road?.97:.9,metalness:0,bumpMap:tiled,bumpScale:road?.025:.018});converted.set(key,next)}o.material=next;changed++}
  if(o.material.isMeshStandardMaterial){o.material.envMapIntensity=o.material.metalness>.3?.75:.13;o.material.needsUpdate=true;}
  });
  return {enabled:true,changed,dispose(){env.dispose();for(const t of textures.values())t.dispose()}};
