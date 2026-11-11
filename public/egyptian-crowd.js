@@ -1,3 +1,4 @@
+import { createPedestrianMotionV20, stepPedestrianMotionV20 } from './pedestrian-physics-v20.js';
 // Forty distinct Egyptian street residents for the existing mobile 3D game.
 // Shared geometry/materials keep models lightweight; nearby NPCs animate, distant ones sleep.
 export const EGYPTIAN_RESIDENTS = [
@@ -252,10 +253,18 @@ export function createEgyptianCrowd(T,scene,isBlocked){
    residents.push(g);occupied.push({x,z});
  }
  const setLerp=(current,target,k,dt)=>current+(target-current)*(1-Math.exp(-k*dt));
- function reactCollision(person,away,power,timeMs){
+ function reactCollision(person,away,power,timeMs,impactDetails=null){
   if(!person?.userData)return false;
   const u=person.userData;
   const force=Math.max(.15,Math.min(1,Number(power)||.2));
+  // A physical contact starts a bounded, gravity-driven fall rather than a
+  // fixed wobble. Existing recovery animation remains a visual fallback.
+  if(u.impactMotion?.stage!=='done'&&u.impactMotion&&timeMs-u.impactMotion.time<900)
+   return false;
+  u.impactMotion=createPedestrianMotionV20(
+   impactDetails||{horizontalSpeed:.55+force*2,loftSpeed:.2+force*.4,
+    stumbleAngle:.2+force*.6,downDurationMs:750},away,timeMs
+  );
   u.stumbleAt=timeMs;u.stumbleUntil=timeMs+650+force*900;
   u.stumbleForce=force;
   // Deterministic character-specific motion: sidestep, brace or crouch/recover.
@@ -319,9 +328,20 @@ export function createEgyptianCrowd(T,scene,isBlocked){
    if(!nearCar&&distSq<57*57)for(const c of cars){
     if(Math.hypot(p.position.x-c.position.x,p.position.z-c.position.z)<2.7){nearCar=true;break;}
    }
+   // Integrate mass-based horizontal momentum and vertical gravity once per
+   // animation frame; bounds and shop collisions prevent passing through walls.
+   let impactPose=null;
+   if(u.impactMotion){
+    impactPose=stepPedestrianMotionV20(u.impactMotion,dt,t,{
+     x:p.position.x,z:p.position.z,
+     canMove:(x,z)=>x>u.minX&&x<u.maxX&&!isBlocked?.(x,z,.28)
+    });
+    p.position.set(impactPose.x,0,impactPose.z);
+    if(!impactPose.active){u.impactMotion=null;impactPose=null;}
+   }
    const frightened=(u.startledUntil||0)>t;
-   const stumbling=(u.stumbleUntil||0)>t;
-   const stumbleAmount=stumbling?Math.min(1,(u.stumbleUntil-t)/600)*(u.stumbleForce||0):0;
+   const stumbling=(u.stumbleUntil||0)>t||!!impactPose;
+   const stumbleAmount=impactPose?0:stumbling?Math.min(1,(u.stumbleUntil-t)/600)*(u.stumbleForce||0):0;
    const style=u.stumbleStyle||0;
    const locked=!!u.streetEventLock;
    // Occasional local conversations: two neighbours stop and greet one another.
@@ -346,8 +366,10 @@ export function createEgyptianCrowd(T,scene,isBlocked){
    if(u.rest>0&&u.rest<1e8)u.rest=Math.max(0,u.rest-dt);
    p.rotation.y=setLerp(p.rotation.y,u.dir>0?Math.PI/2:-Math.PI/2,8,dt);
    const phase=u.phase+=dt*u.speed*7*u.motion,step=Math.sin(phase),lift=Math.max(0,Math.sin(phase+Math.PI/2));
-   u.proxy.position.y=-stumbleAmount*.20;
-   u.proxy.rotation.z=(u.stumbleSide||1)*stumbleAmount*(style===0?.32:style===1?.18:.08);
+   u.proxy.position.y=-stumbleAmount*.20+(impactPose?.height||0)-(impactPose?.fall||0)*.16;
+   u.proxy.rotation.z=(u.stumbleSide||1)*(stumbleAmount*(style===0?.32:style===1?.18:.08)+
+    (impactPose?.fall||0)*.46);
+   u.proxy.rotation.x=(impactPose?.fall||0)*.85;
    if(!highNear){
      u.proxyLegs[0].rotation.x=step*.31*u.motion;
      u.proxyLegs[1].rotation.x=-step*.31*u.motion;
@@ -402,6 +424,17 @@ export function createEgyptianCrowd(T,scene,isBlocked){
        u.arms[0].rotation.z=-stumbleAmount*.22;
      }
    }else{u.body.rotation.x=0;u.arms[0].rotation.z=0;}
+   if(impactPose){
+    // Ground-anchored lean and crouch; no graphic injury effects or heavy ragdoll rig.
+    const fall=impactPose.fall,side=u.stumbleSide||1;
+    u.body.position.y+=impactPose.height-fall*.19;
+    u.body.rotation.x+=fall*(style===2?.65:1.04);
+    u.body.rotation.z+=side*fall*(style===0?.52:.31);
+    u.knees[0].rotation.x+=fall*.75;
+    u.knees[1].rotation.x+=fall*.66;
+    u.arms[0].rotation.x-=fall*.72;
+    u.arms[1].rotation.x-=fall*.48;
+   }
   }
  }
  return {people:residents,update,reactCollision,profiles:EGYPTIAN_RESIDENTS};
