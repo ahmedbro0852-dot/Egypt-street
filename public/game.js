@@ -333,7 +333,7 @@ let activeVehicle=taxi;
 function updateCrashBodyVisual(model,condition){
  const panels=model?.userData?.damagePanels;
  if(!panels)return;
- const wear=Math.max(0,Math.min(.88,(100-(Number(condition)||100))/95));
+ const wear=Math.max(0,Math.min(.88,(100-(Number.isFinite(condition)?condition:100))/95));
  // Minor bumper deformation and scuffed paint survive a page refresh via saved condition.
  panels.frontBumper.position.z=2.11-wear*.26;
  panels.frontBumper.rotation.y=wear*.16;
