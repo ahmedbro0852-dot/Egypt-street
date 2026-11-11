@@ -483,14 +483,60 @@ button:focus-visible{outline:2px solid #fff0a5;outline-offset:3px}
 #fuelActions #handbrake[aria-pressed="true"]{background:#9a4e3a;border-color:#ffcda5;color:#fff0db}
 @media(max-width:760px){#driveReadout{font-size:9px}#fuelActions #handbrake{height:30px;font-size:9px}}
 @media(orientation:landscape) and (max-height:520px){#driveReadout{margin:2px 0;font-size:8px}#steeringTrack{margin-bottom:3px}}
+
+/* V8 real playable fleet garage; high contrast and landscape-responsive UI. */
+#garageBtn{position:fixed;z-index:27;left:12px;bottom:366px;width:114px;height:40px;
+ color:#ffedd1;border:1px solid #e5c98c99;border-radius:12px;
+ background:linear-gradient(145deg,#7d5533ec,#55412ce8);font-size:12px;font-weight:900;
+ box-shadow:0 7px 23px #0009;touch-action:manipulation}
+#garagePanel{display:none;position:fixed;z-index:110;top:50%;left:50%;transform:translate(-50%,-50%);
+ width:min(620px,95vw);max-height:89vh;overflow-y:auto;overscroll-behavior:contain;
+ padding:17px;direction:rtl;border:1px solid #e2cf9e8c;border-radius:19px;
+ background:linear-gradient(140deg,#0a2331fa,#0c1e2bfb);color:#f9f2de;
+ box-shadow:0 19px 95px #000c;-webkit-overflow-scrolling:touch}
+#garagePanel h2{margin:0 0 5px;color:#ffdb95;font-size:21px}
+#garagePanel h2 span{font-size:12px;color:#a9ffe3}
+#garagePanel h3{margin:14px 0 9px;font-size:14px;color:#e2d4b6}
+#garagePanel p{line-height:1.6;font-size:11px;color:#c3d9d2;margin:4px 0 10px}
+#garagePanel button{height:auto;width:auto;min-height:35px;border:1px solid #a8dfc58a;
+ border-radius:9px;padding:7px 9px;font-size:11px;touch-action:manipulation}
+#garagePanel button:disabled{opacity:.64}
+#garageClose{position:absolute;left:10px;top:9px;background:#665047;font-size:16px!important}
+#garageSelected{font-size:16px;color:#ffe4ac;font-weight:900;margin:11px 0 5px}
+#garageSpecs{font-size:12px;line-height:1.8;color:#aaf4ce}
+#garageBalance{font-weight:900;font-size:12px;color:#ffe6a9;margin-top:5px}
+#garageCars{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.garageCard{background:#21404c88;border:1px solid #b4d5c84d;border-radius:13px;padding:11px;min-width:0}
+.garageCard strong{display:block;color:#f7efda;font-size:13px}
+.garageCard small{display:block;margin:5px 0 9px;color:#bad4d1;font-size:10px}
+.garageCard button{width:100%!important;background:#276453;font-weight:900}
+#garageUpgrades{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+#garageUpgrades button{background:#345468;min-height:51px;font-weight:800}
+#garagePanel .garageNote{margin-top:12px;color:#9ccac1;font-size:10px}
+@media(max-width:760px){
+ #garageBtn{bottom:366px;left:10px;width:101px;height:38px;font-size:11px}
+ #garagePanel{width:94vw;max-height:87vh;padding:12px}
+ #garagePanel h2{font-size:18px}
+ #garageCars{gap:6px}
+ .garageCard{padding:8px}
+ .garageCard strong{font-size:11px}
+ .garageCard small{font-size:9px}
+ #garageUpgrades button{font-size:10px;padding:6px 3px;min-height:48px}
+}
+@media(max-width:350px){#garageCars{grid-template-columns:1fr}#garageUpgrades{grid-template-columns:1fr}}
+@media(orientation:landscape) and (max-height:520px){
+ #garageBtn{left:215px;bottom:12px;width:96px;height:34px;font-size:10px}
+ #garagePanel{max-height:94vh;width:min(690px,96vw)}
+ #garageCars{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
 </style>
-<canvas id="world"></canvas><div class="hud"><div class="tag">CAIRO • OPEN WORLD • V6</div><div class="brand"><img class="logoHud" src="egypt-streets-logo.svg" alt="شوارع مصر — Egypt Streets"></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><div class="missionHeading"><span class="missionDot" aria-hidden="true"></span><small>المهمة الحالية</small><span class="missionChip">LIVE</span></div><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
+<canvas id="world"></canvas><div class="hud"><div class="tag">CAIRO • OPEN WORLD • V8</div><div class="brand"><img class="logoHud" src="egypt-streets-logo.svg" alt="شوارع مصر — Egypt Streets"></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><div class="missionHeading"><span class="missionDot" aria-hidden="true"></span><small>المهمة الحالية</small><span class="missionChip">LIVE</span></div><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
  <strong id="cityTime">🕒 07:30</strong>
  <span id="cityWeather">☀️ صحو</span>
  <span id="cityLaw">🚦 إشارات مرور ومخالفات</span>
  <div id="lifeButtons"><button id="cityNight" type="button">🌙 الليل</button>
  <button id="cityWeatherBtn" type="button">غيّر الطقس</button></div>
- </section><div id="cityVersion">شوارع مصر • V6</div><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div>
+ </section><div id="cityVersion">شوارع مصر • V8</div><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div>
 <section id="fuelHud" aria-live="off">
  <div id="fuelTitle">⛽ تانك العربية <span id="gearBadge" aria-label="الغيار الحالي">N</span></div>
  <div id="driveReadout" aria-live="off">🚗 واقف • الدريكسيون مستقيم</div>
@@ -504,7 +550,28 @@ button:focus-visible{outline:2px solid #fff0a5;outline-offset:3px}
  <button id="fuelSlower" type="button">− سرعة</button><button id="fuelFaster" type="button">+ سرعة</button></div>
  <div id="fuelWarning"></div><div id="fuelStation"></div>
  <button id="fuelBtn" type="button">⛽ فوّل العربية</button><button id="fuelRepair" type="button">🔧 صلّح العربية</button>
-</section><button id="interact" type="button" aria-label="التفاعل مع الشخصيات والأحداث">💬 اتفاعل</button><button id="sound" aria-label="تشغيل أو كتم أصوات اللعبة" aria-pressed="true">الصوت شغال</button><div class="pedals"><button id="accelerate" aria-label="زود السرعة التلقائية">سرعة +</button><button id="brakePedal" aria-label="فرامل">فرامل ■</button><button id="reverse" aria-label="رجوع للخلف">رجوع ▼</button></div><div class="bottom"><button id="camera" aria-label="تغيير مسافة الكاميرا">كاميرا</button><div id="speed">0<small>كم / س</small></div><button id="horn">بوق</button><button id="run">جري</button><button id="jump" aria-label="قفز">قفز ⤴</button><button id="enter" class="primary">اركب</button></div><div id="heroCard"><div>بطل شوارع مصر<small>تيشيرت فحمي • جينز أزرق</small></div><img src="character-reference.jpg" alt="مرجع تصميم الشخصية"></div><button id="gpsBtn" type="button">🧭 GPS</button>
+</section><button id="interact" type="button" aria-label="التفاعل مع الشخصيات والأحداث">💬 اتفاعل</button><button id="sound" aria-label="تشغيل أو كتم أصوات اللعبة" aria-pressed="true">الصوت شغال</button><div class="pedals"><button id="accelerate" aria-label="زود السرعة التلقائية">سرعة +</button><button id="brakePedal" aria-label="فرامل">فرامل ■</button><button id="reverse" aria-label="رجوع للخلف">رجوع ▼</button></div><div class="bottom"><button id="camera" aria-label="تغيير مسافة الكاميرا">كاميرا</button><div id="speed">0<small>كم / س</small></div><button id="horn">بوق</button><button id="run">جري</button><button id="jump" aria-label="قفز">قفز ⤴</button><button id="enter" class="primary">اركب</button></div><div id="heroCard"><div>بطل شوارع مصر<small>تيشيرت فحمي • جينز أزرق</small></div><img src="character-reference.jpg" alt="مرجع تصميم الشخصية"></div><button id="garageBtn" type="button">🔧 جراج V8</button>
+<section id="garagePanel" role="dialog" aria-label="جراج شوارع مصر">
+ <button id="garageClose" type="button" aria-label="إغلاق الجراج">✕</button>
+ <h2>🔧 جراج شوارع مصر <span>V8</span></h2>
+ <p>امتلك عربيات وموتوسيكل وطور الأداء بفلوس المهمات. الشراء والتبديل وإنت نازل من العربية.</p>
+ <div id="garageSelected">🚕 تاكسي القاهرة</div>
+ <div id="garageSpecs"></div><div id="garageBalance"></div>
+ <h3>🚘 اختار مركبتك</h3>
+ <div id="garageCars">
+  <article class="garageCard"><strong>🚕 تاكسي القاهرة</strong><small>الأساسي • ثابت وسهل</small><button id="garageTaxi" type="button">مركبتك الحالية</button></article>
+  <article class="garageCard"><strong>🚙 سيدان عائلية</strong><small>ثبات وفرامل أفضل</small><button id="garageSedan" type="button">550 جنيه</button></article>
+  <article class="garageCard"><strong>🏎️ كوبيه رياضية</strong><small>تسارع وسرعة أعلى</small><button id="garageSport" type="button">1800 جنيه</button></article>
+  <article class="garageCard"><strong>🏍️ موتوسيكل مصري</strong><small>خفيف ورشيق</small><button id="garageMotorbike" type="button">900 جنيه</button></article>
+ </div>
+ <h3>🛠️ تطوير أداء مركبتك</h3>
+ <div id="garageUpgrades">
+  <button id="garageEngine" type="button">⚡ تطوير الموتور</button>
+  <button id="garageBrakes" type="button">🛑 تطوير الفرامل</button>
+  <button id="garageTyres" type="button">🛞 تطوير الإطارات</button>
+ </div>
+ <p class="garageNote">كل المشتريات بفلوس اللعبة فقط. التقدم بيتحفظ في متصفحك حتى بعد تحديث الصفحة.</p>
+</section><button id="gpsBtn" type="button">🧭 GPS</button>
 <section id="gpsPanel" role="dialog" aria-label="خريطة الملاحة والوجهات">
  <button id="gpsClose" type="button" aria-label="إغلاق الملاحة">✕</button>
  <h2>🧭 GPS شوارع مصر</h2>
@@ -518,7 +585,7 @@ button:focus-visible{outline:2px solid #fff0a5;outline-offset:3px}
  <button id="gpsTour" type="button">🚕 لفة في البلد</button>
  </div>
  <div id="gpsHint">الطريق بيظهر باللون الأخضر على الخريطة. القيادة الذاتية بتحاول تتبع الطرق وتتوقف عند الوجهة. عند الأماكن البعيدة عن الشارع، اركن وكمّل مشي.</div>
-</section><div id="versionBadge">شوارع مصر · V6</div><button id="jobsBtn" type="button">💼 تقديم شغل</button><section id="jobsPanel" role="dialog" aria-label="وظايف شوارع مصر">
+</section><div id="versionBadge">شوارع مصر · V8</div><button id="jobsBtn" type="button">💼 تقديم شغل</button><section id="jobsPanel" role="dialog" aria-label="وظايف شوارع مصر">
  <button id="jobsClose" aria-label="اقفل الوظائف">✕</button>
  <h2>💼 مكتب تشغيل شوارع مصر</h2><p>قدّم على الشغل، اتقبل في الوظيفة، وبعدها ابدأ وردية وخد مرتبك!</p>
  <div id="jobsList">
@@ -532,11 +599,11 @@ button:focus-visible{outline:2px solid #fff0a5;outline-offset:3px}
  <button id="workAction" type="button">نفّذ المهمة</button><div id="toast">حي النيل • القاهرة</div><div id="npcDialogue" role="status" aria-live="polite"></div><div id="intro" class="overlay v55-intro" role="dialog" aria-label="شاشة بداية شوارع مصر">
  <div class="v55-glow" aria-hidden="true"></div>
  <section class="v55-box">
-  <span class="v55-eyebrow"><span class="v55-liveDot"></span> THE CITY IS YOURS · EGYPT STREETS V6</span>
+  <span class="v55-eyebrow"><span class="v55-liveDot"></span> THE CITY IS YOURS · EGYPT STREETS V8</span>
   <img class="logoHero" src="egypt-streets-logo.svg" alt="شوارع مصر"><h1 class="srOnly">شوارع مصر</h1>
   <div class="v55-line" aria-hidden="true"></div><div class="introRoadBadge">✦ القاهرة · بين النيل والشوارع والناس ✦</div>
   <p class="v55-subtitle">من أول شارع لحد آخر حكاية. اختار وجهتك على الـGPS، وخلّي العربية تروح للشغل أو المهمة أو البنزينة، واكتشف القاهرة بطريقتك.</p>
-  <div class="v55-highlights"><span>🧭 GPS ذكي</span><span>🚗 قيادة ذاتية</span><span>💾 حفظ تلقائي</span><span>💼 شغل ومهمات</span></div>
+  <div class="v55-highlights"><span>🔧 جراج ومركبات</span><span>🧭 GPS ذكي</span><span>🚗 قيادة ذاتية</span><span>💾 حفظ تلقائي</span><span>💼 شغل ومهمات</span></div>
   <div id="savePreview" class="v55-save" aria-live="polite">جاري فحص التقدم المحفوظ...</div>
   <div class="v55-actions">
    <button id="continueGame" class="primary" type="button">▶ كمّل لعبك</button>
