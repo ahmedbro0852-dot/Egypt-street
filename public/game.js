@@ -1,5 +1,6 @@
 import { createDetailedPalmV48, updateLandscapeV48 } from './palm-landscape-v48.js';
 import { dressReferenceHeroV47, installReferenceHudV47 } from './reference-look-v47.js?v=47.2';
+import { installRoyalHudV49 } from './royal-hud-v49.js?v=49.0';
 import { installFacadeDepthV46 } from './facade-depth-v46.js';
 import { installTravelLightingV44 } from './travel-lighting-v44.js';
 import { installCairoGraphicsV45 } from './cairo-graphics-v45.js?v=48.1';
@@ -1167,6 +1168,7 @@ const travelLightingV44=installTravelLightingV44({T,scene,renderer,sun,getPositi
 const cairoGraphicsV45=installCairoGraphicsV45({T,scene,renderer,camera,sun,getFocus:()=>driving?taxi.position:player.position,getState:()=>({illumination:cityLife.illumination(),weather:cityLife.getState().weather})});
 installFacadeDepthV46({T,scene,renderer});
 installReferenceHudV47();
+installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive:()=>active,getCompleted:()=>completed,getDriving:()=>driving});
 if(!renderer.isWebGLRenderer){
  const notice=document.createElement('div');notice.id='graphicsFallbackV48';notice.setAttribute('role','status');
  notice.textContent='عرض رسومي مبسّط — WebGL غير متاح. فعّل تسريع الرسومات لظهور التفاصيل.';
