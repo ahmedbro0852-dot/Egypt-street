@@ -1,6 +1,6 @@
 // V49 HUD / settings skin uses the existing running game, not a screenshot.
 const V49_KEY='egypt-street-gold-ui-v49';
-const defaults=()=>({quality:window.matchMedia?.('(pointer: coarse)')?.matches?'auto':'high',sharpness:1,fpsTarget:'auto',showMap:true,showTasks:true,showActions:true,showFps:true,sensitivity:1,deadzone:.06,compact:true,steady:false});
+const defaults=()=>({quality:window.matchMedia?.('(pointer: coarse)')?.matches?'auto':'high',sharpness:1,fpsTarget:'auto',showFpsMobile:false,showMap:true,showTasks:true,showActions:true,showFps:true,sensitivity:1,deadzone:.06,compact:true,steady:false});
 const bound=(v,a,b)=>Math.max(a,Math.min(b,Number(v)||a));
 export function installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive=()=>false,getCompleted=()=>0,getDriving=()=>false}={}){
  const $=id=>document.getElementById(id);
@@ -43,7 +43,7 @@ export function installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive
    if(window.matchMedia?.('(pointer: coarse)')?.matches)choices('حدة ووضوح الصورة',[['0.85','أسرع'],['1','HD واضح'],['1.15','أوضح'],['1.3','فائق']],String(draft.sharpness??1),id=>draft.sharpness=Number(id));
    if(window.matchMedia?.('(pointer: coarse)')?.matches)choices('سلاسة اللعب',[['auto','ذكي'],['30','30 ثابت'],['60','60 سلس']],String(draft.fpsTarget??'auto'),id=>draft.fpsTarget=id);
    note('V54: تنعيم الحواف للأجهزة القوية وتحسين وضوح الطريق. وضع ذكي يختار 30 أو 60 حسب الجهاز؛ 60 إطار ليست مضمونة. لو الأداء بطّأ جرّب 30 ثابت أو «أسرع».');
-   flip('إظهار عدّاد الأداء', 'showFps');
+   flip('إظهار عدّاد الأداء',window.matchMedia?.('(pointer: coarse)')?.matches?'showFpsMobile':'showFps');
    action('التصوير بدون واجهة','📷 F9',()=>{const b=$('v43Panel')?.querySelectorAll('button')?.[1];$('v40Resume')?.click();b?.click()});
   }else if(currentTab==='audio'){
    title('◖ إعدادات الصوت');
@@ -93,9 +93,20 @@ export function installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive
  paint();
  const portrait=document.querySelector('.royal-v49 .v47-profile-name');
  const originalName=portrait?.textContent||'اللاعب';
- let seconds=0,frames=0,origin=performance.now();
- function frame(time){frames++;if(time-origin>=1000){fps.textContent=Math.round(frames*1000/(time-origin))+' FPS';frames=0;origin=time}requestAnimationFrame(frame)}
- requestAnimationFrame(frame);
+ // Count frames that the game actually renders; a separate requestAnimationFrame
+ // loop was reporting screen refresh (often 60) even when the game ran at 30.
+ let rendered=0,fpsWindow=0,actualFps=0;
+ function recordFrame(time){
+  if(document.hidden||!getActive()||!Number.isFinite(time)){rendered=0;fpsWindow=0;return;}
+  if(!fpsWindow)fpsWindow=time;
+  rendered++;
+  const span=time-fpsWindow;
+  if(span>=1100){
+   actualFps=Math.round(rendered*1000/span);
+   fps.textContent=actualFps+' FPS';
+   rendered=0;fpsWindow=time;
+  }
+ }
  setInterval(()=>{
   const active=!!getActive();quick.style.display=active?'grid':'none';stateHud.style.display=active?'flex':'none';fps.style.display=active?'block':'none';
   const lvl=Math.max(1,Math.floor((Number(getCompleted())||0)/5)+1);
@@ -105,5 +116,5 @@ export function installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive
   $('v49-state-label').textContent=driving?'المركبة '+value+'%':'الحالة 100%';
   stateHud.querySelector('i').style.background=driving&&value<30?'linear-gradient(90deg,#b33,#edaa50)':'linear-gradient(90deg,#55bd38,#b8e854)';
  },700);
- save();return {getSettings:()=>state,dispose(){observer.disconnect();quick.remove();stateHud.remove();fps.remove();shell.remove();document.body.classList.remove('royal-v49')}};
+ save();return {getSettings:()=>state,getFps:()=>actualFps,recordFrame,dispose(){observer.disconnect();quick.remove();stateHud.remove();fps.remove();shell.remove();document.body.classList.remove('royal-v49')}};
 }
