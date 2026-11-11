@@ -8,6 +8,7 @@ import { prepareDetailedCar } from './detailed-car-v42.js';
 import { installDesktopWorldV43 } from './desktop-world-v43.js?v=48.1';
 import { createMobileExperienceV40, tuneStickV40 } from './mobile-experience-v40.js';
 import { installAdaptiveMobileV50 } from './mobile-performance-v50.js';
+import { createCityQuestsV50 } from './city-quests-v50.js';
 import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
 import { createCairoRacesV31 } from './cairo-races-v31.js';
@@ -882,6 +883,8 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
   map.font='bold 12px Arial';
   map.fillText('💻',mx(laptopPos.x)-7,mz(laptopPos.z)-10);
  }
+ const questMarker=cityQuestsV50.getMarker();
+ if(questMarker){map.strokeStyle='#ffd16e';map.lineWidth=2.5;map.beginPath();map.arc(mx(questMarker.x),mz(questMarker.z),6,0,Math.PI*2);map.stroke();map.fillStyle='#fff4ba';map.font='bold 12px Arial';map.fillText('⭐',mx(questMarker.x)-7,mz(questMarker.z)-8)}
  const workPoint=career.waypoint();
  if(workPoint){
   map.strokeStyle='#80ffc2';map.lineWidth=2.8;
@@ -1159,10 +1162,11 @@ function frame(t){
  rpm:v9Live.rpm,engineOn:driving&&drivingRealism.getState().engineOn,
  throttle:driving?Math.max(0,v9Live.throttleScale):0,
  skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather
-});v30.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});desktopWorldV43.update(dt);travelLightingV44.update(dt);cairoGraphicsV45.update(dt);updateLandscapeV48(dt,cityLife.getState().weather==='مطر');renderer.render(scene,camera);
+});v30.update(dt);cityQuestsV50.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});desktopWorldV43.update(dt);travelLightingV44.update(dt);cairoGraphicsV45.update(dt);updateLandscapeV48(dt,cityLife.getState().weather==='مطر');renderer.render(scene,camera);
 }
 try { installRealismRender({T,scene,renderer,sun}); } catch(error) { console.warn('Material quality pass unavailable',error); }
 const v30=createV30({getPlayer:()=>driving?taxi.position:player.position,getDriving:()=>driving,getActive:()=>active,getPaused:()=>paused,renderer,fresh:freshStartV55,onReward:amount=>{cash+=amount;$('money').textContent='ج.م '+Math.round(cash);saveWallet();toast('مكافأة رحلتك • +'+amount+' جنيه')}});
+const cityQuestsV50=createCityQuestsV50({getPosition:()=>driving?taxi.position:player.position,getDriving:()=>driving,getSpeed:()=>vehicleState.speed,getActive:()=>active,getPaused:()=>paused,getInRace:()=>raceModeV32,fresh:freshStartV55,onReward:(amount,q)=>{cash+=amount;$('money').textContent='ج.م '+Math.round(cash);saveWallet();saveWorld(true);toast('🎉 تحدي '+q.id+' اكتمل! +'+amount+' جنيه')}});
 const visualPolishV31=createVisualPolishV31({T,scene,renderer,player});
 const mobileV40=createMobileExperienceV40({getActive:()=>active,getPaused:()=>paused,setPaused:value=>{paused=value;$('pause').textContent=paused?'▶':'Ⅱ'},resetInput:()=>{keys={};pedal=0;brakePedal=false;sprint=false;reverseKeyHeld=false;reversePressed=false;driftHeldV34=false;jumpRequested=false;drag=null;resetPad()},notify:toast});
 const desktopWorldV43=installDesktopWorldV43({T,scene,renderer,sun,getVehicle:()=>activeVehicle,getState:()=>({driving,illumination:cityLife.illumination(),weather:cityLife.getState().weather,yaw:vehicleState.yaw,speed:vehicleState.speed,skid:vehicleState.skid}),notify:toast});
@@ -1171,7 +1175,7 @@ const cairoGraphicsV45=installCairoGraphicsV45({T,scene,renderer,camera,sun,getF
 installFacadeDepthV46({T,scene,renderer});
 installReferenceHudV47();
 const royalHudV49=installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive:()=>active,getCompleted:()=>completed,getDriving:()=>driving});
-const mobilePerformanceV50=installAdaptiveMobileV50({renderer,getActive:()=>active,getPaused:()=>paused,getQuality:()=>royalHudV49?.getSettings?.().quality||'auto'});
+const mobilePerformanceV50=installAdaptiveMobileV50({renderer,getActive:()=>active,getPaused:()=>paused,getQuality:()=>royalHudV49?.getSettings?.()?.quality||'auto'});
 if(!renderer.isWebGLRenderer){
  const notice=document.createElement('div');notice.id='graphicsFallbackV48';notice.setAttribute('role','status');
  notice.textContent='عرض رسومي مبسّط — WebGL غير متاح. فعّل تسريع الرسومات لظهور التفاصيل.';
