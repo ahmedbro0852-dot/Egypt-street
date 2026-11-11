@@ -20,6 +20,7 @@ export function sanitizeSnapshot(data){
   player:place(data.player,{x:0,z:12}),
   taxi:place(data.taxi,{x:2,z:8}),
   driving:!!data.driving,
+  parkingBrake:!!data.parkingBrake,
   cameraYaw:finite(data.cameraYaw,0),
   cameraPitch:clamp(finite(data.cameraPitch,.13),-.24,.52),
   money:clamp(finite(data.money,250),0,10000000),
@@ -30,7 +31,7 @@ export function sanitizeSnapshot(data){
   fuel:data.fuel&&typeof data.fuel==='object'?{
     fuel:clamp(finite(data.fuel.fuel,16),0,45),
     condition:clamp(finite(data.fuel.condition,100),0,100),
-    target:clamp(finite(data.fuel.target,60),20,115),
+    target:clamp(finite(data.fuel.target,75),20,145),
     auto:!!data.fuel.auto,
     totalKm:clamp(finite(data.fuel.totalKm,0),0,1e9)
   }:null,
