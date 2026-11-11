@@ -2,7 +2,7 @@
 export const SAVE_KEY_V55='egypt-street-world-v55';
 export const GAME_KEYS_V55=[
  SAVE_KEY_V55,'egypt-street-wallet-v4','egypt-street-fuel-v4',
- 'egypt-street-careers-v1','egypt-street-life-v5','egypt-streets-garage-v8'
+ 'egypt-street-careers-v1','egypt-street-life-v5','egypt-streets-garage-v8','egypt-streets-rides-v15'
 ];
 const finite=(v,d=0)=>Number.isFinite(v)?v:d;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -23,6 +23,7 @@ export function sanitizeSnapshot(data){
   parkingBrake:!!data.parkingBrake,
   cameraYaw:finite(data.cameraYaw,0),
   cameraPitch:clamp(finite(data.cameraPitch,.13),-.24,.52),
+  cameraMode:['wide','near','cockpit'].includes(data.cameraMode)?data.cameraMode:'wide',
   money:clamp(finite(data.money,250),0,10000000),
   mission:{
     completed:clamp(Math.floor(finite(mission.completed,0)),0,100000),
@@ -37,6 +38,14 @@ export function sanitizeSnapshot(data){
   }:null,
   career:data.career&&typeof data.career==='object'?data.career:null,
   sideEvent:data.sideEvent&&typeof data.sideEvent==='object'?data.sideEvent:null,
+  rideDispatch:data.rideDispatch&&typeof data.rideDispatch==='object'?{
+    trips:clamp(Math.floor(finite(data.rideDispatch.trips,0)),0,100000),
+    earned:clamp(finite(data.rideDispatch.earned,0),0,10000000),
+    active:data.rideDispatch.active&&Number.isInteger(data.rideDispatch.active.index)&&
+      data.rideDispatch.active.index>=0&&data.rideDispatch.active.index<5&&
+      ['pickup','dropoff'].includes(data.rideDispatch.active.stage)?
+      {index:data.rideDispatch.active.index,stage:data.rideDispatch.active.stage}:null
+  }:null,
   autopilot:{
    enabled:!!data.autopilot?.enabled,
    index:Math.max(0,Math.floor(finite(data.autopilot?.index,0))),
