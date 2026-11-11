@@ -444,6 +444,7 @@ raceSystem=createCairoRacesV31({
  T,scene,storage:walletStorage,fresh:freshStartV55,
  getActive:()=>active,getPaused:()=>paused,getDriving:()=>driving,
  getVehicle:()=>vehicleState,
+ getDriftInput:()=>({holding:driftHeldV34||!!keys.x}),
  requestDrive:()=>{if(!driving)enter();return driving},
  prepareCar:(course,spawn)=>{
   if(!driving)return false;
