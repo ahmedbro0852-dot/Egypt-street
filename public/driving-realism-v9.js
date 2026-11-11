@@ -31,11 +31,14 @@ export function createDrivingRealismV9({notify=()=>{}}={}){
   if(hazards){turn='off';turnAngle=0}
   return hazards;
  }
- function restore(data){
+ function restore(data,fuel=1){
   if(!data||typeof data!=='object')return;
   turn=['left','right'].includes(data.turn)?data.turn:'off';
   hazards=!!data.hazards;
   if(hazards)turn='off';
+  // Saving the ignition state prevents unintended auto-acceleration after refresh.
+  if(typeof data.engineOn==='boolean')engineOn=data.engineOn&&fuel>.01;
+  if(!engineOn)rpm=0;
   turnAngle=0;lastYaw=null;
  }
  function update(dt,{driving=false,speed=0,throttle=0,brake=false,steer=0,
