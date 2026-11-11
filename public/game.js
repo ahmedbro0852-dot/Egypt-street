@@ -1,4 +1,4 @@
-import { dressReferenceHeroV47, installReferenceHudV47 } from './reference-look-v47.js';
+import { dressReferenceHeroV47, installReferenceHudV47 } from './reference-look-v47.js?v=47.2';
 import { installFacadeDepthV46 } from './facade-depth-v46.js';
 import { installTravelLightingV44 } from './travel-lighting-v44.js';
 import { installCairoGraphicsV45 } from './cairo-graphics-v45.js';
