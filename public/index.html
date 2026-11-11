@@ -71,5 +71,65 @@ button:focus-visible{outline:2px solid #ffe293}
  #joy{overscroll-behavior:none;touch-action:none}
  .pedals button{touch-action:none}
 }
+
+/* Egypt Street careers & paid missions, designed for touch first. */
+#jobsBtn{position:fixed;z-index:24;right:18px;top:244px;width:114px;height:42px;
+ border-radius:13px;background:#1b665a;border:1px solid #94f0c3;
+ font-weight:900;box-shadow:0 6px 20px #0008;font-size:13px}
+#jobsPanel{display:none;position:fixed;z-index:80;left:50%;top:50%;transform:translate(-50%,-50%);
+ width:min(550px,94vw);max-height:min(88vh,720px);overflow:auto;overscroll-behavior:contain;
+ background:linear-gradient(145deg,#102d35f7,#0c1c2dfa);color:#f6f1e1;padding:18px;
+ border:1px solid #94d9c27b;border-radius:19px;box-shadow:0 18px 90px #000d;
+ direction:rtl;-webkit-overflow-scrolling:touch}
+#jobsPanel h2{font-size:21px;margin:0;color:#ffdf9d}
+#jobsPanel p{font-size:12px;color:#b8d4d1;margin:5px 0 10px}
+#jobsPanel button{width:auto;height:auto;border-radius:11px;padding:10px 13px;font-size:12px}
+#jobsClose{position:absolute;top:12px;left:12px;background:#475862}
+#jobsList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:13px 0}
+.jobCard{background:#24424b8a;border:1px solid #b4e1cd33;border-radius:13px;padding:11px;min-width:0}
+.jobCard b{display:block;font-size:14px}
+.jobCard small{display:block;color:#cee0da;font-size:11px;line-height:1.5;margin:5px 0}
+.jobCard em{display:block;font-style:normal;font-size:11px;color:#ffdb8b;margin-bottom:9px}
+.jobCard button{background:#26755a;font-weight:800;min-width:100%;border:1px solid #97d1ad}
+.jobCard button:disabled{opacity:.6;cursor:default}
+#jobsSummary{font-size:12px;color:#bff3cb;line-height:1.8}
+#jobsCancel{display:none;margin-top:8px;background:#75413e!important}
+#workHud{display:none;position:fixed;z-index:16;right:14px;bottom:220px;
+ max-width:206px;padding:10px 12px;border:1px solid #a8e6b46e;
+ background:#112b2fe9;border-radius:13px;pointer-events:none}
+#workHudTitle{font-size:12px;font-weight:bold;color:#a8ffc4}
+#workHudText{font-size:11px;margin-top:5px;line-height:1.6}
+#workAction{display:none;position:fixed;z-index:23;left:14px;bottom:223px;
+ width:110px;height:42px;border-radius:12px;background:#247b5b;font-weight:bold;font-size:11px;
+ border:1px solid #abf2c1}
+@media(max-width:760px){
+ #jobsBtn{left:14px;right:auto;top:auto;bottom:269px;width:99px;height:40px;font-size:12px}
+ #workHud{right:9px;bottom:220px;max-width:171px;padding:8px}
+ #workAction{bottom:216px;left:14px;width:99px;height:38px}
+ #jobsPanel{padding:14px;width:94vw;max-height:86vh}
+ #jobsPanel h2{font-size:18px;padding-left:38px}
+ #jobsList{gap:8px}
+ .jobCard{padding:8px}
+ .jobCard b{font-size:12px}
+ .jobCard button{font-size:11px;padding:8px 5px}
+}
+@media(max-width:350px){#jobsList{grid-template-columns:1fr}}
+@media(orientation:landscape) and (max-height:520px){
+ #jobsBtn{left:117px;bottom:12px;width:92px;height:37px}
+ #workAction{bottom:103px;left:10px;width:98px;height:37px}
+ #workHud{bottom:103px;right:9px;max-width:170px}
+ #jobsPanel{max-height:92vh}
+}
 </style>
-<canvas id="world"></canvas><div class="hud"><div class="tag">OPEN WORLD • EARLY BUILD</div><div class="brand">شوارع مصر<span style="color:#ffca6d">.</span></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><small>● المهمة الحالية</small><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div><button id="interact" type="button" aria-label="التفاعل مع الشخصيات والأحداث">💬 اتفاعل</button><button id="sound" aria-label="تشغيل أو كتم أصوات اللعبة" aria-pressed="true">الصوت شغال</button><div class="pedals"><button id="accelerate" aria-label="بنزين">بنزين ▲</button><button id="brakePedal" aria-label="فرامل">فرامل ■</button><button id="reverse" aria-label="رجوع للخلف">رجوع ▼</button></div><div class="bottom"><button id="camera" aria-label="تغيير مسافة الكاميرا">كاميرا</button><div id="speed">0<small>كم / س</small></div><button id="horn">بوق</button><button id="run">جري</button><button id="jump" aria-label="قفز">قفز ⤴</button><button id="enter" class="primary">اركب</button></div><div id="heroCard"><div>بطل شوارع مصر<small>تيشيرت فحمي • جينز أزرق</small></div><img src="character-reference.jpg" alt="مرجع تصميم الشخصية"></div><div id="toast">حي النيل • القاهرة</div><div id="npcDialogue" role="status" aria-live="polite"></div><div id="intro" class="overlay"><div class="intro"><div class="eyebrow">مصر • عالم مفتوح • نسخة أولية</div><h1>الشارع<br><span style="color:#ffca6d">حكايتك.</span></h1><p>انزل الحي، خد لفة بالعربية، ووصّل أول طلب ليك. بطل جديد بتصميم مستوحى من الشخصية المصرية اللي اخترناها. المجسم الحالي نسخة مبسطة للموبايل، ولسه بنطوّر واقعيته.</p><img class="reference" src="character-reference.jpg" alt="تصميم البطل من الأمام والجانب والخلف"><button id="start" class="primary">يلا نلعب ←</button><p class="hint">الموبايل: العصاية للمشي؛ أثناء القيادة حرّكها يمين/شمال للدريكسيون، واستخدم البنزين/الفرامل/الرجوع من اليمين. اسحب الشاشة للكاميرا.<br>كمبيوتر: WASD/الأسهم • E للركوب • F للتفاعل • Shift للجري • Space للقفز مشي/الفرامل قيادة</p></div></div><script type="module" src="game.js"></script></html>
+<canvas id="world"></canvas><div class="hud"><div class="tag">OPEN WORLD • EARLY BUILD</div><div class="brand">شوارع مصر<span style="color:#ffca6d">.</span></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><small>● المهمة الحالية</small><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div><button id="interact" type="button" aria-label="التفاعل مع الشخصيات والأحداث">💬 اتفاعل</button><button id="sound" aria-label="تشغيل أو كتم أصوات اللعبة" aria-pressed="true">الصوت شغال</button><div class="pedals"><button id="accelerate" aria-label="بنزين">بنزين ▲</button><button id="brakePedal" aria-label="فرامل">فرامل ■</button><button id="reverse" aria-label="رجوع للخلف">رجوع ▼</button></div><div class="bottom"><button id="camera" aria-label="تغيير مسافة الكاميرا">كاميرا</button><div id="speed">0<small>كم / س</small></div><button id="horn">بوق</button><button id="run">جري</button><button id="jump" aria-label="قفز">قفز ⤴</button><button id="enter" class="primary">اركب</button></div><div id="heroCard"><div>بطل شوارع مصر<small>تيشيرت فحمي • جينز أزرق</small></div><img src="character-reference.jpg" alt="مرجع تصميم الشخصية"></div><button id="jobsBtn" type="button">💼 تقديم شغل</button><section id="jobsPanel" role="dialog" aria-label="وظايف شوارع مصر">
+ <button id="jobsClose" aria-label="اقفل الوظائف">✕</button>
+ <h2>💼 مكتب تشغيل شوارع مصر</h2><p>قدّم على الشغل، اتقبل في الوظيفة، وبعدها ابدأ وردية وخد مرتبك!</p>
+ <div id="jobsList">
+ <article class="jobCard"><b>🚕 سواق تاكسي</b><small>اتنقل بين المشاوير ووصل الركاب</small><em>420 ج.م / وردية</em><button id="careerTaxi">قدّم على الشغل</button></article>
+ <article class="jobCard"><b>📦 مندوب توصيل</b><small>وصل طلبات لثلاث أماكن في الحي</small><em>340 ج.م / وردية</em><button id="careerCourier">قدّم على الشغل</button></article>
+ <article class="jobCard"><b>🚌 سواق ميكروباص</b><small>وقف في المحطات على الخط</small><em>390 ج.م / وردية</em><button id="careerMicrobus">قدّم على الشغل</button></article>
+ <article class="jobCard"><b>🔧 مساعد ميكانيكي</b><small>انزل من العربية وصلّح 3 أعطال</small><em>300 ج.م / وردية</em><button id="careerMechanic">قدّم على الشغل</button></article>
+ <article class="jobCard"><b>☕ عامل قهوة</b><small>قدّم طلبات للمحلات والزبائن</small><em>240 ج.م / وردية</em><button id="careerCafe">قدّم على الشغل</button></article>
+ </div><div id="jobsSummary"></div><button id="jobsCancel">إلغاء الوردية الحالية</button></section>
+ <section id="workHud" aria-live="polite"><div id="workHudTitle"></div><div id="workHudText"></div></section>
+ <button id="workAction" type="button">نفّذ المهمة</button><div id="toast">حي النيل • القاهرة</div><div id="npcDialogue" role="status" aria-live="polite"></div><div id="intro" class="overlay"><div class="intro"><div class="eyebrow">مصر • عالم مفتوح • نسخة أولية</div><h1>الشارع<br><span style="color:#ffca6d">حكايتك.</span></h1><p>انزل الحي، خد لفة بالعربية، ووصّل أول طلب ليك. بطل جديد بتصميم مستوحى من الشخصية المصرية اللي اخترناها. المجسم الحالي نسخة مبسطة للموبايل، ولسه بنطوّر واقعيته.</p><img class="reference" src="character-reference.jpg" alt="تصميم البطل من الأمام والجانب والخلف"><button id="start" class="primary">يلا نلعب ←</button><p class="hint">الموبايل: زر «تقديم شغل» للوظائف والورديات، والعصاية للمشي؛ أثناء القيادة حرّكها يمين/شمال للدريكسيون، واستخدم البنزين/الفرامل/الرجوع من اليمين. اسحب الشاشة للكاميرا.<br>كمبيوتر: WASD/الأسهم • E للركوب • F للتفاعل • Shift للجري • Space للقفز مشي/الفرامل قيادة</p></div></div><script type="module" src="game.js"></script></html>
