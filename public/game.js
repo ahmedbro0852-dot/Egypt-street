@@ -316,7 +316,9 @@ function frame(t){
    if(!onFoot.grounded){
      onFoot.vy-=16.5*dt;onFoot.y=Math.max(0,onFoot.y+onFoot.vy*dt);
      if(onFoot.y===0&&onFoot.vy<=0){onFoot.grounded=true;onFoot.vy=0;}
-   }else{onFoot.y=0;jumpRequested=false;}
+   }else{onFoot.y=0;}
+   // No unintentional queued second jump from a tap while airborne.
+   jumpRequested=false;
    player.position.y=onFoot.y;
    if(speed>.12){
      const heading=Math.atan2(onFoot.vx,onFoot.vz);
