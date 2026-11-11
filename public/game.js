@@ -727,7 +727,7 @@ function roadGrip(x,z){
 function carCollision(x,z,angle){
  const sin=Math.sin(angle),cos=Math.cos(angle);
  // Narrow motorcycle footprint; the other cars keep door and bumper clearance.
- const small=garage.getVehicle().id==='motorbike';
+ const small=currentRaceVehicleId()==='motorbike';
  const halfL=small?.91:1.83,halfW=small?.36:.87,bumper=small?1.05:2.05;
  for(const [front,right] of [[halfL,halfW],[halfL,-halfW],[-halfL,halfW],[-halfL,-halfW],[bumper,0],[-bumper,0]]){
   const px=x+sin*front+cos*right,pz=z+cos*front-sin*right;
