@@ -252,6 +252,24 @@ export function createEgyptianCrowd(T,scene,isBlocked){
    residents.push(g);occupied.push({x,z});
  }
  const setLerp=(current,target,k,dt)=>current+(target-current)*(1-Math.exp(-k*dt));
+ function reactCollision(person,away,power,timeMs){
+  if(!person?.userData)return false;
+  const u=person.userData;
+  const force=Math.max(.15,Math.min(1,Number(power)||.2));
+  u.stumbleAt=timeMs;u.stumbleUntil=timeMs+650+force*900;
+  u.stumbleForce=force;
+  u.stumbleSide=Math.sign(away?.x||u.dir||1);
+  u.startledUntil=Math.max(u.startledUntil||0,u.stumbleUntil);
+  u.nextTrafficReact=Math.max(u.nextTrafficReact||0,timeMs+2500);
+  u.rest=Math.max(u.rest,1.2+force*1.1);
+  u.motion=0;
+  // Small safe evasive step. Never throw a resident through geometry or shops.
+  const magnitude=.32+force*.50;
+  const dx=(Number(away?.x)||0)*magnitude,dz=(Number(away?.z)||0)*magnitude;
+  const nx=person.position.x+dx,nz=person.position.z+dz;
+  if(nx>u.minX&&nx<u.maxX&&!isBlocked?.(nx,nz,.38))person.position.set(nx,0,nz);
+  return true;
+ }
  // NPCs move only within the current districts; visual LOD has three tiers.
  function update(dt,t,focus,cars=[],controlledCar=null,playerCarSpeed=0){
   dt=Math.min(Math.max(dt||0,0),.05);
@@ -289,6 +307,8 @@ export function createEgyptianCrowd(T,scene,isBlocked){
     if(Math.hypot(p.position.x-c.position.x,p.position.z-c.position.z)<2.7){nearCar=true;break;}
    }
    const frightened=(u.startledUntil||0)>t;
+   const stumbling=(u.stumbleUntil||0)>t;
+   const stumbleAmount=stumbling?Math.min(1,(u.stumbleUntil-t)/600)*(u.stumbleForce||0):0;
    const locked=!!u.streetEventLock;
    // Occasional local conversations: two neighbours stop and greet one another.
    if(!locked&&distSq<34*34&&u.id%5===0&&t>(u.nextGreeting||0)){
@@ -301,7 +321,7 @@ export function createEgyptianCrowd(T,scene,isBlocked){
        other.userData.rest=Math.max(other.userData.rest,1.0);
      }
    }
-   const walking=!locked&&!nearCar&&distSq>2.45*2.45&&!frightened&&u.rest<=0;
+   const walking=!locked&&!nearCar&&!stumbling&&distSq>2.45*2.45&&!frightened&&u.rest<=0;
    u.motion=setLerp(u.motion,walking?1:0,walking?7:11,dt);
    const nx=p.position.x+u.dir*u.motion*u.speed*dt;
    if(walking){
@@ -312,6 +332,8 @@ export function createEgyptianCrowd(T,scene,isBlocked){
    if(u.rest>0&&u.rest<1e8)u.rest=Math.max(0,u.rest-dt);
    p.rotation.y=setLerp(p.rotation.y,u.dir>0?Math.PI/2:-Math.PI/2,8,dt);
    const phase=u.phase+=dt*u.speed*7*u.motion,step=Math.sin(phase),lift=Math.max(0,Math.sin(phase+Math.PI/2));
+   u.proxy.position.y=-stumbleAmount*.20;
+   u.proxy.rotation.z=(u.stumbleSide||1)*stumbleAmount*.25;
    if(!highNear){
      u.proxyLegs[0].rotation.x=step*.31*u.motion;
      u.proxyLegs[1].rotation.x=-step*.31*u.motion;
@@ -343,7 +365,17 @@ export function createEgyptianCrowd(T,scene,isBlocked){
    }else{u.arms[1].rotation.z=0;u.body.rotation.y=0;}
    if(frightened){u.arms[0].rotation.x=-.7;u.arms[1].rotation.x=-.43;u.head.rotation.z=.12;u.body.rotation.z=.055;}
    else u.head.rotation.z=0;
+   // A brief stumble and recovery: readable, non-graphic, no ragdoll CPU cost.
+   u.body.position.y-=stumbleAmount*.22;
+   u.body.rotation.x=stumbleAmount*.15;
+   if(stumbling){
+     u.body.rotation.z=(u.stumbleSide||1)*stumbleAmount*.34;
+     u.legs[0].rotation.x+=stumbleAmount*.43;
+     u.legs[1].rotation.x-=stumbleAmount*.32;
+     u.arms[0].rotation.z=-stumbleAmount*.7;
+     u.arms[1].rotation.z=stumbleAmount*.5;
+   }else{u.body.rotation.x=0;u.arms[0].rotation.z=0;}
   }
  }
- return {people:residents,update,profiles:EGYPTIAN_RESIDENTS};
+ return {people:residents,update,reactCollision,profiles:EGYPTIAN_RESIDENTS};
 }
