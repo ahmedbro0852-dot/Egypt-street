@@ -11,6 +11,7 @@ import { createAutoDriver } from './auto-drive-v6.js';
 import { createGpsV6 } from './gps-v6.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
 import { stickFromPointer, footDirection, steeringFromStick, blendHeading } from './controls-v3.js';
+import { updateCarWheels, spinTrafficWheels, gearStatus } from './wheel-rig.js';
 // A deliberate "new game" clears only Egypt Street keys before systems are constructed.
 let freshStartV55=false;
 try{
@@ -58,10 +59,13 @@ function car(color){
  for(const z of [-2.18,2.18]){cub(0,.60,z,.40,.14,.018,mat('#e5e8de'));cub(0,.65,z*1.001,.40,.032,.022,mat('#4b8daf'))}
  for(const x of [-.94,.94])for(const z of [-1.35,1.32]){
  const pivot=new T.Group();pivot.position.set(x,.43,z);g.add(pivot);wheels.push(pivot);
- const tire=part(new T.CylinderGeometry(.405,.405,.26,24),rubber,0,0,0,pivot);tire.rotation.z=Math.PI/2;
- const sx=Math.sign(x);const rim=part(new T.CylinderGeometry(.28,.28,.025,24),black,sx*.142,0,0,pivot);rim.rotation.z=Math.PI/2;
- for(let j=0;j<5;j++){const a=j*Math.PI*2/5;const spoke=cub(sx*.159,Math.cos(a)*.13,Math.sin(a)*.13,.025,.25,.045,chrome,pivot);spoke.rotation.x=a}
- const hub=part(new T.CylinderGeometry(.075,.075,.035,16),chrome,sx*.17,0,0,pivot);hub.rotation.z=Math.PI/2;
+ // Steering knuckle (Y) and rolling wheel (X) are independent objects.
+ const rolling=new T.Group();pivot.add(rolling);
+ pivot.userData={front:z>0,side:Math.sign(x),radius:.405,baseY:.43,rolling};
+ const tire=part(new T.CylinderGeometry(.405,.405,.26,24),rubber,0,0,0,rolling);tire.rotation.z=Math.PI/2;
+ const sx=Math.sign(x);const rim=part(new T.CylinderGeometry(.28,.28,.025,24),black,sx*.142,0,0,rolling);rim.rotation.z=Math.PI/2;
+ for(let j=0;j<5;j++){const a=j*Math.PI*2/5;const spoke=cub(sx*.159,Math.cos(a)*.13,Math.sin(a)*.13,.025,.25,.045,chrome,rolling);spoke.rotation.x=a}
+ const hub=part(new T.CylinderGeometry(.075,.075,.035,16),chrome,sx*.17,0,0,rolling);hub.rotation.z=Math.PI/2;
  }
  // Soft contact shadow, no expensive shadow maps on mobile.
  const cv=document.createElement('canvas');cv.width=cv.height=64;const ctx=cv.getContext('2d'),grad=ctx.createRadialGradient(32,32,8,32,32,32);grad.addColorStop(0,'rgba(0,0,0,.5)');grad.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=grad;ctx.fillRect(0,0,64,64);let shadow=part(new T.PlaneGeometry(3.5,5.8),new T.MeshBasicMaterial({map:new T.CanvasTexture(cv),transparent:true,depthWrite:false}),0,.105,0);shadow.rotation.x=-Math.PI/2;shadow.userData.skipFallback=true;
@@ -81,7 +85,7 @@ function motorcycle(color){
  const tank=new T.Mesh(new T.SphereGeometry(1,12,8),mat(color));tank.scale.set(.23,.22,.36);tank.position.set(0,.81,.27);g.add(tank);
  box(0,1.12,.66,.70,.055,.055,'#a5a8aa',g);box(0,.87,.77,.10,.55,.10,'#969b9e',g);
  box(0,1,.85,.23,.19,.10,'#fff0bd',g);box(0,.74,-.86,.22,.10,.06,'#bb2828',g);
- for(const z of [-.70,.72]){const pivot=new T.Group();pivot.position.set(0,.34,z);g.add(pivot);g.userData.wheels.push(pivot);const w=new T.Mesh(new T.CylinderGeometry(.32,.32,.16,16),mat('#171a1d'));w.rotation.z=Math.PI/2;pivot.add(w);for(const x of [-.09,.09]){const hub=new T.Mesh(new T.CylinderGeometry(.20,.20,.018,12),mat('#9da5ac'));hub.position.x=x;hub.rotation.z=Math.PI/2;pivot.add(hub)}}
+ for(const z of [-.70,.72]){const pivot=new T.Group();pivot.position.set(0,.34,z);g.add(pivot);g.userData.wheels.push(pivot);const rolling=new T.Group();pivot.add(rolling);pivot.userData={front:z>0,side:0,radius:.32,baseY:.34,rolling};const w=new T.Mesh(new T.CylinderGeometry(.32,.32,.16,16),mat('#171a1d'));w.rotation.z=Math.PI/2;rolling.add(w);for(const x of [-.09,.09]){const hub=new T.Mesh(new T.CylinderGeometry(.20,.20,.018,12),mat('#9da5ac'));hub.position.x=x;hub.rotation.z=Math.PI/2;rolling.add(hub)}}
  // Seated rider and helmet.
  box(0,1.15,-.12,.36,.48,.26,'#3a5260',g);const helmet=new T.Mesh(new T.SphereGeometry(.19,12,10),mat('#222b32'));helmet.position.set(0,1.55,-.06);g.add(helmet);box(0,1.57,.10,.28,.09,.06,'#6d8b95',g);
  for(const x of [-.25,.25]){box(x,.73,-.27,.13,.42,.20,'#334352',g);box(x,1.12,.28,.11,.12,.57,'#3a5260',g)}scene.add(g);return g;
@@ -542,10 +546,7 @@ function frame(t){
    chassis.rotation.z=vehicleState.roll;
    chassis.rotation.x=vehicleState.pitch;
    player.position.copy(taxi.position);
-   for(const wheel of taxi.userData.wheels){
-    wheel.rotation.x+=speed*dt/.405;
-    if(wheel.position.z>0)wheel.rotation.y=vehicleState.steer*.8;
-   }
+   updateCarWheels(taxi,vehicleState,dt);
    if(result.collision&&t>bumpCooldown){
     toast(result.impact>6?'خد بالك من الطريق! العربية خبطت':'في عائق قدّامك');
     if(result.impact>4&&navigator.vibrate)navigator.vibrate(Math.min(95,Math.round(result.impact*4)));
@@ -603,7 +604,7 @@ function frame(t){
    if(c.userData.headlights)c.userData.headlights.emissiveIntensity=
        cityLife.illumination()<.22?2.1:.4;
    if(c.userData.tailLights)c.userData.tailLights.emissiveIntensity=hazard?1.8:.5;
-   for(const wheel of d.wheels)wheel.rotation.x+=step/.405;
+   spinTrafficWheels(c,step);
    c.position[axis]+=step;
    if(c.position[axis]>82)c.position[axis]=-82;
    if(c.position[axis]<-82)c.position[axis]=82;
