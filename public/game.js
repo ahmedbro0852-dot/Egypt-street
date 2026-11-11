@@ -4,6 +4,7 @@ import { installCairo } from './cairo-city.js';
 import { createEgyptianCrowd } from './egyptian-crowd.js';
 import { createStreetEvents } from './street-events.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
+import { stickFromPointer, footDirection, steeringFromStick, blendHeading } from './controls-v3.js';
 const $=id=>document.getElementById(id),scene=new T.Scene();scene.background=new T.Color('#b9d0cf');scene.fog=new T.Fog('#b9d0cf',65,190);let renderer;try{renderer=new T.WebGLRenderer({canvas:$('world'),antialias:true})}catch(e){const old=$('world'),c=old.cloneNode();old.replaceWith(c);const ctx=c.getContext('2d');let sw=0,sh=0;renderer={setPixelRatio(){},setSize(w,h){sw=c.width=w;sh=c.height=h},render(scene,camera){scene.updateMatrixWorld();camera.updateMatrixWorld();const view=new T.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse),faces=[];ctx.fillStyle='#b9d0cf';ctx.fillRect(0,0,sw,sh);scene.traverse(o=>{if(!o.isMesh||!o.visible||!o.parent.visible||o.userData.skipFallback)return;for(let ancestor=o.parent;ancestor;ancestor=ancestor.parent)if(!ancestor.visible)return;const center=new T.Vector3().setFromMatrixPosition(o.matrixWorld);if(center.distanceTo(camera.position)>95)return;const m=new T.Matrix4().multiplyMatrices(view,o.matrixWorld),pos=o.geometry.attributes.position,idx=o.geometry.index;const verts=[];for(let i=0;i<pos.count;i++)verts.push(new T.Vector3().fromBufferAttribute(pos,i).applyMatrix4(m));for(let i=0;i<(idx?idx.count:pos.count);i+=3){const a=verts[idx?idx.getX(i):i],b=verts[idx?idx.getX(i+1):i+1],d=verts[idx?idx.getX(i+2):i+2];if([a,b,d].some(v=>v.z>1||v.z< -1))continue;if((b.x-a.x)*(d.y-a.y)-(b.y-a.y)*(d.x-a.x)<0)continue;let color=o.material.color||new T.Color('#647b72');faces.push({a,b,d,z:(a.z+b.z+d.z)/3,color:'#'+color.getHexString()})}});faces.sort((a,b)=>b.z-a.z);for(let f of faces){ctx.fillStyle=f.color;ctx.beginPath();ctx.moveTo((f.a.x+1)*sw/2,(1-f.a.y)*sh/2);ctx.lineTo((f.b.x+1)*sw/2,(1-f.b.y)*sh/2);ctx.lineTo((f.d.x+1)*sw/2,(1-f.d.y)*sh/2);ctx.fill()}}};}renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));const camera=new T.PerspectiveCamera(62,1,.1,240);scene.add(new T.HemisphereLight(0xffe9c8,0x637278,2.6));const sun=new T.DirectionalLight(0xffd7a1,2.6);sun.position.set(-30,70,20);scene.add(sun);const solids=[];const mat=c=>new T.MeshLambertMaterial({color:c});const materials=new Map();function box(x,y,z,w,h,d,c,parent=scene){if(!materials.has(c))materials.set(c,mat(c));let m=new T.Mesh(new T.BoxGeometry(w,h,d),materials.get(c));m.position.set(x,y,z);parent.add(m);return m}box(0,-.2,0,460,.3,460,'#baa88a');
 const roads=[-60,-30,0,30,60];for(const n of roads){box(n,.01,0,11,.1,170,'#555e60');box(0,.01,n,170,.1,11,'#555e60');for(let k=-80;k<85;k+=8){box(n,.08,k,.16,.02,3,'#d6cba1');box(k,.08,n,3,.02,.16,'#d6cba1')}}
 function sign(text,x,y,z,w=5){const c=document.createElement('canvas');c.width=512;c.height=128;let q=c.getContext('2d');q.fillStyle='#174747';q.fillRect(0,0,512,128);q.fillStyle='#ffe3a9';q.font='bold 54px Arial';q.textAlign='center';q.fillText(text,256,84);let m=new T.Mesh(new T.PlaneGeometry(w,w/4),new T.MeshBasicMaterial({map:new T.CanvasTexture(c),side:T.DoubleSide}));m.position.set(x,y,z);scene.add(m)}
@@ -140,7 +141,7 @@ const crowd=createEgyptianCrowd(T,scene,(x,z)=>blocked(x,z,.38));
 const walkers=crowd.people; // Forty unique residents
 
 const target=new T.Vector3(62,0,-50);let beacon=new T.Mesh(new T.CylinderGeometry(2,2,.12,32),new T.MeshBasicMaterial({color:0xffcd68,transparent:true,opacity:.7}));scene.add(beacon);let pillar=new T.Mesh(new T.CylinderGeometry(.25,.25,13,12),new T.MeshBasicMaterial({color:0xffd57e,transparent:true,opacity:.45}));scene.add(pillar);
-const sound=createStreetAudio();let pedal=0;for(const [id,value] of [['accelerate',1],['reverse',-1]]){const b=$(id);b.onpointerdown=e=>{pedal=value;b.setPointerCapture(e.pointerId);sound.start()};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>pedal=0;} $('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;keys={};joy.x=joy.y=0;sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;const vehicleState=createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y);const onFoot={vx:0,vz:0};let dragSteer=0,bumpCooldown=0;let toastTimer;function toast(s){$('toast').textContent=s;clearTimeout(toastTimer);$('toast').style.opacity=1;toastTimer=setTimeout(()=>$('toast').style.opacity=.15,4500)}const streetEvents=createStreetEvents({
+const sound=createStreetAudio();let pedal=0;for(const [id,value] of [['accelerate',1],['reverse',-1]]){const b=$(id);b.onpointerdown=e=>{pedal=value;b.setPointerCapture(e.pointerId);sound.start()};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>pedal=0;} $('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;keys={};resetPad();sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;const vehicleState=createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y);const onFoot={vx:0,vz:0};let cameraYaw=0,cameraPitch=.13,cameraFreeUntil=0,bumpCooldown=0;let toastTimer;function toast(s){$('toast').textContent=s;clearTimeout(toastTimer);$('toast').style.opacity=1;toastTimer=setTimeout(()=>$('toast').style.opacity=.15,4500)}const streetEvents=createStreetEvents({
  T,scene,people:walkers,
  getPlayer:()=>driving?taxi.position:player.position,
  getDriving:()=>driving,
@@ -161,16 +162,49 @@ $('start').onclick=()=>{sound.start();active=true;$('intro').style.display='none
   if(!safe){toast('حرّك العربية شوية عشان تلاقي مكان تنزل فيه');return}
   driving=false;player.visible=true;player.position.set(safe[0],0,safe[1]);
   speed=0;onFoot.vx=onFoot.vz=0;vehicleState.speed=0;vehicleState.lateralSpeed=0;vehicleState.yawRate=0;
-  document.body.classList.remove('driving');pedal=0;$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
+  document.body.classList.remove('driving');pedal=0;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
  }else if(player.position.distanceTo(taxi.position)<6){
   driving=true;player.visible=false;
   Object.assign(vehicleState,createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y));
-  yaw=taxi.rotation.y;speed=0;dragSteer=0;
+  yaw=taxi.rotation.y;cameraYaw=yaw;cameraFreeUntil=0;speed=0;resetPad();
   document.body.classList.add('driving');$('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
-  toast('حرّك العصاية لقدّام للتسارع، واسحب يمين أو شمال للتوجيه، واضغط فرامل للتوقف');
+  $('controlsHint').textContent='↔ العصاية للتوجيه • البنزين من اليمين';
+  toast('العصاية يمين وشمال للدريكسيون • زر بنزين للتسارع • اسحب الشاشة لتلف الكاميرا');
  }else toast('قرب من العربية الصفرا الأول')
-} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if(k===' '){e.preventDefault()}if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat)streetEvents.interact()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;keys={};joy.x=joy.y=0;sprint=false;dragSteer=0};
-const pad=$('joy');function move(e){let r=pad.getBoundingClientRect(),x=(e.clientX-r.left-r.width/2)/40,y=(e.clientY-r.top-r.height/2)/40,l=Math.max(1,Math.hypot(x,y));joy={x:x/l,y:y/l};$('knob').style.transform=`translate(${joy.x*34}px,${joy.y*34}px)`}pad.onpointerdown=e=>{pad.setPointerCapture(e.pointerId);move(e)};pad.onpointermove=e=>{if(pad.hasPointerCapture(e.pointerId))move(e)};pad.onpointerup=pad.onpointercancel=()=>{joy={x:0,y:0};$('knob').style.transform=''};$('camera').onclick=()=>{cameraNear=!cameraNear;toast(cameraNear?'كاميرا قريبة':'كاميرا واسعة')};let cameraNear=false;let drag=null;$('world').onpointerdown=e=>drag={id:e.pointerId,x:e.clientX};$('world').onpointermove=e=>{if(drag&&drag.id===e.pointerId){const dx=e.clientX-drag.x;if(driving)dragSteer=Math.max(-1,Math.min(1,dragSteer+dx*.018));else yaw-=dx*.007;drag.x=e.clientX}};$('world').onpointerup=$('world').onpointercancel=()=>drag=null;
+} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if(k===' '){e.preventDefault()}if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat)streetEvents.interact()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;keys={};resetPad();sprint=false};
+const pad=$('joy'),knob=$('knob'),worldCanvas=$('world');
+function resetPad(){joy.x=0;joy.y=0;if(knob)knob.style.transform='translate(0px,0px)'}
+function stickMove(e){
+ const r=pad.getBoundingClientRect(),radius=Math.max(20,Math.min(r.width,r.height)*.5-22);
+ const x=e.clientX-r.left-r.width*.5,y=e.clientY-r.top-r.height*.5;
+ joy=stickFromPointer(x,y,radius);
+ knob.style.transform='translate('+Math.round(joy.x*radius)+'px,'+Math.round(joy.y*radius)+'px)';
+}
+pad.onpointerdown=e=>{
+ e.preventDefault();pad.setPointerCapture(e.pointerId);stickMove(e);
+};
+pad.onpointermove=e=>{if(pad.hasPointerCapture(e.pointerId)){e.preventDefault();stickMove(e)}};
+pad.onpointerup=pad.onpointercancel=pad.onlostpointercapture=()=>resetPad();
+$('camera').onclick=()=>{
+ cameraNear=!cameraNear;toast(cameraNear?'كاميرا قريبة':'كاميرا واسعة');
+};
+let cameraNear=false,drag=null;
+worldCanvas.onpointerdown=e=>{
+ if(!active)return;
+ e.preventDefault();
+ drag={id:e.pointerId,x:e.clientX,y:e.clientY};
+ worldCanvas.setPointerCapture?.(e.pointerId);
+};
+worldCanvas.onpointermove=e=>{
+ if(!drag||drag.id!==e.pointerId)return;
+ const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+ cameraYaw-=dx*.0053;cameraPitch=Math.max(-.24,Math.min(.52,cameraPitch+dy*.0035));
+ cameraFreeUntil=performance.now()+2800;
+ drag.x=e.clientX;drag.y=e.clientY;
+};
+worldCanvas.onpointerup=worldCanvas.onpointercancel=worldCanvas.onlostpointercapture=e=>{
+ if(drag&&drag.id===e.pointerId)drag=null;
+};
 function blocked(x,z,radius=.45){
  if(Math.abs(x)>218-radius||Math.abs(z)>168-radius||cairo.isWater(x,z))return true;
  return solids.some(b=>Math.abs(x-b.x)<b.w+radius&&Math.abs(z-b.z)<b.d+radius)
@@ -219,13 +253,12 @@ function frame(t){
  const dt=last?Math.min((t-last)/1000,.04):1/60;last=t;
  const p=driving?taxi.position:player.position;
  if(active&&!paused){
-  let f=(driving&&pedal?pedal:-joy.y)+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);
+  let f=(driving?pedal:-joy.y)+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);
   let turn=joy.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
   f=Math.max(-1,Math.min(1,f));turn=Math.max(-1,Math.min(1,turn));
   if(driving){
-   // Steering from the phone screen springs gently back to centre.
-   dragSteer*=Math.exp(-1.9*dt);
-   const steer=Math.max(-1,Math.min(1,turn+dragSteer));
+   // Right on screen steers right. Swiping the world now moves the camera only.
+   const steer=steeringFromStick(joy.x,(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0));
    const result=stepVehiclePhysics(vehicleState,{
     throttle:f,steer,brake:sprint||keys.shift||keys[' ']
    },dt,carCollision);
@@ -246,18 +279,13 @@ function frame(t){
     bumpCooldown=t+1700;
    }
   }else{
-   // Third-person motion: walk/strafe relative to camera rather than rotate like a tank.
-   const desiredLen=Math.min(1,Math.hypot(f,turn));
-   const forward=Math.sin(yaw)*f+Math.cos(yaw)*turn;
-   const across=Math.cos(yaw)*f-Math.sin(yaw)*turn;
-   const len=Math.hypot(forward,across);
-   const pace=sprint||keys.shift?6.2:3.6;
-   const tx=len>.001?forward/len*pace*desiredLen:0;
-   const tz=len>.001?across/len*pace*desiredLen:0;
-   const response=1-Math.exp(-(desiredLen>.05?8.5:13)*dt);
-   onFoot.vx+=(tx-onFoot.vx)*response;
-   onFoot.vz+=(tz-onFoot.vz)*response;
-   const nearPerson=(x,z)=>walkers.some(w=>Math.hypot(x-w.position.x,z-w.position.z)<.76);
+   // GTA-style third-person analog locomotion relative to the camera orbit.
+   const pace=sprint||keys.shift?6.15:3.65;
+   const desired=footDirection(f,turn,cameraYaw,pace);
+   const response=1-Math.exp(-(desired.magnitude>.03?8.0:13.0)*dt);
+   onFoot.vx+=(desired.vx-onFoot.vx)*response;
+   onFoot.vz+=(desired.vz-onFoot.vz)*response;
+   const nearPerson=(x,z)=>walkers.some(w=>Math.hypot(x-w.position.x,z-w.position.z)<.77);
    const footBlocked=(x,z)=>blocked(x,z,.46)||
      traffic.some(c=>Math.hypot(x-c.position.x,z-c.position.z)<1.22)||nearPerson(x,z);
    const nx=p.x+onFoot.vx*dt,nz=p.z+onFoot.vz*dt;
@@ -265,9 +293,8 @@ function frame(t){
    if(!footBlocked(p.x,nz))p.z=nz;else onFoot.vz=0;
    speed=Math.hypot(onFoot.vx,onFoot.vz);
    if(speed>.12){
-     const targetHeading=Math.atan2(onFoot.vx,onFoot.vz);
-     const shortest=Math.atan2(Math.sin(targetHeading-player.rotation.y),Math.cos(targetHeading-player.rotation.y));
-     player.rotation.y+=shortest*Math.min(1,dt*(6+speed*.6));
+     const heading=Math.atan2(onFoot.vx,onFoot.vz);
+     player.rotation.y=blendHeading(player.rotation.y,heading,9.0,dt);
    }
   }
   // Existing ambient traffic, pedestrians and delivery tasks remain active.
@@ -297,12 +324,23 @@ function frame(t){
  beacon.position.set(target.x,.15,target.z);
  pillar.position.set(target.x,6.5,target.z);
  beacon.scale.setScalar(1+Math.sin(t*.003)*.12);
- const angle=active?yaw:.55;
- const distance=driving?(cameraNear?6.5:10.5)+Math.min(3,Math.abs(speed)*.10):(cameraNear?4:7);
- const cp=new T.Vector3(p.x-Math.sin(angle)*distance,driving?5.1+Math.min(1.2,Math.abs(speed)*.052):4.5,p.z-Math.cos(angle)*distance);
- camera.position.lerp(cp,1-Math.exp(-dt*(driving?4.5:6.5)));
- const lookAhead=driving?Math.min(3.5,Math.abs(speed)*.15):.55;
- camera.lookAt(p.x+Math.sin(angle)*lookAhead,driving?1.5:1.42,p.z+Math.cos(angle)*lookAhead);
+ // Driver camera returns behind the car gradually; dragging the world is a free look.
+ if(driving&&t>cameraFreeUntil){
+  cameraYaw=blendHeading(cameraYaw,vehicleState.yaw,1.8,dt);
+ }
+ const angle=cameraYaw;
+ let distance=driving?(cameraNear?6.5:10.8)+Math.min(2.0,Math.abs(speed)*.08):(cameraNear?3.8:6.6);
+ // Pull camera in when a wall stands between it and the character.
+ for(let i=1;i<=10;i++){
+  const f=i/10, cx=p.x-Math.sin(angle)*distance*f,cz=p.z-Math.cos(angle)*distance*f;
+  if(blocked(cx,cz,.16)){distance=Math.max(2.35,distance*((i-1)/10));break;}
+ }
+ const baseH=driving?4.2:3.4;
+ const height=baseH+Math.sin(cameraPitch)*distance+(driving?Math.min(1.0,Math.abs(speed)*.03):0);
+ const cp=new T.Vector3(p.x-Math.sin(angle)*distance,height,p.z-Math.cos(angle)*distance);
+ camera.position.lerp(cp,1-Math.exp(-dt*(driving?5.3:7.0)));
+ const lookAhead=driving?Math.min(2.6,Math.abs(speed)*.13):.4;
+ camera.lookAt(p.x+Math.sin(angle)*lookAhead,driving?1.42:1.35,p.z+Math.cos(angle)*lookAhead);
  $('speed').innerHTML=Math.round(Math.abs(speed)*3.6)+'<small>كم / س</small>';
  minimap(p);
  if(active&&Math.round(t/1200)%2===0)$('toast').dataset.district=cairo.district(p.x,p.z);
