@@ -10,12 +10,13 @@ export const TANK_CAPACITY=45;
 export const FUEL_PRICE=6; // purely fictional gameplay rate, not a real-world price.
 const SAVE_KEY='egypt-street-fuel-v4';
 export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpeed,isDriving,getMoney,charge,notify}){
- let fuel=16,auto=true,target=60,spent=0,totalKm=0,lastSave=0,warning=false,atStation=null;
+ let fuel=16,auto=true,target=60,spent=0,totalKm=0,lastSave=0,warning=false,atStation=null,condition=100,temperature=25,lastDamageWarn=0;
  try{
   const saved=JSON.parse(storage?.getItem(SAVE_KEY)||'null');
   if(saved&&Number.isFinite(saved.fuel)){
     fuel=LIMIT(saved.fuel,0,TANK_CAPACITY);
     if(Number.isFinite(saved.totalKm))totalKm=Math.max(0,saved.totalKm);
+    if(Number.isFinite(saved.condition))condition=LIMIT(saved.condition,0,100);
   }
  }catch(e){}
  // Build three lightweight real 3D fuel stops, visible along existing roads.
@@ -40,7 +41,7 @@ export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpe
   box(pumpX,.08,pumpZ,5,.13,8,'#838980');
  }
  function persist(){
-  try{storage?.setItem(SAVE_KEY,JSON.stringify({fuel,totalKm}))}catch(e){}
+  try{storage?.setItem(SAVE_KEY,JSON.stringify({fuel,totalKm,condition}))}catch(e){}
  }
  const clock={lastUI:-1};
  function station(){
@@ -56,6 +57,7 @@ export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpe
   ui.bar.style.width=percentage.toFixed(2)+'%';
   ui.bar.style.background=percentage<15?'#ec5145':percentage<33?'#f7bd60':'#62e1a2';
   ui.amount.textContent=fuel.toFixed(1)+' / '+TANK_CAPACITY+' لتر';
+  ui.condition.textContent='🔧 حالة العربية '+Math.round(condition)+'% • حرارة '+Math.round(temperature)+'° • '+totalKm.toFixed(1)+' كم';
   ui.mode.textContent=auto?'🚗 بنزين تلقائي • '+target+' كم/س':'⏸️ البنزين التلقائي متوقف';
   ui.toggle.textContent=auto?'⏸️ وقف التلقائي':'▶️ شغّل التلقائي';
   ui.slower.textContent='− سرعة';
@@ -69,6 +71,7 @@ export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpe
   }else{ui.station.style.display='none'}
   ui.refuel.style.display=atStation&&isStopped()&&fuel<TANK_CAPACITY-.05?'block':'none';
   ui.refuel.textContent='⛽ فوّل العربية ('+FUEL_PRICE+' ج/لتر)';
+  ui.repair.style.display=atStation&&isStopped()&&condition<99.5?'block':'none';
  }
  function enter(){
   auto=fuel>.01;
@@ -103,7 +106,7 @@ export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpe
   if(!auto)return 0;
   const speed=Math.max(0,getSpeed())*3.6;
   const difference=target-speed;
-  return LIMIT(difference*.028+.11,0,1);
+  return LIMIT(difference*.028+.11,0,Math.max(.36,condition/100));
  }
  function update(dt,time,actualThrottle=0,engineOn=false){
   dt=LIMIT(Number.isFinite(dt)?dt:0,0,.05);
@@ -113,12 +116,16 @@ export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpe
    // About 7–13 litres/100 km at typical city driving and 0.5 L/hour at idle.
    const idle=.50/3600;
    const perMeter=.000078+.000060*LIMIT(Math.abs(actualThrottle),0,1)+.000009*speed/32.5;
-   const consumption=dt*(idle+speed*perMeter+Math.abs(actualThrottle)*.00017);
+   const consumption=dt*(idle+speed*perMeter+Math.abs(actualThrottle)*.00017)*
+      (1+(100-condition)*.003);
+   const desiredTemperature=85+Math.abs(actualThrottle)*8+(condition<35?8:0);
+   temperature+=(desiredTemperature-temperature)*Math.min(1,dt*.02);
    fuel=LIMIT(fuel-consumption,0,TANK_CAPACITY);
    totalKm+=speed*dt/1000;
    if(!warning&&fuel<8){notify('⚠️ البنزين قليل. قرب من بنزينة ووقف عشان تفوّل.');warning=true;}
    if(fuel===0&&auto){auto=false;notify('⛽ البنزين خلص، الموتور فصل. تقدر تفوّل عند المحطة.');}
   }
+  if(!engineOn)temperature+=(25-temperature)*Math.min(1,dt*.013);
   if(spent-clock.lastUI>.25){clock.lastUI=spent;updateUI();}
   if(lastSave>8){lastSave=0;persist();}
  }
@@ -136,11 +143,38 @@ export function createFuelSystem({T,scene,box,sign,ui,storage,getPosition,getSpe
   notify('⛽ اتفولت '+litres.toFixed(1)+' لتر مقابل '+cost.toFixed(0)+' جنيه. شغّل البنزين التلقائي لما تحب تتحرك.');
   return true;
  }
- ui.toggle.onclick=toggle;ui.slower.onclick=()=>changeSpeed(-15);
+ function registerImpact(impact){
+  if(!isDriving()||!Number.isFinite(impact)||impact<3.5)return;
+  const lost=LIMIT((impact-3.5)*.72,0,18);
+  if(lost<.15)return;
+  condition=LIMIT(condition-lost,0,100);
+  if(condition<65&&spent-lastDamageWarn>9){
+   lastDamageWarn=spent;
+   notify('🔧 العربية اتخبطت وحالتها '+Math.round(condition)+'%. صلّحها من محطة البنزين.');
+  }
+  persist();
+ }
+ function repair(){
+  const nearby=station();
+  if(!nearby||!isStopped()){notify('الورشة عند محطة البنزين: لازم توقف العربية هناك.');return false}
+  const needed=100-condition;
+  if(needed<.5){notify('العربية حالتها ممتازة!');return false}
+  const rate=2.5;
+  const points=Math.min(needed,Math.floor(getMoney()/rate));
+  if(points<1){notify('لازم تجمع فلوس من الشغل الأول عشان تصلح العربية.');return false}
+  const cost=Math.round(points*rate*10)/10;
+  if(!charge(cost))return false;
+  condition=LIMIT(condition+points,0,100);
+  persist();updateUI();
+  notify('🔧 تم إصلاح '+Math.round(points)+'% من العربية مقابل '+cost.toFixed(0)+' جنيه.');
+  return true;
+ }
+ ui.repair.onclick=repair;
+  ui.toggle.onclick=toggle;ui.slower.onclick=()=>changeSpeed(-15);
  ui.faster.onclick=()=>changeSpeed(15);ui.refuel.onclick=refuel;
  updateUI();
  return {
-  enter,exit,toggle,changeSpeed,reverse,throttle,update,refuel,updateUI,station,
-  getState:()=>({fuel,capacity:TANK_CAPACITY,auto,target,totalKm,atStation:atStation?.name||null})
+  enter,exit,toggle,changeSpeed,reverse,throttle,update,refuel,repair,registerImpact,updateUI,station,
+  getState:()=>({fuel,capacity:TANK_CAPACITY,auto,target,totalKm,condition,temperature,atStation:station()?.name||null})
  };
 }
