@@ -1,3 +1,4 @@
+import { installRealismRender } from './realism-render-v16.js';
 import { createStreetAudio } from './street-audio.js';
 import * as T from './three.js';
 import { installCairo } from './cairo-city.js';
@@ -887,4 +888,5 @@ function frame(t){
  skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather
 });renderer.render(scene,camera);
 }
+try { installRealismRender({T,scene,renderer,sun}); } catch(error) { console.warn('Material quality pass unavailable',error); }
 requestAnimationFrame(frame);
