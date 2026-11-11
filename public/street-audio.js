@@ -39,5 +39,16 @@ export function createStreetAudio(){
   if(t>nextBird){tone(2200,.11,.012,'sine',-.7,3100);tone(2900,.14,.009,'sine',.4,2400);nextBird=t+6+Math.random()*9}
   if(t>nextHorn){horn(true);nextHorn=t+12+Math.random()*16}
  }
- function toggle(){start();muted=!muted;return muted}function suspend(){if(ctx)ctx.suspend().catch(()=>{})}return {start,tick,horn,toggle,suspend};
+ function impact(severity=4,kind='vehicle'){
+  // Short mechanical impact, not music; respects mute and suspended audio.
+  if(!ctx||muted)return;
+  const size=Math.max(.15,Math.min(1,Number(severity)/19||.2));
+  const low=kind==='vehicle'?68:95;
+  tone(low+size*38,.10+size*.12,.012+size*.052,'triangle',0,low*.58);
+  if(kind==='vehicle'&&severity>4)
+    tone(135+size*75,.07+size*.10,.007+size*.018,'sawtooth',-.16,70);
+ }
+ function toggle(){start();muted=!muted;return muted}
+ function suspend(){if(ctx)ctx.suspend().catch(()=>{})}
+ return {start,tick,horn,impact,toggle,suspend};
 }
