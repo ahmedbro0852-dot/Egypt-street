@@ -6,8 +6,9 @@ let seed=7431;const random=()=>{seed=seed*16807%2147483647;return seed/214748364
 const material=c=>new T.MeshLambertMaterial({color:c});
 const palettes=['#d2bda0','#bfa98c','#c8c2b2','#ddd0b7','#b7b8aa','#ba9a7c'];
 const facades=[],liteMobile=options.mobileLite===true;
+const atlasScale=liteMobile?((Number(navigator.deviceMemory)||4)<=3?1:1.5):2;
 for(let style=0;style<6;style++){
- const c=document.createElement('canvas');c.width=liteMobile?256:512;c.height=liteMobile?512:1024;const g=c.getContext('2d');g.scale(liteMobile?1:2,liteMobile?1:2);
+ const c=document.createElement('canvas');c.width=Math.round(256*atlasScale);c.height=Math.round(512*atlasScale);const g=c.getContext('2d');g.scale(atlasScale,atlasScale);
  g.fillStyle=palettes[style];g.fillRect(0,0,256,512);
  for(let n=0;n<90;n++){g.fillStyle=n%2?'#ffffff12':'#5f524010';g.fillRect(random()*256,random()*512,4+random()*24,2+random()*5)}
  for(let floor=0;floor<5;floor++){
