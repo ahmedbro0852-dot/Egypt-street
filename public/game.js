@@ -162,7 +162,7 @@ const walkers=crowd.people; // Forty unique residents
 
 const target=new T.Vector3(62,0,-50);let beacon=new T.Mesh(new T.CylinderGeometry(2,2,.12,32),new T.MeshBasicMaterial({color:0xffcd68,transparent:true,opacity:.7}));scene.add(beacon);let pillar=new T.Mesh(new T.CylinderGeometry(.25,.25,13,12),new T.MeshBasicMaterial({color:0xffd57e,transparent:true,opacity:.45}));scene.add(pillar);
 const sound=createStreetAudio();
-let pedal=0,brakePedal=false,jumpRequested=false,reverseKeyHeld=false;
+let pedal=0,brakePedal=false,jumpRequested=false,reverseKeyHeld=false,parkingBrake=false;
 // Speed+ is a tap: the engine holds the new target speed by itself.
 // Reverse is only accepted from a near-stop and automatically disengages cruise.
 $('accelerate').onclick=()=>fuelSystem.changeSpeed(15);
@@ -179,6 +179,20 @@ reverseButton.onpointerup=reverseButton.onpointercancel=reverseButton.onlostpoin
 const brakeButton=$('brakePedal');
 brakeButton.onpointerdown=e=>{e.preventDefault();brakePedal=true;brakeButton.setPointerCapture(e.pointerId)};
 brakeButton.onpointerup=brakeButton.onpointercancel=brakeButton.onlostpointercapture=()=>{brakePedal=false};
+const parkButton=$('handbrake');
+function updateParkingUi(){
+ parkButton.setAttribute('aria-pressed',String(parkingBrake));
+ parkButton.textContent=parkingBrake?'🅿️ فرامل اليد: مقفولة':'🅿️ فرامل اليد: مفتوحة';
+}
+parkButton.onclick=()=>{
+ if(!driving)return;
+ parkingBrake=!parkingBrake;
+ if(parkingBrake&&autoDriver.getState().enabled){autoDriver.stop();updateAutoPilotLabel()}
+ updateParkingUi();
+ toast(parkingBrake?'🅿️ فرامل اليد شغالة — العربية هتقف':'✅ فرامل اليد اتفكت — تقدر تسوق');
+ saveWorld(true);
+};
+updateParkingUi();
 const jumpButton=$('jump');
 jumpButton.onpointerdown=e=>{e.preventDefault();if(!driving)jumpRequested=true;jumpButton.setPointerCapture(e.pointerId)};
 jumpButton.onpointerup=jumpButton.onpointercancel=()=>{};
@@ -274,6 +288,7 @@ function updateAutoPilotLabel(){
 }
 $('autoPilot').onclick=()=>{
  if(!driving)return;
+ if(parkingBrake){toast('فك فرامل اليد الأول عشان تشغّل القيادة الذاتية');return;}
  autoDriver.toggle(vehicleState);
  if(autoDriver.getState().enabled&&!fuelSystem.getState().auto&&fuelSystem.getState().fuel>.01)fuelSystem.toggle();
  updateAutoPilotLabel();saveWorld(true);
@@ -282,7 +297,7 @@ function worldSnapshot(){
  return {
   player:{x:player.position.x,z:player.position.z,yaw:player.rotation.y},
   taxi:{x:taxi.position.x,z:taxi.position.z,yaw:taxi.rotation.y},
-  driving,cameraYaw,cameraPitch,money:cash,
+  driving,parkingBrake,cameraYaw,cameraPitch,money:cash,
   mission:{completed,target:{x:target.x,z:target.z}},
   fuel:fuelSystem.getState(),career:career.getStats(),
   sideEvent:streetEvents.snapshot(),autopilot:autoDriver.getState(),gps:gps.getState()
@@ -321,9 +336,11 @@ function restoreWorld(state){
   $('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
  }
  fuelSystem.restore(state.fuel);
+ parkingBrake=!!state.parkingBrake;updateParkingUi();
  career.restore(state.career);
  streetEvents.restore(state.sideEvent);
  autoDriver.restore(state.autopilot,vehicleState);
+ if(parkingBrake&&autoDriver.getState().enabled)autoDriver.stop();
  gps.restore(state.gps);
  updateAutoPilotLabel();
  return true;
@@ -367,18 +384,18 @@ function enter(){
   if(!safe){toast('حرّك العربية شوية عشان تلاقي مكان تنزل فيه');return}
   driving=false;player.visible=true;player.position.set(safe[0],0,safe[1]);
   speed=0;onFoot.vx=onFoot.vz=0;onFoot.vy=onFoot.y=0;onFoot.grounded=true;jumpRequested=false;vehicleState.speed=0;vehicleState.lateralSpeed=0;vehicleState.yawRate=0;
-  autoDriver.stop();fuelSystem.exit();document.body.classList.remove('driving');pedal=0;brakePedal=false;reverseKeyHeld=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
+  autoDriver.stop();parkingBrake=false;updateParkingUi();fuelSystem.exit();document.body.classList.remove('driving');pedal=0;brakePedal=false;reverseKeyHeld=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
  }else if(player.position.distanceTo(taxi.position)<6){
   driving=true;player.visible=false;
   Object.assign(vehicleState,createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y));
   yaw=taxi.rotation.y;cameraYaw=yaw;cameraFreeUntil=0;speed=0;brakePedal=false;reverseKeyHeld=false;jumpRequested=false;resetPad();
-  document.body.classList.add('driving');fuelSystem.enter();autoDriver.start(vehicleState.x,vehicleState.z);
+  document.body.classList.add('driving');parkingBrake=false;updateParkingUi();fuelSystem.enter();autoDriver.start(vehicleState.x,vehicleState.z);
   updateAutoPilotLabel();$('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
   $('controlsHint').textContent='🧭 GPS للمهمات • العصاية للتحكم اليدوي';
   toast('🤖 العربية بتسوق لوحدها. حرك العصاية للتوجيه اليدوي أو دوس فرامل.');
   saveWorld(true);
  }else toast('قرب من العربية الصفرا الأول')
-} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click();if(k==='g'&&!e.repeat)$('gpsBtn').click()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;jumpRequested=false;keys={};resetPad();sprint=false};
+} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click();if(k==='g'&&!e.repeat)$('gpsBtn').click();if(k==='p'&&!e.repeat)$('handbrake').click()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;jumpRequested=false;keys={};resetPad();sprint=false};
 const pad=$('joy'),knob=$('knob'),worldCanvas=$('world');
 function resetPad(){joy.x=0;joy.y=0;if(knob)knob.style.transform='translate(0px,0px)'}
 function stickMove(e){
@@ -509,10 +526,10 @@ function frame(t){
    if(autoDriver.getState().enabled&&Math.abs(manualSteer)>.24){
     autoDriver.stop();updateAutoPilotLabel();
    }
-   const autopilot=autoDriver.controls(vehicleState,traffic,walkers,dt);
+   const autopilot=autoDriver.controls(vehicleState,traffic,walkers,dt,{cruiseKmh:fuelSystem.getState().target});
    const steer=autopilot.active?autopilot.steer:manualSteer;
    const braking=brakePedal||sprint||keys.shift||keys[' ']||
-      $('jobsPanel').style.display==='block'||autopilot.brake;
+      $('jobsPanel').style.display==='block'||autopilot.brake||parkingBrake;
    const reverseKeyDown=Boolean(keys.s||keys.arrowdown);
    if(reverseKeyDown&&!reverseKeyHeld&&Math.abs(vehicleState.speed)<1.4){
      reverseKeyHeld=fuelSystem.reverse();
@@ -648,6 +665,17 @@ function frame(t){
  const lookAhead=driving?Math.min(2.6,Math.abs(speed)*.13):.4;
  camera.lookAt(p.x+Math.sin(angle)*lookAhead,driving?1.42:1.35,p.z+Math.cos(angle)*lookAhead);
  $('speed').innerHTML=Math.round(Math.abs(speed)*3.6)+'<small>كم / س</small>';
+ if(driving){
+  const gear=gearStatus(vehicleState.speed,parkingBrake,pedal<0||reverseKeyHeld);
+  $('gearBadge').textContent=gear.gear;
+  $('gearBadge').dataset.gear=gear.gear;
+  const steerAngle=vehicleState.steer;
+  const turning=steerAngle>.035?'شمال':steerAngle<-.035?'يمين':'مستقيم';
+  $('driveReadout').textContent=parkingBrake?'🅿️ فرامل اليد مفعّلة':
+    gear.label+' • الدريكسيون '+turning+
+    (autoDriver.getState().enabled?' • قيادة ذاتية':' • تحكم يدوي');
+  $('steeringNeedle').style.left=(50-Math.max(-1,Math.min(1,steerAngle/.53))*39).toFixed(1)+'%';
+ }
  minimap(p);
  if(active&&Math.round(t/1200)%2===0)$('toast').dataset.district=cairo.district(p.x,p.z);
  if(active&&!paused){
