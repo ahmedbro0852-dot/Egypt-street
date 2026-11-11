@@ -77,6 +77,13 @@ export function createCollisionPhysicsV18({traffic=[],pedestrians=[],getVehicleT
  }
  function onCollision(hit,body,impact,t=0){
   if(!hit?.other||!Number.isFinite(t))return null;
+  // One physical incident, one safety penalty: repeated overlap while the
+  // resident is falling or recovering cannot create new crash events.
+  const human=hit.type==='pedestrian'?hit.other.userData:null;
+  if(human&&(
+    (human.impactMotion&&human.impactMotion.stage!=='done')||
+    t<(human.impactCooldownUntil||0)
+  ))return null;
   if(t-(recent.get(hit.other)??-Infinity)<1800)return null;
   recent.set(hit.other,t);
   const heading=forward(body.yaw),v={x:heading.x*impact,z:heading.z*impact};
@@ -110,6 +117,7 @@ export function createCollisionPhysicsV18({traffic=[],pedestrians=[],getVehicleT
      contactDuration:clamp(.10+severity*.002,.10,.18)
    });
    lastPedestrianPhysics=physics;
+   if(human)human.impactCooldownUntil=t+6000;
    reactPedestrian(hit.other,away,clamp(physics.personDeltaV/12,.2,1),t,physics);
    registerDamage(Math.max(2.2,severity*.38));
    // Physics impulse slows the car; additional bumper damping avoids nudging
