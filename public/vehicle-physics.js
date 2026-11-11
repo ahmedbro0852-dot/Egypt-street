@@ -21,7 +21,7 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
  const tuning=input.tuning||{};
  const engineScale=clamp(Number.isFinite(tuning.engineScale)?tuning.engineScale:1,.6,1.85);
  const brakeScale=clamp(Number.isFinite(tuning.brakeScale)?tuning.brakeScale:1,.65,1.65);
- const steerScale=clamp(Number.isFinite(tuning.steerScale)?tuning.steerScale:1,.7,1.45);
+ const steerScale=clamp(Number.isFinite(tuning.steerScale)?tuning.steerScale:1,.7,1.75);
  const topSpeed=clamp(Number.isFinite(tuning.topSpeed)?tuning.topSpeed:MAX_FORWARD,24,56);
  const grip=clamp(Number.isFinite(input.grip)?input.grip:1,.45,1.25);
  // V19: real differences between a motorcycle, family sedan and sports coupe.
@@ -48,8 +48,9 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
  const steps=Math.max(1,Math.ceil(dt/(1/120))),h=dt/steps;
  for(let i=0;i<steps;i++){
    const speed=Math.abs(p.speed);
-   // Quick city steering while reducing lock for highway stability.
-   p.steer=damp(p.steer,steering*steerScale*.63/(1+speed*.029),10.5,h);
+   // V33: wider wheel lock and much faster response, while the lock tapers
+   // with speed so a quick high-speed input still feels controlled.
+   p.steer=damp(p.steer,steering*steerScale*.70/(1+speed*.022),17,h);
    const engine=throttle>0?throttle*engineForce*Math.max(.43,1-.013*speed):
                 throttle<0?throttle*engineForce*.48:0;
    const changingDirection=throttle*p.speed<-.18;
@@ -88,7 +89,12 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
    const yawAcc=(lf*fFront*Math.cos(p.steer)-lr*fRear)/iz;
    const slowYaw=(u/wheelbase)*Math.tan(p.steer);
    p.yawRate+=(yawAcc*weight+(slowYaw-p.yawRate)*8*(1-weight)-p.yawRate*.25*weight)*h;
-   const maxYaw=clamp(7.2/Math.max(5,speed),.19,1.04);
+   // V33: add a traction-bounded yaw response to the dynamic bicycle model.
+   // This makes fast turns actually rotate the car, not just slide its tyres.
+   const maxYaw=clamp(9.6/Math.max(5,speed),.22,1.28)*clamp(grip,.55,1.10);
+   const turnAssist=clamp(Number.isFinite(tuning.turnAssist)?tuning.turnAssist:3.8,0,7.5);
+   const targetYaw=clamp((u/wheelbase)*Math.tan(p.steer),-maxYaw,maxYaw);
+   p.yawRate=damp(p.yawRate,targetYaw,turnAssist*clamp(grip,.6,1.12),h);
    p.yawRate=clamp(p.yawRate,-maxYaw,maxYaw);
    p.lateralSpeed+=latAcc*h*weight;
    p.lateralSpeed*=Math.exp(-h*(8*(1-weight)+.30*weight));
