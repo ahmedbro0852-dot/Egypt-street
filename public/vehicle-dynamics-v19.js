@@ -2,13 +2,13 @@
 // All units are metres, seconds and kilograms. Deterministic gameplay simulation.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const VEHICLE_DYNAMICS_V19={
- taxi:{mass:1310,wheelbase:2.70,frontShare:.55,inertiaScale:1.03,spring:66,rollSpring:54,
+ taxi:{mass:1310,wheelbase:2.70,frontShare:.55,inertiaScale:1.03,engineForce:7350,brakeForce:9800,spring:66,rollSpring:54,
   suspensionTravel:.115,tyreStiffness:1.00,dragScale:1,brakeThermal:1},
- sedan:{mass:1590,wheelbase:2.93,frontShare:.57,inertiaScale:1.17,spring:59,rollSpring:48,
+ sedan:{mass:1590,wheelbase:2.93,frontShare:.57,inertiaScale:1.17,engineForce:8300,brakeForce:10900,spring:59,rollSpring:48,
   suspensionTravel:.14,tyreStiffness:.96,dragScale:1.13,brakeThermal:.95},
- sport:{mass:1125,wheelbase:2.60,frontShare:.51,inertiaScale:.91,spring:83,rollSpring:79,
+ sport:{mass:1125,wheelbase:2.60,frontShare:.51,inertiaScale:.91,engineForce:8900,brakeForce:10500,spring:83,rollSpring:79,
   suspensionTravel:.078,tyreStiffness:1.13,dragScale:.89,brakeThermal:1.09},
- motorbike:{mass:215,wheelbase:1.42,frontShare:.48,inertiaScale:.48,spring:72,rollSpring:88,
+ motorbike:{mass:215,wheelbase:1.42,frontShare:.48,inertiaScale:.48,engineForce:1680,brakeForce:1710,spring:72,rollSpring:88,
   suspensionTravel:.18,tyreStiffness:.76,dragScale:.53,brakeThermal:.84}
 };
 export function getVehicleDynamicsV19(id='taxi'){
