@@ -241,6 +241,44 @@ button:focus-visible{outline:2px solid #ffe293}
  .v55-actions button{height:35px!important}
 }
 @media(prefers-reduced-motion:reduce){.v55-glow{animation:none}}
+
+/* V6: interactive GPS with road-routing and mobile-native destination choices. */
+#gpsBtn{position:fixed;z-index:26;left:14px;bottom:318px;width:116px;height:40px;
+ border:1px solid #72f7c8;border-radius:12px;background:#175669f4;
+ box-shadow:0 7px 20px #0007;font-size:11px;font-weight:900;touch-action:manipulation}
+#gpsPanel{display:none;position:fixed;z-index:100;top:50%;left:50%;
+ transform:translate(-50%,-50%);width:min(440px,93vw);max-height:85vh;overflow:auto;
+ background:linear-gradient(150deg,#082b35fc,#0a192afc);border:1px solid #8be7c4a1;
+ border-radius:20px;box-shadow:0 16px 85px #000d;color:#f5f5e9;
+ padding:18px;direction:rtl;overscroll-behavior:contain;touch-action:pan-y}
+#gpsPanel h2{margin:0;font-size:20px;color:#ccffe5}
+#gpsPanel p{font-size:12px;line-height:1.65;color:#c0dfd8;margin:8px 0}
+#gpsPanel button{width:auto;height:auto;font-size:12px;border-radius:11px;
+ font-weight:700;padding:10px}
+#gpsClose{position:absolute;left:12px;top:12px;background:#415a62}
+#gpsList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}
+#gpsList button{width:100%;min-height:47px;background:#255b67;border:1px solid #b4eed47b}
+#gpsList #gpsFuel{background:#266458}
+#gpsList #gpsTour{background:#4d536b}
+#gpsActive{font-size:11px;color:#ffdc97;line-height:1.5}
+#gpsHint{font-size:10px;line-height:1.7;color:#9dc0bc;margin-top:12px}
+#versionBadge{position:fixed;z-index:21;top:6px;left:185px;
+ color:#e9ffc7;font-size:10px;pointer-events:none;font-weight:900;
+ text-shadow:0 3px 10px #0009}
+@media(max-width:760px){
+ #gpsBtn{left:14px;bottom:319px;width:102px;height:38px;font-size:11px}
+ #gpsPanel{padding:14px;max-height:86vh}
+ #gpsPanel h2{font-size:18px}
+ #gpsList button{font-size:11px;padding:9px 5px}
+ #versionBadge{left:125px;top:10px;font-size:9px}
+}
+@media(orientation:landscape) and (max-height:520px){
+ #gpsBtn{left:117px;bottom:56px;width:90px;height:33px;font-size:10px}
+ #gpsPanel{max-height:94vh;padding:12px}
+ #gpsList{margin-top:5px}
+ #gpsList button{min-height:34px;padding:5px}
+ #versionBadge{top:113px;left:8px}
+}
 </style>
 <canvas id="world"></canvas><div class="hud"><div class="tag">OPEN WORLD • EARLY BUILD</div><div class="brand">شوارع مصر<span style="color:#ffca6d">.</span></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><small>● المهمة الحالية</small><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
  <strong id="cityTime">🕒 07:30</strong>
@@ -248,7 +286,7 @@ button:focus-visible{outline:2px solid #ffe293}
  <span id="cityLaw">🚦 إشارات مرور ومخالفات</span>
  <div id="lifeButtons"><button id="cityNight" type="button">🌙 الليل</button>
  <button id="cityWeatherBtn" type="button">غيّر الطقس</button></div>
- </section><div id="cityVersion">شوارع مصر • V5</div><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div>
+ </section><div id="cityVersion">شوارع مصر • V6</div><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div>
 <section id="fuelHud" aria-live="off">
  <div id="fuelTitle">⛽ تانك العربية</div>
  <div id="fuelMode">🚗 بنزين تلقائي</div>
@@ -259,7 +297,21 @@ button:focus-visible{outline:2px solid #ffe293}
  <button id="fuelSlower" type="button">− سرعة</button><button id="fuelFaster" type="button">+ سرعة</button></div>
  <div id="fuelWarning"></div><div id="fuelStation"></div>
  <button id="fuelBtn" type="button">⛽ فوّل العربية</button><button id="fuelRepair" type="button">🔧 صلّح العربية</button>
-</section><button id="interact" type="button" aria-label="التفاعل مع الشخصيات والأحداث">💬 اتفاعل</button><button id="sound" aria-label="تشغيل أو كتم أصوات اللعبة" aria-pressed="true">الصوت شغال</button><div class="pedals"><button id="accelerate" aria-label="زود السرعة التلقائية">سرعة +</button><button id="brakePedal" aria-label="فرامل">فرامل ■</button><button id="reverse" aria-label="رجوع للخلف">رجوع ▼</button></div><div class="bottom"><button id="camera" aria-label="تغيير مسافة الكاميرا">كاميرا</button><div id="speed">0<small>كم / س</small></div><button id="horn">بوق</button><button id="run">جري</button><button id="jump" aria-label="قفز">قفز ⤴</button><button id="enter" class="primary">اركب</button></div><div id="heroCard"><div>بطل شوارع مصر<small>تيشيرت فحمي • جينز أزرق</small></div><img src="character-reference.jpg" alt="مرجع تصميم الشخصية"></div><button id="jobsBtn" type="button">💼 تقديم شغل</button><section id="jobsPanel" role="dialog" aria-label="وظايف شوارع مصر">
+</section><button id="interact" type="button" aria-label="التفاعل مع الشخصيات والأحداث">💬 اتفاعل</button><button id="sound" aria-label="تشغيل أو كتم أصوات اللعبة" aria-pressed="true">الصوت شغال</button><div class="pedals"><button id="accelerate" aria-label="زود السرعة التلقائية">سرعة +</button><button id="brakePedal" aria-label="فرامل">فرامل ■</button><button id="reverse" aria-label="رجوع للخلف">رجوع ▼</button></div><div class="bottom"><button id="camera" aria-label="تغيير مسافة الكاميرا">كاميرا</button><div id="speed">0<small>كم / س</small></div><button id="horn">بوق</button><button id="run">جري</button><button id="jump" aria-label="قفز">قفز ⤴</button><button id="enter" class="primary">اركب</button></div><div id="heroCard"><div>بطل شوارع مصر<small>تيشيرت فحمي • جينز أزرق</small></div><img src="character-reference.jpg" alt="مرجع تصميم الشخصية"></div><button id="gpsBtn" type="button">🧭 GPS</button>
+<section id="gpsPanel" role="dialog" aria-label="خريطة الملاحة والوجهات">
+ <button id="gpsClose" type="button" aria-label="إغلاق الملاحة">✕</button>
+ <h2>🧭 GPS شوارع مصر</h2>
+ <p id="gpsTitle">لفة في القاهرة</p><p id="gpsDetail">اختار مكان على الخريطة</p>
+ <p id="gpsActive">الملاحة جاهزة</p>
+ <div id="gpsList">
+ <button id="gpsJob" type="button">💼 روح للشغل</button>
+ <button id="gpsDelivery" type="button">📦 روح للتوصيل</button>
+ <button id="gpsSide" type="button">🗣️ حدث جانبي</button>
+ <button id="gpsFuel" type="button">⛽ أقرب بنزينة</button>
+ <button id="gpsTour" type="button">🚕 لفة في البلد</button>
+ </div>
+ <div id="gpsHint">الطريق بيظهر باللون الأخضر على الخريطة. القيادة الذاتية بتحاول تتبع الطرق وتتوقف عند الوجهة. عند الأماكن البعيدة عن الشارع، اركن وكمّل مشي.</div>
+</section><div id="versionBadge">شوارع مصر · V6</div><button id="jobsBtn" type="button">💼 تقديم شغل</button><section id="jobsPanel" role="dialog" aria-label="وظايف شوارع مصر">
  <button id="jobsClose" aria-label="اقفل الوظائف">✕</button>
  <h2>💼 مكتب تشغيل شوارع مصر</h2><p>قدّم على الشغل، اتقبل في الوظيفة، وبعدها ابدأ وردية وخد مرتبك!</p>
  <div id="jobsList">
@@ -273,11 +325,11 @@ button:focus-visible{outline:2px solid #ffe293}
  <button id="workAction" type="button">نفّذ المهمة</button><div id="toast">حي النيل • القاهرة</div><div id="npcDialogue" role="status" aria-live="polite"></div><div id="intro" class="overlay v55-intro" role="dialog" aria-label="شاشة بداية شوارع مصر">
  <div class="v55-glow" aria-hidden="true"></div>
  <section class="v55-box">
-  <span class="v55-eyebrow">EGYPT STREETS · V5.5 · MOBILE OPEN WORLD</span>
+  <span class="v55-eyebrow">EGYPT STREETS · V6 · GPS OPEN WORLD</span>
   <h1 class="v55-title">شوارع <em>مصر</em></h1>
   <div class="v55-line" aria-hidden="true"></div>
-  <p class="v55-subtitle">من أول شارع لحد آخر حكاية. امشي وسط الناس، اشتغل، اسوق العربية، واكتشف القاهرة بطريقتك.</p>
-  <div class="v55-highlights"><span>🚗 قيادة ذاتية</span><span>💾 حفظ تلقائي</span><span>💼 شغل ومهمات</span></div>
+  <p class="v55-subtitle">من أول شارع لحد آخر حكاية. اختار وجهتك على الـGPS، وخلّي العربية تروح للشغل أو المهمة أو البنزينة، واكتشف القاهرة بطريقتك.</p>
+  <div class="v55-highlights"><span>🧭 GPS ذكي</span><span>🚗 قيادة ذاتية</span><span>💾 حفظ تلقائي</span><span>💼 شغل ومهمات</span></div>
   <div id="savePreview" class="v55-save" aria-live="polite">جاري فحص التقدم المحفوظ...</div>
   <div class="v55-actions">
    <button id="continueGame" class="primary" type="button">▶ كمّل لعبك</button>
