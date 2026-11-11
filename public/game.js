@@ -682,7 +682,7 @@ function enter(){
   toast('🤖 العربية بتسوق لوحدها. حرك العصاية للتوجيه اليدوي أو دوس فرامل.');
   saveWorld(true);
  }else toast('قرب من العربية الصفرا الأول')
-} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click();if(k==='g'&&!e.repeat)$('gpsBtn').click();if(k==='p'&&!e.repeat)$('handbrake').click();if(k==='c'&&!e.repeat)$('camera').click()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;keys={};driftHeldV34=false;resetPad();sprint=false};
+} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{if(e.defaultPrevented)return;const tag=e.target?.tagName;if(['INPUT','TEXTAREA','SELECT'].includes(tag))return;const physical={KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyE:'e',KeyF:'f',KeyJ:'j',KeyG:'g',KeyP:'p',KeyC:'c',KeyX:'x',KeyH:'h',KeyB:'b',KeyM:'m',Space:' ',ArrowUp:'arrowup',ArrowDown:'arrowdown',ArrowLeft:'arrowleft',ArrowRight:'arrowright',ShiftLeft:'shift',ShiftRight:'shift'};const k=physical[e.code]||e.key.toLowerCase();if(k==='escape'&&!e.repeat&&active){$('pause').click();return}if(k==='m'&&!e.repeat&&active&&!paused){$('v40Menu')?.click();return}if(paused)return;if(k==='h'&&!e.repeat)$('horn').click();if(k==='b'&&!e.repeat)$('garageBtn').click();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click();if(k==='g'&&!e.repeat)$('gpsBtn').click();if(k==='p'&&!e.repeat)$('handbrake').click();if(k==='c'&&!e.repeat)$('camera').click()};window.onkeyup=e=>{const physical={KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyX:'x',Space:' ',ArrowUp:'arrowup',ArrowDown:'arrowdown',ArrowLeft:'arrowleft',ArrowRight:'arrowright',ShiftLeft:'shift',ShiftRight:'shift'};keys[physical[e.code]||e.key.toLowerCase()]=false};window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;keys={};driftHeldV34=false;resetPad();sprint=false};
 const pad=$('joy'),knob=$('knob'),worldCanvas=$('world');
 function resetPad(){joy.x=0;joy.y=0;if(knob)knob.style.transform='translate(0px,0px)'}
 function stickMove(e){
@@ -703,6 +703,7 @@ $('camera').onclick=()=>{
  toast(cameraMode==='cockpit'?'🎥 كاميرا داخل العربية':cameraNear?'🎥 كاميرا قريبة':'🎥 كاميرا واسعة');
  saveWorld(true);
 };
+worldCanvas.oncontextmenu=e=>e.preventDefault();
 worldCanvas.onpointerdown=e=>{
  if(!active)return;
  e.preventDefault();
@@ -912,7 +913,7 @@ function frame(t){
         0:Math.min(fuelSystem.throttle({manual:1}),autopilot.throttle)):
      fuelSystem.throttle({
        reverse:reverseKeyHeld,
-       brake:braking,manual:(keys.w||keys.arrowup)?1:0
+       brake:braking||(matchMedia('(pointer:fine)').matches&&!reverseKeyHeld&&!(keys.w||keys.arrowup)),manual:(keys.w||keys.arrowup)?1:0
      });
    v9Live=drivingRealism.update(dt,{
       driving:true,speed:vehicleState.speed,throttle:demandedThrottle,brake:braking,
