@@ -27,7 +27,25 @@ export function computeImpactV19({playerMass=1310,otherMass=1310,closingSpeed=0,
  return {impulse,playerDelta:impulse/a,otherDelta:impulse/b,
   reducedMass:a*b/(a+b)};
 }
-export function createMultiBodyV19({getId=()=>'taxi',onExtra=()=>{},onInfo=()=>{}}={}){
+function npcVelocity(car){
+ const d=car.userData||{},speed=(d.actualCruise||0)*(d.direction||1);
+ return {x:d.axis==='x'?speed:0,z:d.axis==='z'?speed:0};
+}
+function npcTouching(a,b){
+ const apos=a.position,bpos=b.position;
+ if(Math.hypot(apos.x-bpos.x,apos.z-bpos.z)>6.1)return false;
+ const axes=[forward(a.rotation.y||0),forward(b.rotation.y||0)];
+ const aside={x:axes[0].z,z:-axes[0].x},bside={x:axes[1].z,z:-axes[1].x};
+ const ra=a.userData?.wheels?.length===2?[1.03,.43]:[2.02,.94];
+ const rb=b.userData?.wheels?.length===2?[1.03,.43]:[2.02,.94];
+ for(const axis of [...axes,aside,bside]){
+  const boundA=ra[0]*Math.abs(dot(axes[0],axis))+ra[1]*Math.abs(dot(aside,axis));
+  const boundB=rb[0]*Math.abs(dot(axes[1],axis))+rb[1]*Math.abs(dot(bside,axis));
+  if(Math.abs((apos.x-bpos.x)*axis.x+(apos.z-bpos.z)*axis.z)>boundA+boundB+.10)return false;
+ }
+ return true;
+}
+export function createMultiBodyV19({traffic=[],getId=()=>'taxi',onExtra=()=>{},onInfo=()=>{}}={}){
  const last=new WeakMap();
  function resolve(contacts,body,impact,t=0){
   if(!Array.isArray(contacts)||!contacts.length||!body)return {contacts:0,impulse:0};
@@ -36,8 +54,8 @@ export function createMultiBodyV19({getId=()=>'taxi',onExtra=()=>{},onInfo=()=>{
   // The physics step has already stopped at the contact; use pre-impact speed
   // as the incoming relative velocity to compute an impulse.
   let velocity={x:heading.x*impact,z:heading.z*impact};
-  let sumImpulse=0,updated=0,additional=0,significant=0;
-  const others=new Set();
+  let sumImpulse=0,updated=0,additional=0,significant=0,chainCars=0;
+  const others=new Set(),hitQueue=[];
   for(const hit of contacts){
    if(!hit?.other||others.has(hit.other))continue;
    others.add(hit.other);
@@ -71,7 +89,43 @@ export function createMultiBodyV19({getId=()=>'taxi',onExtra=()=>{},onInfo=()=>{
    ud.actualCruise=clamp(newLaneSpeed,0,ud.cruise||12);
    ud.crashHold=Math.max(ud.crashHold||0,t+Math.min(1000,180+approaching*57));
    ud.crashShake=Math.max(ud.crashShake||0,clamp(approaching*.013,.025,.24));
+   hitQueue.push({car:other,velocity:after,depth:0});
    if(updated>1){onExtra(hit,approaching,t);additional++}
+  }
+  // Momentum propagates across adjacent traffic bodies: a rear-end crash can
+  // briefly affect a second or third vehicle without a direct player overlap.
+  for(let i=0;i<hitQueue.length&&i<5;i++){
+   const source=hitQueue[i];
+   if(source.depth>=2)continue;
+   for(const target of traffic){
+    if(others.has(target)||target===source.car||!npcTouching(source.car,target))continue;
+    const n={
+     x:source.car.position.x-target.position.x,
+     z:source.car.position.z-target.position.z
+    };
+    const d=Math.hypot(n.x,n.z)||1;n.x/=d;n.z/=d;
+    const initial=npcVelocity(target);
+    const approach=-dot({
+      x:source.velocity.x-initial.x,z:source.velocity.z-initial.z
+    },n);
+    if(approach<.65)continue;
+    const response=computeImpactV19({playerMass:npcMass(source.car),
+      otherMass:npcMass(target),closingSpeed:approach,restitution:.08});
+    others.add(target);chainCars++;
+    source.velocity.x+=n.x*response.playerDelta;
+    source.velocity.z+=n.z*response.playerDelta;
+    const transferred={
+     x:initial.x-n.x*response.otherDelta,
+     z:initial.z-n.z*response.otherDelta
+    };
+    const data=target.userData||{},axis=data.axis==='x'?'x':'z';
+    data.actualCruise=clamp(Math.max(0,(data.direction||1)*transferred[axis]),
+      0,data.cruise||12);
+    data.crashHold=Math.max(data.crashHold||0,t+clamp(approach*65,260,1150));
+    data.crashShake=Math.max(data.crashShake||0,clamp(approach*.015,.025,.21));
+    hitQueue.push({car:target,velocity:transferred,depth:source.depth+1});
+    break;
+   }
   }
   if(significant){
    const projected=dot(velocity,heading);
@@ -80,9 +134,10 @@ export function createMultiBodyV19({getId=()=>'taxi',onExtra=()=>{},onInfo=()=>{
    body.heaveVelocity=clamp((body.heaveVelocity||0)+Math.min(.38,sumImpulse/(mass*38)),-2,2);
    body.pitchVelocity=clamp((body.pitchVelocity||0)+Math.min(.5,sumImpulse/(mass*29)),-2,2);
   }
-  if(additional)onInfo('💥 تصادم متسلسل — '+(additional+1)+' مركبات متأثرة.');
-  return {contacts:updated,vehicles:significant,additional,impulse:sumImpulse,
-    remainingSpeed:body.speed};
+  if(additional||chainCars)
+   onInfo('💥 تصادم متسلسل — '+(significant+chainCars)+' مركبات متأثرة.');
+  return {contacts:updated,vehicles:significant,additional,chainCars,
+    impulse:sumImpulse,remainingSpeed:body.speed};
  }
  return {resolve};
 }
