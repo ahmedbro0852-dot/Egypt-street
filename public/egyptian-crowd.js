@@ -253,7 +253,7 @@ export function createEgyptianCrowd(T,scene,isBlocked){
  }
  const setLerp=(current,target,k,dt)=>current+(target-current)*(1-Math.exp(-k*dt));
  // NPCs move only within the current districts; visual LOD has three tiers.
- function update(dt,t,focus,cars=[],controlledCar=null){
+ function update(dt,t,focus,cars=[],controlledCar=null,playerCarSpeed=0){
   dt=Math.min(Math.max(dt||0,0),.05);
   const f=focus||{x:0,z:0},mobile=typeof innerWidth==='number'&&innerWidth<760;
   const maxDraw=mobile?76:112;
@@ -270,14 +270,37 @@ export function createEgyptianCrowd(T,scene,isBlocked){
    u.details.visible=highNear&&detailNear;
    let nearCar=false;
    if(controlledCar){
-     const d=Math.hypot(p.position.x-controlledCar.position.x,p.position.z-controlledCar.position.z);
+     const dxCar=p.position.x-controlledCar.position.x;
+     const dzCar=p.position.z-controlledCar.position.z;
+     const d=Math.hypot(dxCar,dzCar);
      nearCar=d<3.25;
+     // A vehicle coming too close makes residents visibly flinch and step aside.
+     if(d<6.2&&Math.abs(playerCarSpeed)>6.5&&t>(u.nextTrafficReact||0)){
+       u.startledUntil=t+1050;u.nextTrafficReact=t+3300;
+       u.rest=Math.max(u.rest,1.0);
+       const moveX=p.position.x+Math.sign(dxCar||1)*.42;
+       if(!u.streetEventLock&&moveX>u.minX&&moveX<u.maxX&&!isBlocked?.(moveX,p.position.z)){
+         p.position.x=moveX;
+       }
+       u.lookUntil=t+1150;
+     }
    }
    if(!nearCar&&distSq<57*57)for(const c of cars){
     if(Math.hypot(p.position.x-c.position.x,p.position.z-c.position.z)<2.7){nearCar=true;break;}
    }
    const frightened=(u.startledUntil||0)>t;
    const locked=!!u.streetEventLock;
+   // Occasional local conversations: two neighbours stop and greet one another.
+   if(!locked&&distSq<34*34&&u.id%5===0&&t>(u.nextGreeting||0)){
+     const other=residents.find(q=>q!==p&&!q.userData.streetEventLock&&
+       Math.hypot(q.position.x-p.position.x,q.position.z-p.position.z)<2.9);
+     u.nextGreeting=t+14000+(u.id%4)*1700;
+     if(other){
+       u.waveUntil=t+1750;other.userData.waveUntil=t+1100;
+       u.rest=Math.max(u.rest,1.7);
+       other.userData.rest=Math.max(other.userData.rest,1.0);
+     }
+   }
    const walking=!locked&&!nearCar&&distSq>2.45*2.45&&!frightened&&u.rest<=0;
    u.motion=setLerp(u.motion,walking?1:0,walking?7:11,dt);
    const nx=p.position.x+u.dir*u.motion*u.speed*dt;
@@ -306,7 +329,7 @@ export function createEgyptianCrowd(T,scene,isBlocked){
    u.elbows[1].rotation.x=.13+Math.max(0,-step)*.13*u.motion;
    u.body.position.y=Math.max(0,Math.sin(phase*2))*.025*u.motion;
    u.body.rotation.z=step*.015*u.motion;
-   u.head.rotation.y=Math.sin(t*.0007+u.id)*.065;
+   u.head.rotation.y=(u.lookUntil>t?Math.sin(t*.008+u.id)*.22:Math.sin(t*.0007+u.id)*.065);
    // Slow idle breathing with occasional blinking.
    u.body.scale.y=1+.006*Math.sin(t*.0022+u.id);
    u.blinkTimer-=dt;
@@ -318,7 +341,7 @@ export function createEgyptianCrowd(T,scene,isBlocked){
     u.elbows[1].rotation.x=-.56+Math.sin(t*.012)*.20;
     u.body.rotation.y=Math.sin(t*.004)*.055;
    }else{u.arms[1].rotation.z=0;u.body.rotation.y=0;}
-   if(frightened){u.arms[0].rotation.x=-.7;u.head.rotation.z=.12;}
+   if(frightened){u.arms[0].rotation.x=-.7;u.arms[1].rotation.x=-.43;u.head.rotation.z=.12;u.body.rotation.z=.055;}
    else u.head.rotation.z=0;
   }
  }
