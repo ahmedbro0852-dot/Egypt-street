@@ -16,6 +16,7 @@ import { createTaxiDispatchV15 } from './taxi-dispatch-v15.js';
 import { createCockpitV15 } from './cockpit-v15.js';
 import { installStreetDetailsV15 } from './street-details-v15.js';
 import { createRealisticRoads } from './roads-realism-v17.js';
+import { createCollisionPhysicsV18 } from './collision-physics-v18.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
 import { stickFromPointer, footDirection, steeringFromStick, blendHeading } from './controls-v3.js';
 import { updateCarWheels, spinTrafficWheels, gearStatus } from './wheel-rig.js';
@@ -368,6 +369,19 @@ const garage=createGarageV8({
 });
 activateGarageVehicle(garage.getVehicle().id);
 const drivingRealism=createDrivingRealismV9({notify:message=>toast(message)});
+const collisionWorld=createCollisionPhysicsV18({
+ traffic,pedestrians:walkers,storage:walletStorage,
+ getVehicleType:()=>garage.getVehicle().id,
+ registerDamage:force=>fuelSystem.registerImpact(force),
+ reactPedestrian:(resident,away,power,time)=>crowd.reactCollision(resident,away,power,time),
+ notify:message=>toast(message),sound:(severity,kind)=>sound.impact(severity,kind),
+ charge:cost=>{
+  if(cash+.00001<cost)return false;
+  cash=Math.max(0,Math.round((cash-cost)*10)/10);
+  $('money').textContent='ج.م '+Math.round(cash);saveWallet();return true;
+ },
+ ui:$('collisionStatus')
+});
 const rideDispatch=createTaxiDispatchV15({
  T,scene,storage:walletStorage,
  ui:{start:$('v15TaxiRide'),cancel:$('v15RideCancel'),
@@ -614,10 +628,9 @@ function carCollision(x,z,angle){
   const px=x+sin*front+cos*right,pz=z+cos*front-sin*right;
   if(blocked(px,pz,.12))return true;
  }
- // Nearby traffic and pedestrians are solid too.
- for(const npc of traffic)if(Math.hypot(x-npc.position.x,z-npc.position.z)<2.35)return true;
- for(const npc of walkers)if(Math.hypot(x-npc.position.x,z-npc.position.z)<1.22)return true;
- return false;
+ // Oriented car silhouettes and pedestrian capsules replace circular distance traps.
+ // Returning contact details lets physics transfer impact instead of freezing the car.
+ return collisionWorld.probe(x,z,angle);
 }
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}onresize=resize;resize();let last=0,gait=0;const map=$('map').getContext('2d');function minimap(p){
  map.clearRect(0,0,180,180);
@@ -750,11 +763,19 @@ function frame(t){
    else activeVehicle.rotation.z=Math.min(.16,Math.max(-.16,vehicleState.roll*.75));
    player.position.copy(taxi.position);
    updateCarWheels(activeVehicle,vehicleState,dt);
-   if(result.collision&&t>bumpCooldown){
-    toast(result.impact>6?'خد بالك من الطريق! العربية خبطت':'في عائق قدّامك');
-    if(result.impact>4&&navigator.vibrate)navigator.vibrate(Math.min(95,Math.round(result.impact*4)));
-    fuelSystem.registerImpact(result.impact);
-    bumpCooldown=t+1700;
+   if(result.collision){
+    // Dynamic bodies receive one contact event, with a cooldown per target.
+    const event=result.contact?
+      collisionWorld.onCollision(result.contact,vehicleState,result.impact,t):null;
+    if(event&&navigator.vibrate)
+      navigator.vibrate(Math.min(125,Math.round(event.severity*5)));
+    if(!result.contact&&t>bumpCooldown){
+      toast(result.impact>6?'💥 خبطت رصيف أو حائط! راجع حالة العربية.':'في عائق قدّامك');
+      if(result.impact>4&&navigator.vibrate)navigator.vibrate(Math.min(85,Math.round(result.impact*4)));
+      fuelSystem.registerImpact(result.impact);
+      sound.impact(result.impact,'structure');
+      bumpCooldown=t+1600;
+    }
    }
   }else{
    // GTA-style third-person analog locomotion relative to the camera orbit.
@@ -809,14 +830,13 @@ function frame(t){
    if(c.userData.headlights)c.userData.headlights.emissiveIntensity=
        cityLife.illumination()<.22?2.1:.4;
    if(c.userData.tailLights)c.userData.tailLights.emissiveIntensity=hazard?1.8:.5;
-   spinTrafficWheels(c,step);
-   c.position[axis]+=step;
+   // Swept traffic collision prevents NPC cars and bikes passing through each other.
+   const safeStep=collisionWorld.trafficStep(c,step,t,taxi,driving);
+   spinTrafficWheels(c,safeStep);
+   c.position[axis]+=safeStep;
+   collisionWorld.animateTraffic(c,dt);
    if(c.position[axis]>82)c.position[axis]=-82;
    if(c.position[axis]<-82)c.position[axis]=82;
-   if(driving&&Math.hypot(c.position.x-p.x,c.position.z-p.z)<2.3){
-    vehicleState.speed=Math.sign(vehicleState.speed)*Math.min(Math.abs(vehicleState.speed),1.4);
-    speed=vehicleState.speed;
-   }
   }
   gait+=dt*Math.abs(speed)*2.8;
   animateHero(player,gait,driving||!onFoot.grounded?0:Math.min(1,Math.abs(speed)/4.3));
