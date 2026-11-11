@@ -1,3 +1,4 @@
+import { createV30 } from './v30-expedition.js';
 import { installRealismRender } from './realism-render-v16.js';
 import { createStreetAudio } from './street-audio.js';
 import * as T from './three.js';
@@ -961,7 +962,8 @@ function frame(t){
  rpm:v9Live.rpm,engineOn:driving&&drivingRealism.getState().engineOn,
  throttle:driving?Math.max(0,v9Live.throttleScale):0,
  skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather
-});renderer.render(scene,camera);
+});v30.update(dt);renderer.render(scene,camera);
 }
 try { installRealismRender({T,scene,renderer,sun}); } catch(error) { console.warn('Material quality pass unavailable',error); }
+const v30=createV30({getPlayer:()=>driving?taxi.position:player.position,getDriving:()=>driving,getActive:()=>active,getPaused:()=>paused,renderer,fresh:freshStartV55,onReward:amount=>{cash+=amount;$('money').textContent='ج.م '+Math.round(cash);saveWallet();toast('مكافأة رحلتك • +'+amount+' جنيه')}});
 requestAnimationFrame(frame);
