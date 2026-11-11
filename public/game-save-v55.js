@@ -48,6 +48,11 @@ export function sanitizeSnapshot(data){
    arrived:!!data.autopilot?.arrived
   },
   gps:{mode:['job','delivery','side','fuel','tour'].includes(data.gps?.mode)?data.gps.mode:'tour'},
+  drivingRealism:data.drivingRealism&&typeof data.drivingRealism==='object'?{
+    engineOn:!!data.drivingRealism.engineOn,
+    turn:['left','right'].includes(data.drivingRealism.turn)?data.drivingRealism.turn:'off',
+    hazards:!!data.drivingRealism.hazards
+  }:null,
   garage:data.garage&&typeof data.garage==='object'?{
     selected:['taxi','sedan','sport','motorbike'].includes(data.garage.selected)?data.garage.selected:'taxi',
     owned:Array.isArray(data.garage.owned)?data.garage.owned.filter(x=>['taxi','sedan','sport','motorbike'].includes(x)):['taxi'],
