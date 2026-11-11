@@ -7,7 +7,8 @@ import { installCairoGraphicsV45 } from './cairo-graphics-v45.js?v=48.1';
 import { prepareDetailedCar } from './detailed-car-v42.js';
 import { installDesktopWorldV43 } from './desktop-world-v43.js?v=48.1';
 import { createMobileExperienceV40, tuneStickV40 } from './mobile-experience-v40.js';
-import { installAdaptiveMobileV50 } from './mobile-performance-v50.js';
+import { installAdaptiveMobileV50 } from './mobile-performance-v50.js?v=51.0';
+import { installMobileLiteV51 } from './mobile-lite-v51.js';
 import { createCityQuestsV50 } from './city-quests-v50.js';
 import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
@@ -896,20 +897,22 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
  }
  map.fillStyle='#fff';map.font='bold 10px Arial';map.fillText('N',9,14);
 }
-let saveClockV55=0;
+let saveClockV55=0,lastMapV51=-10000,lastStreetV51=-10000,lastLandscapeV51=-10000,crowdClockV51=0;
 window.addEventListener?.('pagehide',()=>saveWorld(true));
 document.addEventListener('visibilitychange',()=>{
  if(document.hidden)saveWorld(true);
 });
 function frame(t){
  requestAnimationFrame(frame);
+ if(mobileLiteV51.enabled&&last&&t-last<mobileLiteV51.frameInterval())return;
  const dt=last?Math.min((t-last)/1000,.04):1/60;last=t;
-  mobilePerformanceV50.sample(t);
+ mobilePerformanceV50.sample(t);
+ mobileLiteV51.update(t);
  const p=driving?taxi.position:player.position;
  if(active&&!paused){
   cityLife.update(dt,t,p);
   realisticRoads.update(cityLife.getState().weather,dt);
-  streetDetails.update(cityLife.illumination());
+  if(!mobileLiteV51.enabled||t-lastStreetV51>180){streetDetails.update(cityLife.illumination());lastStreetV51=t;}
   let f=-joy.y+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);
   let turn=joy.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
   f=Math.max(-1,Math.min(1,f));turn=Math.max(-1,Math.min(1,turn));
@@ -1080,7 +1083,8 @@ function frame(t){
   }
   gait+=dt*Math.abs(speed)*2.8;
   animateHeroV31(player,gait,driving?0:Math.min(1,Math.abs(speed)/4.3),{dt,speed:driving?0:speed,grounded:driving||onFoot.grounded,vertical:onFoot.vy});
-  crowd.update(dt,t,p,traffic,taxi,driving?vehicleState.speed:0);
+  crowdClockV51+=dt;
+  if(!mobileLiteV51.enabled||crowdClockV51>=.08){crowd.update(Math.min(.12,crowdClockV51),t,p,traffic,taxi,driving?vehicleState.speed:0);crowdClockV51=0;}
   streetEvents.update(dt,t);
   career.update(dt,t);
   rideDispatch.update(dt);
@@ -1150,7 +1154,7 @@ function frame(t){
     (autoDriver.getState().enabled?' • قيادة ذاتية':' • تحكم يدوي');
   $('steeringNeedle').style.left=(50-Math.max(-1,Math.min(1,steerAngle/.53))*39).toFixed(1)+'%';
  }
- minimap(p);
+ if(!mobileLiteV51.enabled||t-lastMapV51>=250){if(!mobileLiteV51.enabled||$('map').getClientRects().length)minimap(p);lastMapV51=t;}
  if(active&&Math.round(t/1200)%2===0)$('toast').dataset.district=cairo.district(p.x,p.z);
  if(active&&!paused){
   if(activeVehicle!==taxi&&!driving){activeVehicle.position.copy(taxi.position);activeVehicle.rotation.y=taxi.rotation.y;}
@@ -1162,7 +1166,7 @@ function frame(t){
  rpm:v9Live.rpm,engineOn:driving&&drivingRealism.getState().engineOn,
  throttle:driving?Math.max(0,v9Live.throttleScale):0,
  skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather
-});v30.update(dt);cityQuestsV50.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});desktopWorldV43.update(dt);travelLightingV44.update(dt);cairoGraphicsV45.update(dt);updateLandscapeV48(dt,cityLife.getState().weather==='مطر');renderer.render(scene,camera);
+});v30.update(dt);cityQuestsV50.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});desktopWorldV43.update(dt);travelLightingV44.update(dt);cairoGraphicsV45.update(dt);if(!mobileLiteV51.enabled||t-lastLandscapeV51>=110){updateLandscapeV48(dt,cityLife.getState().weather==='مطر');lastLandscapeV51=t;}renderer.render(scene,camera);
 }
 try { installRealismRender({T,scene,renderer,sun}); } catch(error) { console.warn('Material quality pass unavailable',error); }
 const v30=createV30({getPlayer:()=>driving?taxi.position:player.position,getDriving:()=>driving,getActive:()=>active,getPaused:()=>paused,renderer,fresh:freshStartV55,onReward:amount=>{cash+=amount;$('money').textContent='ج.م '+Math.round(cash);saveWallet();toast('مكافأة رحلتك • +'+amount+' جنيه')}});
@@ -1175,7 +1179,8 @@ const cairoGraphicsV45=installCairoGraphicsV45({T,scene,renderer,camera,sun,getF
 installFacadeDepthV46({T,scene,renderer});
 installReferenceHudV47();
 const royalHudV49=installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive:()=>active,getCompleted:()=>completed,getDriving:()=>driving});
-const mobilePerformanceV50=installAdaptiveMobileV50({renderer,getActive:()=>active,getPaused:()=>paused,getQuality:()=>royalHudV49?.getSettings?.()?.quality||'auto'});
+const mobileLiteV51=installMobileLiteV51({getActive:()=>active,getDriving:()=>driving,getSpeed:()=>speed});
+const mobilePerformanceV50=installAdaptiveMobileV50({renderer,getActive:()=>active,getPaused:()=>paused,getQuality:()=>royalHudV49?.getSettings?.()?.quality||'auto',getTargetFps:()=>mobileLiteV51.targetFps()});
 if(!renderer.isWebGLRenderer){
  const notice=document.createElement('div');notice.id='graphicsFallbackV48';notice.setAttribute('role','status');
  notice.textContent='عرض رسومي مبسّط — WebGL غير متاح. فعّل تسريع الرسومات لظهور التفاصيل.';
