@@ -17,6 +17,7 @@ import { createCockpitV15 } from './cockpit-v15.js';
 import { installStreetDetailsV15 } from './street-details-v15.js';
 import { createRealisticRoads } from './roads-realism-v17.js';
 import { createCollisionPhysicsV18 } from './collision-physics-v18.js';
+import { getVehicleDynamicsV19, createMultiBodyV19 } from './vehicle-dynamics-v19.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
 import { stickFromPointer, footDirection, steeringFromStick, blendHeading } from './controls-v3.js';
 import { updateCarWheels, spinTrafficWheels, gearStatus } from './wheel-rig.js';
@@ -358,6 +359,8 @@ function activateGarageVehicle(id){
   garageModels[id]=model;
  }
  activeVehicle=garageModels[id]||taxi;
+ const dynamics=getVehicleDynamicsV19(id);
+ $('vehicleMassV19').textContent='⚖️ الوزن '+dynamics.mass+' كجم • قاعدة العجل '+dynamics.wheelbase.toFixed(2)+' م';
  for(const [key,model] of Object.entries(garageModels)){
   model.visible=key===id;
   model.position.copy(taxi.position);model.rotation.y=taxi.rotation.y;
@@ -395,6 +398,12 @@ const collisionWorld=createCollisionPhysicsV18({
   $('money').textContent='ج.م '+Math.round(cash);saveWallet();return true;
  },
  ui:$('collisionStatus')
+});
+const multiBodyV19=createMultiBodyV19({
+ getId:()=>garage.getVehicle().id,
+ // Every contact is accounted for by the existing V18 damage/safety system.
+ onExtra:()=>{},
+ onInfo:message=>toast(message)
 });
 const rideDispatch=createTaxiDispatchV15({
  T,scene,storage:walletStorage,
@@ -754,7 +763,7 @@ function frame(t){
    });
    const throttle=demandedThrottle*v9Live.throttleScale;
    const oldPos={x:vehicleState.x,z:vehicleState.z};
-   const tune=garage.getTuning();
+   const tune={...garage.getTuning(),...getVehicleDynamicsV19(garage.getVehicle().id)};
    const roadSurface=realisticRoads.surfaceAt(vehicleState.x,vehicleState.z);
    const result=stepVehiclePhysics(vehicleState,{
      throttle,steer,brake:braking,
@@ -779,11 +788,18 @@ function frame(t){
    updateCarWheels(activeVehicle,vehicleState,dt);
    updateCrashBodyVisual(activeVehicle,fuelSystem.getState().condition);
    if(result.collision){
-    // Dynamic bodies receive one contact event, with a cooldown per target.
-    const event=result.contact?
-      collisionWorld.onCollision(result.contact,vehicleState,result.impact,t):null;
-    if(event&&navigator.vibrate)
-      navigator.vibrate(Math.min(125,Math.round(event.severity*5)));
+    // V19 reports every touched body in one frame, including chain collisions.
+    const contacts=result.contact?.contacts|| (result.contact?[result.contact]:[]);
+    const triggered=[];
+    let maxSeverity=0;
+    for(const contact of contacts){
+     const event=collisionWorld.onCollision(contact,vehicleState,result.impact,t);
+     if(event){triggered.push(contact);maxSeverity=Math.max(maxSeverity,event.severity);}
+    }
+    if(triggered.length){
+      multiBodyV19.resolve(triggered,vehicleState,result.impact,t);
+      if(navigator.vibrate)navigator.vibrate(Math.min(150,Math.round(maxSeverity*6)));
+    }
     if(!result.contact&&t>bumpCooldown){
       toast(result.impact>6?'💥 خبطت رصيف أو حائط! راجع حالة العربية.':'في عائق قدّامك');
       if(result.impact>4&&navigator.vibrate)navigator.vibrate(Math.min(85,Math.round(result.impact*4)));
