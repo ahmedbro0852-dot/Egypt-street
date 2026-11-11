@@ -194,6 +194,7 @@ const walkers=crowd.people; // Forty unique residents
 const target=new T.Vector3(62,0,-50);let beacon=new T.Mesh(new T.CylinderGeometry(2,2,.12,32),new T.MeshBasicMaterial({color:0xffcd68,transparent:true,opacity:.7}));scene.add(beacon);let pillar=new T.Mesh(new T.CylinderGeometry(.25,.25,13,12),new T.MeshBasicMaterial({color:0xffd57e,transparent:true,opacity:.45}));scene.add(pillar);
 const sound=createStreetAudio();
 let pedal=0,brakePedal=false,jumpRequested=false,reverseKeyHeld=false,reversePressed=false,parkingBrake=false;
+let cameraMode='wide',cameraNear=false,cockpitLook=0,drag=null;
 // Speed+ is a tap: the engine holds the new target speed by itself.
 // Reverse is only accepted from a near-stop and automatically disengages cruise.
 $('accelerate').onclick=()=>fuelSystem.changeSpeed(15);
@@ -564,7 +565,6 @@ $('camera').onclick=()=>{
  toast(cameraMode==='cockpit'?'🎥 كاميرا داخل العربية':cameraNear?'🎥 كاميرا قريبة':'🎥 كاميرا واسعة');
  saveWorld(true);
 };
-let cameraMode='wide',cameraNear=false,cockpitLook=0,drag=null;
 worldCanvas.onpointerdown=e=>{
  if(!active)return;
  e.preventDefault();
