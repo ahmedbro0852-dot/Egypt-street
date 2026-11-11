@@ -3,7 +3,7 @@
 const MAIN=[-60,-30,0,30,60],OTHER_X=[-139,-95,84,94,170],OTHER_Z=[-133,-93,93,133];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const length=(a,b)=>Math.abs(a-b);
-function makeTexture(T,kind){
+function makeTexture(T,kind,anisotropy=2){
  const c=document.createElement('canvas');c.width=c.height=512;
  const q=c.getContext('2d');
  let seed=kind==='asphalt'?5903:8971;
@@ -48,7 +48,7 @@ function makeTexture(T,kind){
  const texture=new T.CanvasTexture(c);
  texture.wrapS=texture.wrapT=T.RepeatWrapping;
  texture.colorSpace=T.SRGBColorSpace||undefined;
- texture.anisotropy=2;texture.needsUpdate=true;
+ texture.anisotropy=anisotropy;texture.needsUpdate=true;
  return texture;
 }
 function sheet(){
@@ -89,11 +89,12 @@ function segments(min,max,breaks,margin=9){
  if(current<max)out.push([current,max]);
  return out.filter(([a,b])=>b-a>4);
 }
-export function createRealisticRoads({T,scene,enableWet=true}={}){
+export function createRealisticRoads({T,scene,enableWet=true,mobileLite=false,highEndMobile=false}={}){
  const surfaces=sheet(),pavements=sheet(),curbStone=sheet(),
    edge=sheet(),center=sheet(),zebra=sheet(),warning=sheet(),repairs=sheet(),
    puddles=sheet(),reflectors=sheet();
- const asphalt=makeTexture(T,'asphalt'),sidewalk=makeTexture(T,'pavement');
+ const anisotropy=highEndMobile?4:2;
+ const asphalt=makeTexture(T,'asphalt',anisotropy),sidewalk=makeTexture(T,'pavement',anisotropy);
  const roads=[],speedBumps=[],patches=[],puddlePoints=[];
  const vertical=[
   ...MAIN.map(x=>({axis:'z',value:x,min:-85,max:85,width:11,height:.065,kind:'inner'})),
@@ -195,7 +196,9 @@ export function createRealisticRoads({T,scene,enableWet=true}={}){
   const y=(road?.height||.065)+.028;
   quad(puddles,p.x-1.25,p.z-2.1,p.x+1.25,p.z+2.1,y,1,true);
  }
- const asphaltMat=new T.MeshPhysicalMaterial({map:asphalt,bumpMap:asphalt,bumpScale:.014,color:0xf9f8f4,roughness:.95,metalness:0,clearcoat:0,clearcoatRoughness:.12,side:T.DoubleSide});
+ const asphaltMat=mobileLite?
+  new T.MeshLambertMaterial({map:asphalt,color:0xf9f8f4,side:T.DoubleSide}):
+  new T.MeshPhysicalMaterial({map:asphalt,bumpMap:asphalt,bumpScale:.014,color:0xf9f8f4,roughness:.95,metalness:0,clearcoat:0,clearcoatRoughness:.12,side:T.DoubleSide});
  const kerbMat=new T.MeshLambertMaterial({color:0xb9aa8c,side:T.DoubleSide});
  const pathMat=new T.MeshLambertMaterial({map:sidewalk,color:0xe6d5b2,side:T.DoubleSide});
  const paint=(color,alpha=1)=>new T.MeshBasicMaterial({

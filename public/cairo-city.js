@@ -31,7 +31,7 @@ for(let style=0;style<6;style++){
   g.fillStyle='#302c2412';g.fillRect(x-3,y+78,68,2);
   for(let streak=0;streak<3;streak++){g.fillStyle='#3c32280b';g.fillRect(x+random()*62,y+80,.7+random(),5+random()*10)}
  }
- const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=liteMobile?1:4;facades.push(new T.MeshLambertMaterial({map:tex,side:T.DoubleSide}));
+ const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=liteMobile?((Number(navigator.deviceMemory)||0)>=6?4:2):4;facades.push(new T.MeshLambertMaterial({map:tex,side:T.DoubleSide}));
 }
 function front(x,z,w,h,d,i){
  const p=new T.Mesh(new T.PlaneGeometry(w-.22,Math.max(1,h-2.4)),facades[i%6]);
