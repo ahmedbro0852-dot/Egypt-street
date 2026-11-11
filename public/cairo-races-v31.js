@@ -289,7 +289,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   if(completed)panel.hidden=false;
  }
  quit.onclick=()=>finish(false,true);
- function updateOpponents(a,dt){
+ function updateOpponents(a,dt,t){
   const n=a.points.length;
   for(const enemy of a.enemies){
    if(enemy.finished)continue;
@@ -360,7 +360,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
     notify(a.lap>=a.course.laps?'🏁 خط النهاية!':'✅ لفة '+a.lap+' خلصت في '+fmt(lapSeconds));
    }
   }
-  updateOpponents(a,delta);
+  updateOpponents(a,delta,t);
   const playerProgress=raceProgressV31(a.points,a.steps,car);
   const standings=rankRacersV31([
    {name:'إنت',player:true,progress:playerProgress,time:a.elapsed},
