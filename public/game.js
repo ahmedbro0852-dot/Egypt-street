@@ -1,6 +1,7 @@
 import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
 import { createCairoRacesV31 } from './cairo-races-v31.js';
+import { createDriftV34 } from './drift-system-v34.js';
 import { isRaceArenaV32, RACE_ARENA_BOUNDS_V32 } from './race-arena-v32.js';
 import { installRealismRender } from './realism-render-v16.js';
 import { createStreetAudio } from './street-audio.js';
@@ -192,7 +193,7 @@ const walkers=crowd.people; // Forty unique residents
 
 const target=new T.Vector3(62,0,-50);let beacon=new T.Mesh(new T.CylinderGeometry(2,2,.12,32),new T.MeshBasicMaterial({color:0xffcd68,transparent:true,opacity:.7}));scene.add(beacon);let pillar=new T.Mesh(new T.CylinderGeometry(.25,.25,13,12),new T.MeshBasicMaterial({color:0xffd57e,transparent:true,opacity:.45}));scene.add(pillar);
 const sound=createStreetAudio();
-let pedal=0,brakePedal=false,jumpRequested=false,reverseKeyHeld=false,reversePressed=false,parkingBrake=false;
+let pedal=0,brakePedal=false,jumpRequested=false,reverseKeyHeld=false,reversePressed=false,parkingBrake=false,driftHeldV34=false;
 let cameraMode='wide',cameraNear=false,cockpitLook=0,drag=null;
 // Speed+ is a tap: the engine holds the new target speed by itself.
 // Reverse is only accepted from a near-stop and automatically disengages cruise.
@@ -211,6 +212,16 @@ reverseButton.onpointerup=reverseButton.onpointercancel=reverseButton.onlostpoin
 const brakeButton=$('brakePedal');
 brakeButton.onpointerdown=e=>{e.preventDefault();brakePedal=true;brakeButton.setPointerCapture(e.pointerId)};
 brakeButton.onpointerup=brakeButton.onpointercancel=brakeButton.onlostpointercapture=()=>{brakePedal=false};
+// V34 momentary drift lever: never latches when pointer is lost or app blurs.
+const driftButtonV34=$('driftPedalV34');
+driftButtonV34.onpointerdown=e=>{
+ e.preventDefault();
+ if(!active||!driving||paused)return;
+ driftHeldV34=true;
+ driftButtonV34.setPointerCapture?.(e.pointerId);
+};
+driftButtonV34.onpointerup=driftButtonV34.onpointercancel=
+ driftButtonV34.onlostpointercapture=()=>{driftHeldV34=false};
 const parkButton=$('handbrake');
 function updateParkingUi(){
  parkButton.setAttribute('aria-pressed',String(parkingBrake));
@@ -228,7 +239,7 @@ updateParkingUi();
 const jumpButton=$('jump');
 jumpButton.onpointerdown=e=>{e.preventDefault();if(!driving)jumpRequested=true;jumpButton.setPointerCapture(e.pointerId)};
 jumpButton.onpointerup=jumpButton.onpointercancel=()=>{};
-$('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;keys={};resetPad();sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;
+$('sound').onclick=()=>{const mute=sound.toggle();$('sound').textContent=mute?'الصوت مغلق':'الصوت شغال';$('sound').setAttribute('aria-pressed',String(!mute))};document.addEventListener('visibilitychange',()=>{if(document.hidden){pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;keys={};driftHeldV34=false;resetPad();sprint=false;sound.suspend()}else if(active)sound.start()});let active=false,paused=false,driving=false,yaw=0,speed=0,cash=250,completed=0,joy={x:0,y:0},keys={},sprint=false;
 const walletStorage=(()=>{try{return window.localStorage}catch(e){return null}})();
 const worldSave=createWorldSave({storage:walletStorage});
 const previousWorld=worldSave.load();
@@ -489,6 +500,12 @@ raceSystem=createCairoRacesV31({
  onFinish:()=>saveWorld(true),
  notify:message=>toast(message)
 });
+const driftV34=createDriftV34({
+ T,scene,storage:walletStorage,fresh:freshStartV55,
+ ui:{pedal:$('driftPedalV34'),hud:$('driftV34Hud'),
+  score:$('driftV34Score'),info:$('driftV34Info')},
+ notify:message=>toast(message)
+});
 let v9Live={engineOn:false,rpm:0,gear:'N',turn:'off',hazards:false,left:false,right:false,throttleScale:0};
 let v9UiLast=-1;
 function updateV9Lamps(){
@@ -663,7 +680,7 @@ function enter(){
   toast('🤖 العربية بتسوق لوحدها. حرك العصاية للتوجيه اليدوي أو دوس فرامل.');
   saveWorld(true);
  }else toast('قرب من العربية الصفرا الأول')
-} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click();if(k==='g'&&!e.repeat)$('gpsBtn').click();if(k==='p'&&!e.repeat)$('handbrake').click();if(k==='c'&&!e.repeat)$('camera').click()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;keys={};resetPad();sprint=false};
+} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click();if(k==='g'&&!e.repeat)$('gpsBtn').click();if(k==='p'&&!e.repeat)$('handbrake').click();if(k==='c'&&!e.repeat)$('camera').click()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;keys={};driftHeldV34=false;resetPad();sprint=false};
 const pad=$('joy'),knob=$('knob'),worldCanvas=$('world');
 function resetPad(){joy.x=0;joy.y=0;if(knob)knob.style.transform='translate(0px,0px)'}
 function stickMove(e){
@@ -834,7 +851,8 @@ function frame(t){
    if(!reverseDemand)reverseKeyHeld=false;
    const reverseBraking=reverseDemand&&!reverseKeyHeld&&vehicleState.speed>.55;
    const manualSteer=steeringFromStick(joy.x,(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0));
-   if(autoDriver.getState().enabled&&Math.abs(manualSteer)>.24){
+   if(autoDriver.getState().enabled&&
+      (Math.abs(manualSteer)>.24||driftHeldV34||keys.x)){
      autoDriver.stop();updateAutoPilotLabel();
    }
    if(raceSystem?.isRunning()&&autoDriver.getState().enabled){
@@ -860,6 +878,7 @@ function frame(t){
       $('jobsPanel').style.display==='block'||$('garagePanel').style.display==='block'||
       $('gpsPanel').style.display==='block'||autopilot.brake||parkingBrake||reverseBraking||
       raceSystem?.getRace()?.phase==='countdown';
+   const driftNowV34=!!(driftHeldV34||keys.x)&&!braking&&!paused;
    const demandedThrottle=autopilot.active?
       (braking||fuelSystem.getState().fuel<=.01||!fuelSystem.getState().auto?
         0:Math.min(fuelSystem.throttle({manual:1}),autopilot.throttle)):
@@ -876,7 +895,7 @@ function frame(t){
       (raceSystem?.getRace()?.phase==='countdown'?0:1);
    const oldPos={x:vehicleState.x,z:vehicleState.z};
    const result=stepVehiclePhysics(vehicleState,{
-     throttle,steer,brake:braking,absEnabled:true,
+     throttle,steer,brake:braking,driftBrake:driftNowV34,absEnabled:true,
      grip:tyreGrip,tuning:tune
    },dt,carCollision);
    if(t-lastAbsUiV21>170){
@@ -992,6 +1011,9 @@ function frame(t){
   rideDispatch.update(dt);
   gps.update(dt);
   raceSystem.update(dt,t);
+  driftV34.update({vehicle:vehicleState,dt,t,
+   holding:driftHeldV34||!!keys.x,driving,paused,
+   racing:raceSystem.isRunning(),vehicleType:currentRaceVehicleId()});
   if(driving&&p.distanceTo(target)<4&&Math.abs(speed)<10){
    cash+=150;completed++;
    $('money').textContent='ج.م '+Math.round(cash);saveWallet();
