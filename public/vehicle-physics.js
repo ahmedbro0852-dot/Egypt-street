@@ -19,21 +19,23 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
  const throttle=clamp(Number.isFinite(input.throttle)?input.throttle:0,-1,1);
  const steering=clamp(Number.isFinite(input.steer)?input.steer:0,-1,1);
  const braking=!!input.brake,oldSpeed=p.speed;
+ const grip=clamp(Number.isFinite(input.grip)?input.grip:1,.50,1.10);
  let impact=0,collision=false,maxSlip=0,sideAccel=0;
  const steps=Math.max(1,Math.ceil(dt/(1/120))),h=dt/steps;
  for(let i=0;i<steps;i++){
    const speed=Math.abs(p.speed);
    p.steer=damp(p.steer,steering*.58/(1+speed*.026),8,h);
-   const engine=throttle>0?throttle*5600*Math.max(.28,1-.022*speed):
-                throttle<0?throttle*3700:0;
+   const engine=throttle>0?throttle*5400*Math.max(.30,1-.019*speed):
+                throttle<0?throttle*3400:0;
    let fx=engine;
-   if(braking)fx=-Math.sign(p.speed)*Math.min(14500,Math.abs(p.speed)*MASS/h);
-   const drag=(Math.abs(p.speed)>.03?Math.sign(p.speed):0)*(165+.48*speed*speed);
+   if(braking)fx=-Math.sign(p.speed)*Math.min(9800*grip,Math.abs(p.speed)*MASS/h);
+   const drag=(Math.abs(p.speed)>.03?Math.sign(p.speed):0)*
+     (190+.48*speed*speed+(Math.abs(throttle)<.06?560:0)+(1-grip)*800);
    fx-=drag;
-   if(braking)fx=clamp(fx,-14500,14500);
+   if(braking)fx=clamp(fx,-9800*grip,9800*grip);
    const usedGrip=clamp(Math.abs(fx)/(MU*MASS*G),0,.92);
-   const fg=MU*FRONT_LOAD*Math.sqrt(1-usedGrip*usedGrip*.65);
-   const rg=MU*REAR_LOAD*Math.sqrt(1-usedGrip*usedGrip*.85);
+   const fg=MU*FRONT_LOAD*grip*Math.sqrt(1-usedGrip*usedGrip*.65);
+   const rg=MU*REAR_LOAD*grip*Math.sqrt(1-usedGrip*usedGrip*.85);
    const weight=clamp((speed-2)/3,0,1),direction=p.speed>=0?1:-1;
    const aFront=Math.atan2(p.lateralSpeed+LF*p.yawRate,Math.max(speed,1.8))-p.steer*direction;
    const aRear=Math.atan2(p.lateralSpeed-LR*p.yawRate,Math.max(speed,1.8));
@@ -50,10 +52,11 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
    const yawAcc=(LF*fFront*Math.cos(p.steer)-LR*fRear)/IZ;
    const slowYaw=(u/WHEELBASE)*Math.tan(p.steer);
    p.yawRate+=(yawAcc*weight+(slowYaw-p.yawRate)*8*(1-weight)-p.yawRate*.25*weight)*h;
-   p.yawRate=clamp(p.yawRate,-1.25,1.25);
+   const maxYaw=clamp(7.4/Math.max(5,speed),.25,1.08);
+   p.yawRate=clamp(p.yawRate,-maxYaw,maxYaw);
    p.lateralSpeed+=latAcc*h*weight;
    p.lateralSpeed*=Math.exp(-h*(8*(1-weight)+.30*weight));
-   p.lateralSpeed=clamp(p.lateralSpeed,-7,7);
+   p.lateralSpeed=clamp(p.lateralSpeed,-5,5);
    if(speed<1&&Math.abs(throttle)<.06){
      p.yawRate*=Math.exp(-h*9);p.lateralSpeed*=Math.exp(-h*12);
    }
@@ -68,10 +71,16 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
    }
    if(hit){
      collision=true;impact=Math.max(impact,Math.hypot(u,p.lateralSpeed));
-     p.speed=impact<1.2?0:-Math.sign(u||1)*Math.min(.85,impact*.07);
-     p.lateralSpeed*=.08;p.yawRate*=.24;
-     p.heaveVelocity+=clamp(impact*.024,0,.35);
-     p.pitchVelocity+=clamp(impact*.016,0,.26)*Math.sign(u||1);
+     // Slide along safe axis at low impact instead of bouncing back like a rubber car.
+     let slipped=false;
+     if(impact<7){
+       if(!intersects(nx,p.z,p.yaw)){p.x=nx;slipped=true;}
+       else if(!intersects(p.x,nz,p.yaw)){p.z=nz;slipped=true;}
+     }
+     p.speed=slipped?u*.42:0;
+     p.lateralSpeed*=slipped?.20:.04;p.yawRate*=.20;
+     p.heaveVelocity+=clamp(impact*.025,0,.34);
+     p.pitchVelocity+=clamp(impact*.018,0,.26)*Math.sign(u||1);
    }else{p.x=nx;p.z=nz;p.yaw=nyaw;p.speed=u}
    p.wheelSpin+=p.speed*h/.405;
    sideAccel=clamp(latAcc,-MU*G,MU*G);
