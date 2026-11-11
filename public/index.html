@@ -1,4 +1,4 @@
-<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>شوارع مصر — العب دلوقتي</title><style>*{box-sizing:border-box}body{margin:0;background:#101a20;color:white;font-family:Tahoma,Arial;overflow:hidden;touch-action:none}canvas#world{position:fixed;inset:0;width:100%;height:100%}.hud{position:fixed;top:20px;right:20px;pointer-events:none}.brand{font-size:24px;font-weight:900;text-shadow:0 2px 8px #000}.tag{font-size:10px;letter-spacing:3px;color:#ffd779}.money{margin-top:15px;color:#c8ffba;font-weight:bold}.mission{position:fixed;left:20px;top:20px;width:240px;background:#101b25de;border:1px solid #ffffff25;padding:16px;border-radius:14px;font-size:13px}.mission small{color:#ffc56b}.mission p{margin:7px 0 0;line-height:1.7}.bottom{position:fixed;bottom:22px;right:22px;display:flex;gap:10px;align-items:center}button{border:1px solid #ffffff40;color:white;background:#18252dd9;border-radius:50%;width:65px;height:65px;font-size:14px;cursor:pointer;touch-action:none}button.primary{background:#f4bd61;color:#20252b;font-weight:bold;border:0}#joy{position:fixed;bottom:30px;left:30px;width:124px;height:124px;background:#16232e65;border:1px solid #ffffff50;border-radius:50%;touch-action:none}#knob{position:absolute;left:42px;top:42px;width:40px;height:40px;background:#ffffff90;border-radius:50%;pointer-events:none}#map{position:fixed;left:20px;top:156px;width:130px;height:130px;border:4px solid #ffffff45;border-radius:50%;background:#27373c}#speed{font-size:25px;font-weight:bold;text-align:center;min-width:65px}#speed small{display:block;font-size:9px;color:#c6d4d6}#toast{position:fixed;bottom:175px;left:50%;transform:translateX(-50%);background:#13222ddd;padding:12px 20px;border-radius:30px;font-size:13px;text-align:center;pointer-events:none;max-width:90%}.overlay{position:fixed;inset:0;background:linear-gradient(90deg,#0a1726e8,#0a172630);display:flex;align-items:center;padding:7vw}.intro{max-width:540px;text-shadow:0 2px 10px #000}.intro h1{font-size:clamp(52px,10vw,100px);line-height:1.05;margin:16px 0}.intro p{line-height:1.9;color:#e2e7e7;max-width:390px}.intro button{border-radius:10px;width:180px;height:55px;text-shadow:none;font-size:17px}.eyebrow{color:#f8c367;font-size:12px;letter-spacing:3px}.hint{font-size:11px!important;opacity:.7}#pause{position:fixed;top:20px;right:180px;width:38px;height:38px} @media(max-width:600px){.mission{top:100px;right:16px;left:auto;width:185px;padding:12px;font-size:11px}#map{top:18px;left:16px;width:100px;height:100px}.hud{top:18px;right:16px}.brand{font-size:21px}.money{margin-top:8px}#pause{right:145px;top:20px}#joy{left:22px;bottom:30px;width:112px;height:112px}#knob{left:36px;top:36px}.bottom{right:15px;bottom:30px;gap:7px}button{width:56px;height:56px}#speed{font-size:20px;min-width:45px}.intro p{font-size:14px}}#heroCard{position:fixed;bottom:110px;right:22px;display:flex;align-items:center;gap:9px;background:#101b25df;padding:6px 12px 6px 6px;border:1px solid #ffffff30;border-radius:12px;font-size:12px;pointer-events:none}#heroCard img{width:46px;height:52px;object-fit:cover;object-position:100% 12%;border-radius:7px}#heroCard small{display:block;color:#bec9ce;font-size:10px;margin-top:4px}.reference{width:100%;max-width:370px;border-radius:12px;margin:8px 0;max-height:180px;object-fit:cover;object-position:top}@media(max-height:500px){.reference{display:none}#heroCard{bottom:100px}} 
+<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>شوارع مصر | Egypt Streets — عالم مفتوح في القاهرة</title><link rel="icon" type="image/svg+xml" href="egypt-streets-icon.svg"><meta name="theme-color" content="#0c2232"><meta name="description" content="شوارع مصر: لعبة عالم مفتوح في القاهرة للموبايل والمتصفح، قيادة، GPS ومهمات وتفاعلات مصرية."><style>*{box-sizing:border-box}body{margin:0;background:#101a20;color:white;font-family:Tahoma,Arial;overflow:hidden;touch-action:none}canvas#world{position:fixed;inset:0;width:100%;height:100%}.hud{position:fixed;top:20px;right:20px;pointer-events:none}.brand{font-size:24px;font-weight:900;text-shadow:0 2px 8px #000}.tag{font-size:10px;letter-spacing:3px;color:#ffd779}.money{margin-top:15px;color:#c8ffba;font-weight:bold}.mission{position:fixed;left:20px;top:20px;width:240px;background:#101b25de;border:1px solid #ffffff25;padding:16px;border-radius:14px;font-size:13px}.mission small{color:#ffc56b}.mission p{margin:7px 0 0;line-height:1.7}.bottom{position:fixed;bottom:22px;right:22px;display:flex;gap:10px;align-items:center}button{border:1px solid #ffffff40;color:white;background:#18252dd9;border-radius:50%;width:65px;height:65px;font-size:14px;cursor:pointer;touch-action:none}button.primary{background:#f4bd61;color:#20252b;font-weight:bold;border:0}#joy{position:fixed;bottom:30px;left:30px;width:124px;height:124px;background:#16232e65;border:1px solid #ffffff50;border-radius:50%;touch-action:none}#knob{position:absolute;left:42px;top:42px;width:40px;height:40px;background:#ffffff90;border-radius:50%;pointer-events:none}#map{position:fixed;left:20px;top:156px;width:130px;height:130px;border:4px solid #ffffff45;border-radius:50%;background:#27373c}#speed{font-size:25px;font-weight:bold;text-align:center;min-width:65px}#speed small{display:block;font-size:9px;color:#c6d4d6}#toast{position:fixed;bottom:175px;left:50%;transform:translateX(-50%);background:#13222ddd;padding:12px 20px;border-radius:30px;font-size:13px;text-align:center;pointer-events:none;max-width:90%}.overlay{position:fixed;inset:0;background:linear-gradient(90deg,#0a1726e8,#0a172630);display:flex;align-items:center;padding:7vw}.intro{max-width:540px;text-shadow:0 2px 10px #000}.intro h1{font-size:clamp(52px,10vw,100px);line-height:1.05;margin:16px 0}.intro p{line-height:1.9;color:#e2e7e7;max-width:390px}.intro button{border-radius:10px;width:180px;height:55px;text-shadow:none;font-size:17px}.eyebrow{color:#f8c367;font-size:12px;letter-spacing:3px}.hint{font-size:11px!important;opacity:.7}#pause{position:fixed;top:20px;right:180px;width:38px;height:38px} @media(max-width:600px){.mission{top:100px;right:16px;left:auto;width:185px;padding:12px;font-size:11px}#map{top:18px;left:16px;width:100px;height:100px}.hud{top:18px;right:16px}.brand{font-size:21px}.money{margin-top:8px}#pause{right:145px;top:20px}#joy{left:22px;bottom:30px;width:112px;height:112px}#knob{left:36px;top:36px}.bottom{right:15px;bottom:30px;gap:7px}button{width:56px;height:56px}#speed{font-size:20px;min-width:45px}.intro p{font-size:14px}}#heroCard{position:fixed;bottom:110px;right:22px;display:flex;align-items:center;gap:9px;background:#101b25df;padding:6px 12px 6px 6px;border:1px solid #ffffff30;border-radius:12px;font-size:12px;pointer-events:none}#heroCard img{width:46px;height:52px;object-fit:cover;object-position:100% 12%;border-radius:7px}#heroCard small{display:block;color:#bec9ce;font-size:10px;margin-top:4px}.reference{width:100%;max-width:370px;border-radius:12px;margin:8px 0;max-height:180px;object-fit:cover;object-position:top}@media(max-height:500px){.reference{display:none}#heroCard{bottom:100px}} 
 :root{--gold:#f4bd61}.bottom{padding:10px;background:#0c1924df;border:1px solid #ffffff26;border-radius:22px;bottom:max(18px,env(safe-area-inset-bottom));backdrop-filter:blur(12px)}.bottom button{border-radius:15px;width:64px;height:60px;font-weight:bold;background:#243644;box-shadow:0 4px 12px #0004}.bottom button:active{transform:scale(.94);background:#526c7e}.bottom .primary{background:var(--gold);color:#17232d;width:76px}#speed{padding:0 8px;color:#ffcf80}#speed small{letter-spacing:1px}#modeLabel{font-size:11px;margin-top:7px;color:#ffcf80}.hud{background:#10202bdd;padding:12px 16px;border-radius:16px;border:1px solid #ffffff20}.money{margin-top:6px}#pause{right:220px}#joy{background:radial-gradient(circle,#34526777,#112330cc);box-shadow:0 6px 24px #0005;border:2px solid #c2dded70}#knob{box-shadow:0 3px 12px #0008;background:#e1edf4}#heroCard{bottom:116px}.mission{border-right:3px solid var(--gold)}@media(max-width:600px){.bottom{gap:5px;padding:7px;right:10px}.bottom button{width:45px;height:51px;font-size:10px}.bottom .primary{width:55px}#speed{min-width:35px;font-size:19px;padding:0 2px}#camera{width:43px}#joy{left:14px;bottom:30px;width:98px;height:98px}#knob{left:27px;top:27px}#pause{right:190px}.hud{right:10px;top:10px;padding:9px 12px}.mission{top:135px;width:170px}#heroCard{right:12px;bottom:104px}}@media(max-width:390px){.bottom{gap:3px}.bottom button{width:39px}.bottom .primary{width:46px}#camera{width:38px}#joy{width:86px;height:86px;left:10px}#knob{left:21px;top:21px}}@media(max-height:500px){.mission{top:18px;left:140px;right:auto;width:220px}.hud{top:10px}.bottom{bottom:12px}#heroCard{display:none}}
 #sound{position:fixed;top:195px;right:22px;width:110px;height:36px;border-radius:12px;font-size:11px;background:#10202be8}.pedals{display:none;position:fixed;right:22px;bottom:122px;gap:10px}.driving .pedals{display:flex}.pedals button{border-radius:16px;width:72px;height:62px;font-weight:bold;background:#264c43}.pedals #reverse{background:#35495c}.driving #heroCard{display:none}@media(max-width:600px){#sound{top:105px;right:12px;width:105px;height:28px;font-size:10px}.pedals{right:14px;bottom:108px;gap:7px}.pedals button{width:61px;height:54px;font-size:12px}}@media(max-height:500px){#sound{top:175px}.pedals{bottom:100px}.pedals button{height:48px}}\n#eventPanel{display:none;position:fixed;z-index:8;left:280px;top:18px;width:230px;min-height:70px;padding:12px 13px;border-radius:16px;border:1px solid #e8c67c67;background:linear-gradient(140deg,#172b34ee,#19283cee);backdrop-filter:blur(9px);box-shadow:0 8px 25px #0006;pointer-events:none}\n#eventTitle{color:#ffd480;font-size:13px;font-weight:900;margin-bottom:5px}#eventText{font-size:11px;line-height:1.6;color:#f1ead9}\n#interact{display:none;position:fixed;left:18px;bottom:174px;z-index:12;width:108px;height:48px;border-radius:14px;background:#ffca70;color:#1a292d;font-size:13px;font-weight:900;border:2px solid #fff1c5;box-shadow:0 6px 22px #0007;touch-action:manipulation}\n#npcDialogue{display:none;position:fixed;z-index:16;bottom:242px;left:50%;transform:translateX(-50%);width:min(360px,85vw);padding:14px 17px;color:#fff2d7;background:#152b36f2;border:1px solid #f2d18d8a;border-radius:15px;text-align:center;line-height:1.7;font-weight:700;font-size:13px;pointer-events:none;box-shadow:0 9px 28px #0007}\n@media(max-width:600px){#eventPanel{left:10px;top:138px;width:162px;padding:9px 11px}#eventText{font-size:10px}#interact{left:13px;bottom:172px;width:93px;height:43px;font-size:11px}#npcDialogue{bottom:231px;font-size:12px;width:86vw}}@media(max-width:390px){#eventPanel{top:260px;left:9px;width:175px}#npcDialogue{bottom:223px}}@media(max-height:500px){#eventPanel{top:124px;left:10px;width:155px}#interact{bottom:142px}#npcDialogue{bottom:205px}}\n
 /* V3 touch layout: no steering/pedal/button overlap on small screens. */
@@ -279,8 +279,195 @@ button:focus-visible{outline:2px solid #ffe293}
  #gpsList button{min-height:34px;padding:5px}
  #versionBadge{top:113px;left:8px}
 }
+
+/* Egypt Streets Design System — an original Cairo identity; improves all game surfaces. */
+:root{
+ --es-night:#0a1b2a;--es-blue:#183846;--es-glass:#112d3de8;--es-gold:#f4c878;
+ --es-mint:#8de5cc;--es-muted:#a9c6c7;--es-border:#c4d4c53c;
+ --es-shadow:0 9px 29px #0007;
+}
+html,body{font-family:Tahoma,"Segoe UI",Arial,sans-serif}
+button{transition:background .16s ease,border-color .16s ease,transform .14s ease,box-shadow .16s ease}
+button:active{transform:scale(.963)!important}
+button:focus-visible{outline:2px solid #fff0a5;outline-offset:3px}
+.srOnly{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.hud{
+ z-index:16;top:16px;right:18px;width:246px;padding:11px 13px 12px!important;
+ border:1px solid #f0d9ac38;border-radius:17px!important;
+ background:linear-gradient(142deg,#0b2430ed,#0a1825f0)!important;
+ box-shadow:var(--es-shadow);backdrop-filter:blur(14px);
+}
+.hud .tag{color:#9cdbd2;font-weight:900;letter-spacing:1.9px;font-size:9px}
+.brand{line-height:0;margin:4px 0}
+.logoHud{display:block;width:100%;max-width:225px;height:auto;filter:drop-shadow(0 2px 4px #0005)}
+#modeLabel{margin-top:4px!important;color:#e8dfc9!important;font-size:10px!important}
+.hud .money{color:#b2ffd8;font-size:16px;margin-top:6px;font-weight:900;font-variant-numeric:tabular-nums}
+.mission{
+ z-index:14;top:160px;right:18px;left:auto;width:246px;padding:12px 14px!important;
+ background:linear-gradient(135deg,#0b2633eb,#142e39ec)!important;
+ border:1px solid var(--es-border)!important;
+ border-inline-start:3px solid var(--es-gold)!important;
+ border-radius:15px!important;box-shadow:var(--es-shadow);
+ backdrop-filter:blur(13px)
+}
+.missionHeading{display:flex;align-items:center;gap:6px}
+.missionHeading small{color:#ffe2a7;font-weight:bold;font-size:12px}
+.missionDot{width:7px;height:7px;border-radius:50%;background:#f6c478;box-shadow:0 0 0 4px #f6c47825}
+.missionChip{margin-inline-start:auto;font-size:8px!important;font-weight:900;letter-spacing:1px;border-radius:6px;color:#112a33;background:#e4b66b;padding:2px 5px}
+.mission p{color:#e5eeec;line-height:1.65;margin:8px 0 0!important}
+#pause{z-index:25;top:16px;right:275px;background:#1c3a46;border:1px solid #d3cfb580;box-shadow:var(--es-shadow)}
+#map{z-index:12;top:15px;left:16px;width:143px;height:143px;border:4px solid #d9be8e!important;
+ box-shadow:0 8px 29px #000a,0 0 0 4px #1d394a9c!important;border-radius:50%;
+ background:#193547}
+#lifeV5{z-index:13;top:176px;left:16px;width:178px;max-width:none;
+ background:linear-gradient(135deg,#0e2e3ceb,#122432f0);
+ border:1px solid #85dcca62;box-shadow:var(--es-shadow)}
+#eventPanel{left:213px;top:22px;border-radius:14px;border-color:#f0c78160}
+#fuelHud{right:15px;width:197px;max-width:37vw;
+ border-radius:15px;background:linear-gradient(135deg,#102b36f0,#0d1d2cf5);
+ box-shadow:var(--es-shadow);border-color:#92cfc77a}
+#fuelTrack{height:10px;border-radius:30px}
+#fuelActions button{background:#1e5960;border-color:#aedcc263}
+#fuelActions #autoPilot{background:#1a576b!important;border-color:#8ad5df7c}
+#fuelWarning{color:#ffbc95}
+#workHud{background:#10363af0;border-color:#85dcca82;border-radius:13px}
+#npcDialogue,#toast{backdrop-filter:blur(12px);box-shadow:0 12px 36px #0008}
+#toast{z-index:30;color:#fceaca;border:1px solid #e7c58d6b;background:#0c2837ed;border-radius:13px}
+#heroCard{display:none!important}
+.bottom{
+ z-index:20;background:#0c2430e8;border:1px solid #d6d4ba55;
+ box-shadow:0 10px 32px #0009;backdrop-filter:blur(15px);border-radius:18px;
+}
+.bottom button{background:#244757!important;border:1px solid #9ecbc866!important;
+ box-shadow:inset 0 1px #ffffff15,0 3px 12px #0005}
+.bottom .primary,#enter{background:linear-gradient(155deg,#ffe1a5,#e8b569)!important;
+ color:#142b34!important;border:1px solid #fff0c3!important;box-shadow:0 4px 16px #f1b85b44!important}
+#speed{color:#ffe1a3;font-variant-numeric:tabular-nums}
+#joy{background:radial-gradient(circle at 36% 30%,#d7f5e11c,#0e293bca 73%);
+ border:2px solid #b2dfd29d;box-shadow:inset 0 0 16px #0005,0 4px 27px #000a}
+#joy::before,#joy::after{content:"";position:absolute;pointer-events:none;border-radius:50%}
+#joy::before{inset:15px;border:1px solid #bcd8cd38}
+#joy::after{inset:45%;border:1px solid #d7ebdf70}
+#knob{background:linear-gradient(150deg,#f8e9cb,#99b9bf)!important;box-shadow:0 3px 13px #0009}
+#interact{background:linear-gradient(135deg,#ffe1a3,#dfb16d);border-color:#ffefca;color:#132f3a}
+#gpsBtn,#jobsBtn{border:1px solid #b3d9cd8a;box-shadow:0 7px 23px #0009;font-weight:900;backdrop-filter:blur(10px)}
+#gpsBtn{background:linear-gradient(140deg,#1b6671,#124150)}
+#jobsBtn{background:linear-gradient(140deg,#2b695d,#164d46)}
+.pedals button{box-shadow:0 4px 15px #0008;border:1px solid #d3e3d45a}
+#brakePedal{background:#a53e39!important;color:#fff!important;border-color:#ffc1a8!important}
+#accelerate{background:#24775d!important;color:#fff!important}
+#reverse{background:#2c5060!important}
+#gpsPanel,#jobsPanel{border:1px solid #d9cfaa80;box-shadow:0 28px 95px #000e}
+#gpsPanel h2,#jobsPanel h2{color:#ffdf9b}
+#gpsList button{border-color:#9edaca64}
+#versionBadge,#cityVersion{display:none}
+.v55-intro{
+ padding:0!important;align-items:stretch!important;
+ background:linear-gradient(90deg,#081723,#0817234d),url('cairo-menu-bg.svg') center center/cover no-repeat!important;
+}
+.v55-intro::before{content:'';position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(90deg,#061521f7 0%,#0a1b29ee 29%,#0b19288a 62%,#0b172353 100%),
+ linear-gradient(0deg,#071722aa,transparent 35%,transparent 72%,#0b223455);
+}
+.v55-glow{display:none!important}
+.v55-box{
+ width:min(590px,100%);max-width:590px;align-self:center;
+ margin:25px max(5vw,24px) 25px auto!important;padding:24px 28px!important;
+ background:linear-gradient(143deg,#071823db,#0a1d2fbd)!important;
+ border:1px solid #f7d6a253!important;border-radius:23px!important;
+ box-shadow:0 22px 100px #000a!important;
+ backdrop-filter:blur(14px)
+}
+.v55-eyebrow{color:#9cddd1!important;letter-spacing:2px!important;display:flex;gap:8px;align-items:center;direction:ltr;justify-content:flex-end}
+.v55-liveDot{display:inline-block;background:#7de4ad;width:8px;height:8px;border-radius:50%;box-shadow:0 0 0 4px #69e9ae1b,0 0 15px #73ffb7}
+.logoHero{display:block;width:min(470px,96%);margin:10px auto 2px;filter:drop-shadow(0 7px 20px #0008)}
+.introRoadBadge{font-weight:700;letter-spacing:.2px;text-align:center;margin-top:7px;color:#f5d394;font-size:12px}
+.v55-line{background:linear-gradient(90deg,transparent,#f3c77b,transparent)!important;width:100%!important;height:1px!important;margin-top:4px}
+.v55-subtitle{font-size:14px;line-height:1.85;color:#e3ece6;margin:14px 0 10px}
+.v55-highlights{margin:14px 0;gap:7px}
+.v55-highlights span{background:#20455caa;border:1px solid #9cd0cb45;color:#fce7be;font-weight:700;font-size:10px}
+.v55-save{border:1px solid #add9c74d;background:#12363ddc;color:#d5ffeb;font-size:12px}
+.v55-actions button{
+ border-radius:12px!important;letter-spacing:.15px;
+ box-shadow:inset 0 1px #ffffff31,0 5px 17px #0007!important;
+ border:1px solid #ffffff37!important;
+}
+.v55-actions .primary{background:linear-gradient(135deg,#ffe4b1,#e8b15c)!important;color:#122633!important}
+#skipIntro{background:#1a3d4faa!important;color:#f8e1b6!important}
+#newGame{background:#304651!important;color:#f3e5cb!important}
+.v55-tip{color:#a6c8c3;font-size:10px}
+@media(min-width:900px){
+ .v55-box{margin-right:auto!important;margin-left:6vw!important}
+ .v55-intro::before{background:linear-gradient(90deg,#061521ed 0%,#091c2be4 32%,#0c223470 64%,#07152248)}
+}
+@media(max-width:760px){
+ .hud{right:8px;top:8px;width:151px;padding:7px 9px!important;border-radius:12px!important}
+ .hud .tag{font-size:7px;letter-spacing:.7px}
+ .logoHud{max-width:132px}
+ .hud .money{font-size:12px}
+ #modeLabel{font-size:9px!important;margin-top:2px!important}
+ .mission{right:8px;left:auto;top:113px;width:156px;padding:8px!important;font-size:10px;border-radius:12px!important}
+ .missionHeading small{font-size:10px}
+ .missionChip{font-size:7px!important}
+ .mission p{font-size:10px!important}
+ #map{top:13px!important;left:12px!important;width:100px;height:100px;border-width:3px!important}
+ #pause{top:12px;right:170px;width:34px;height:34px}
+ #lifeV5{top:133px;left:9px;width:153px;max-width:45vw;padding:8px}
+ #eventPanel{top:261px;left:9px;width:170px;max-width:48vw}
+ #sound{top:auto!important;bottom:253px;right:11px;width:91px;height:31px}
+ #gpsBtn{bottom:318px;left:10px;width:101px;height:39px}
+ #jobsBtn{bottom:270px;left:10px;width:101px;height:39px}
+ #fuelHud{right:8px;bottom:326px;width:153px;max-width:45vw;padding:8px}
+ #controlsHint{font-size:10px;background:#0b2b35e8}
+ #interact{bottom:167px;left:12px}
+ #npcDialogue{bottom:233px;width:86vw}
+ .v55-intro{background-position:58% center!important}
+ .v55-intro::before{background:linear-gradient(180deg,#061923df,#092130a8 50%,#071722ef 100%)}
+ .v55-box{
+   width:calc(100% - 30px)!important;max-width:520px;
+   margin:auto 15px!important;padding:17px!important;
+   border-radius:18px!important;
+ }
+ .v55-eyebrow{font-size:8px;letter-spacing:.9px!important}
+ .logoHero{width:min(360px,97%)}
+ .v55-subtitle{font-size:12px;line-height:1.65;margin:9px 0}
+ .v55-highlights{gap:5px;margin:9px 0}
+ .v55-highlights span{padding:5px 7px;font-size:9px}
+ .v55-save{margin:10px 0;padding:8px;font-size:11px}
+ .v55-actions{gap:7px}
+ .v55-actions button{height:43px!important;font-size:12px!important}
+ .introRoadBadge{font-size:10px}
+}
+@media(max-width:390px){
+ .hud{width:142px}
+ .mission{width:145px}
+ #eventPanel{width:151px}
+ #lifeV5{width:145px}
+ #fuelHud{width:145px}
+ .v55-box{padding:13px!important}
+ .v55-highlights span{font-size:8px}
+}
+@media(orientation:landscape) and (max-height:520px){
+ .hud{width:146px;right:7px;top:7px}
+ .mission{right:160px;top:7px;width:170px}
+ #lifeV5{top:9px;left:9px;width:144px}
+ #map{display:none}
+ #eventPanel{left:160px;top:9px;width:160px}
+ #fuelHud{top:9px;right:8px;width:154px;bottom:auto}
+ #sound{display:none}
+ #gpsBtn{bottom:58px;left:115px}
+ #jobsBtn{bottom:12px;left:115px}
+ .v55-box{align-self:center;margin:9px auto!important;max-width:590px;width:86vw!important;padding:12px 17px!important}
+ .logoHero{width:min(340px,80%)}
+ .v55-subtitle{display:none}
+ .v55-save{margin:5px 0;padding:5px 9px}
+ .v55-highlights{margin:7px 0}
+ .v55-actions button{height:34px!important}
+ .v55-tip{display:none}
+}
+@media(prefers-reduced-motion:reduce){button,.v55-glow{transition:none!important;animation:none!important}}
 </style>
-<canvas id="world"></canvas><div class="hud"><div class="tag">OPEN WORLD • EARLY BUILD</div><div class="brand">شوارع مصر<span style="color:#ffca6d">.</span></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><small>● المهمة الحالية</small><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
+<canvas id="world"></canvas><div class="hud"><div class="tag">CAIRO • OPEN WORLD • V6</div><div class="brand"><img class="logoHud" src="egypt-streets-logo.svg" alt="شوارع مصر — Egypt Streets"></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><div class="missionHeading"><span class="missionDot" aria-hidden="true"></span><small>المهمة الحالية</small><span class="missionChip">LIVE</span></div><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
  <strong id="cityTime">🕒 07:30</strong>
  <span id="cityWeather">☀️ صحو</span>
  <span id="cityLaw">🚦 إشارات مرور ومخالفات</span>
@@ -325,9 +512,9 @@ button:focus-visible{outline:2px solid #ffe293}
  <button id="workAction" type="button">نفّذ المهمة</button><div id="toast">حي النيل • القاهرة</div><div id="npcDialogue" role="status" aria-live="polite"></div><div id="intro" class="overlay v55-intro" role="dialog" aria-label="شاشة بداية شوارع مصر">
  <div class="v55-glow" aria-hidden="true"></div>
  <section class="v55-box">
-  <span class="v55-eyebrow">EGYPT STREETS · V6 · GPS OPEN WORLD</span>
-  <h1 class="v55-title">شوارع <em>مصر</em></h1>
-  <div class="v55-line" aria-hidden="true"></div>
+  <span class="v55-eyebrow"><span class="v55-liveDot"></span> THE CITY IS YOURS · EGYPT STREETS V6</span>
+  <img class="logoHero" src="egypt-streets-logo.svg" alt="شوارع مصر"><h1 class="srOnly">شوارع مصر</h1>
+  <div class="v55-line" aria-hidden="true"></div><div class="introRoadBadge">✦ القاهرة · بين النيل والشوارع والناس ✦</div>
   <p class="v55-subtitle">من أول شارع لحد آخر حكاية. اختار وجهتك على الـGPS، وخلّي العربية تروح للشغل أو المهمة أو البنزينة، واكتشف القاهرة بطريقتك.</p>
   <div class="v55-highlights"><span>🧭 GPS ذكي</span><span>🚗 قيادة ذاتية</span><span>💾 حفظ تلقائي</span><span>💼 شغل ومهمات</span></div>
   <div id="savePreview" class="v55-save" aria-live="polite">جاري فحص التقدم المحفوظ...</div>
