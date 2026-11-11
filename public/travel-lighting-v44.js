@@ -1,6 +1,6 @@
 // Keep sunlight and its bounded shadow map around the player across the whole city.
 export function installTravelLightingV44({T,scene,renderer,sun,getPosition,getDaylight}){
- if(!renderer?.isWebGLRenderer||!sun)return {update(){}};
+ if(!renderer?.isWebGLRenderer||!sun||window.matchMedia?.('(pointer: coarse)')?.matches)return {update(){}};
  if(!sun.target.parent)scene.add(sun.target);
  const candidates=[],position=new T.Vector3(),delta=new T.Vector3();
  scene.updateMatrixWorld(true);

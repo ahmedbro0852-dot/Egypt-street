@@ -9,6 +9,7 @@ import { installDesktopWorldV43 } from './desktop-world-v43.js?v=48.1';
 import { createMobileExperienceV40, tuneStickV40 } from './mobile-experience-v40.js';
 import { installAdaptiveMobileV50 } from './mobile-performance-v50.js?v=51.0';
 import { installMobileLiteV51 } from './mobile-lite-v51.js';
+import { installMobileStaticBatchingV52 } from './mobile-static-batching-v52.js';
 import { createCityQuestsV50 } from './city-quests-v50.js';
 import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
@@ -48,6 +49,7 @@ try{
   freshStartV55=true;
  }
 }catch(e){}
+const isMobileOptimized=!!(window.matchMedia?.('(pointer: coarse)')?.matches||(navigator.maxTouchPoints>0&&innerWidth<950));
 const $=id=>document.getElementById(id),scene=new T.Scene();scene.background=new T.Color('#b9d0cf');scene.fog=new T.Fog('#b9d0cf',65,190);let renderer;try{renderer=new T.WebGLRenderer({canvas:$('world'),antialias:!window.matchMedia?.('(pointer: coarse)')?.matches})}catch(e){const old=$('world'),c=old.cloneNode();old.replaceWith(c);const ctx=c.getContext('2d');let sw=0,sh=0;renderer={setPixelRatio(){},setSize(w,h){sw=c.width=w;sh=c.height=h},render(scene,camera){scene.updateMatrixWorld();camera.updateMatrixWorld();const view=new T.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse),faces=[];ctx.fillStyle=scene.background?.getHexString?'#'+scene.background.getHexString():'#b9d0cf';ctx.fillRect(0,0,sw,sh);scene.traverse(o=>{if(!o.isMesh||!o.visible||!o.parent.visible||o.userData.skipFallback)return;for(let ancestor=o.parent;ancestor;ancestor=ancestor.parent)if(!ancestor.visible)return;const center=new T.Vector3().setFromMatrixPosition(o.matrixWorld);if(center.distanceTo(camera.position)>95)return;const m=new T.Matrix4().multiplyMatrices(view,o.matrixWorld),pos=o.geometry.attributes.position,idx=o.geometry.index;const verts=[];for(let i=0;i<pos.count;i++)verts.push(new T.Vector3().fromBufferAttribute(pos,i).applyMatrix4(m));for(let i=0;i<(idx?idx.count:pos.count);i+=3){const a=verts[idx?idx.getX(i):i],b=verts[idx?idx.getX(i+1):i+1],d=verts[idx?idx.getX(i+2):i+2];if([a,b,d].some(v=>v.z>1||v.z< -1))continue;if((b.x-a.x)*(d.y-a.y)-(b.y-a.y)*(d.x-a.x)<0)continue;let color=o.material.color||new T.Color('#647b72');faces.push({a,b,d,z:(a.z+b.z+d.z)/3,color:'#'+color.getHexString()})}});faces.sort((a,b)=>b.z-a.z);for(let f of faces){ctx.fillStyle=f.color;ctx.beginPath();ctx.moveTo((f.a.x+1)*sw/2,(1-f.a.y)*sh/2);ctx.lineTo((f.b.x+1)*sw/2,(1-f.b.y)*sh/2);ctx.lineTo((f.d.x+1)*sw/2,(1-f.d.y)*sh/2);ctx.fill()}}};}renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));const camera=new T.PerspectiveCamera(62,1,.1,240);const ambient=new T.HemisphereLight(0xffe9c8,0x637278,2.6);scene.add(ambient);const sun=new T.DirectionalLight(0xffd7a1,2.6);sun.position.set(-30,70,20);scene.add(sun);const solids=[];const mat=c=>new T.MeshLambertMaterial({color:c});const materials=new Map();function box(x,y,z,w,h,d,c,parent=scene){if(!materials.has(c))materials.set(c,mat(c));let m=new T.Mesh(new T.BoxGeometry(w,h,d),materials.get(c));m.position.set(x,y,z);parent.add(m);return m}box(0,-.2,0,460,.3,460,'#baa88a');
 const roads=[-60,-30,0,30,60];
 for(const n of roads){
@@ -57,10 +59,11 @@ for(const n of roads){
 // V17 batches all asphalt overlays, lane strips and sidewalks instead of hundreds of meshes.
 function sign(text,x,y,z,w=5){const c=document.createElement('canvas');c.width=512;c.height=128;let q=c.getContext('2d');q.fillStyle='#174747';q.fillRect(0,0,512,128);q.fillStyle='#ffe3a9';q.font='bold 54px Arial';q.textAlign='center';q.fillText(text,256,84);let m=new T.Mesh(new T.PlaneGeometry(w,w/4),new T.MeshBasicMaterial({map:new T.CanvasTexture(c),side:T.DoubleSide}));m.position.set(x,y,z);scene.add(m)}
 let seed=7;function rand(){seed=(seed*16807)%2147483647;return seed/2147483647}const colors=['#beaa8c','#d4bd99','#b7977d','#d2c2a8','#aaa58c'];for(let a=-2;a<2;a++)for(let b=-2;b<2;b++){const cx=a*30+15,cz=b*30+15;for(let j=0;j<2;j++){let x=cx+(j?5.4:-5.4),h=10+Math.floor(rand()*5)*3;box(x,.2,cz,10,.35,21,'#cfc4ac');box(x,h/2,cz,9.5,h,18,colors[Math.floor(rand()*5)]);solids.push({x,z:cz,w:5.3,d:9.6});box(x,h+.3,cz,10,.5,18.5,'#e4d2b2');for(let y=3;y<h-1;y+=3)for(let wx=-2.8;wx<=3;wx+=2.8){box(x+wx,y,cz+9.03,1.25,1.65,.08,'#42595c');box(x+wx,y-.8,cz+9.3,1.8,.15,.6,'#e1cba5');box(x+wx,y,cz-9.03,1.2,1.6,.08,'#536466')}box(x,1.2,cz+9.08,7,2,.1,j?'#376e70':'#877047');sign(['قهوة البلد','سوبر ماركت النيل','كشري عم سيد','عصير قصب'][((a+2)*4+b+2)%4],x,2.8,cz+9.2,7);box(x,h+1,cz,2,1.8,2,'#8e9a9a')}}
-function palm(x,z){if(renderer.isWebGLRenderer){createDetailedPalmV48(scene,x,z,6.3+Math.abs(z%9)*.14);return;}box(x,3,z,.35,6,.35,'#8e7956');for(let i=0;i<7;i++){let leaf=box(x,6,z,4,.15,.6,'#4d7954');leaf.rotation.y=i*Math.PI/3.5;leaf.rotation.z=.18}}for(let z=-75;z<80;z+=15){palm(7,z);palm(-67,z)}
-const cairo = installCairo(T,scene,box,sign,solids,{detailedTrees:!!renderer.isWebGLRenderer});
+function palm(x,z){if(renderer.isWebGLRenderer&&!isMobileOptimized){createDetailedPalmV48(scene,x,z,6.3+Math.abs(z%9)*.14);return;}box(x,3,z,.35,6,.35,'#8e7956');for(let i=0;i<7;i++){let leaf=box(x,6,z,4,.15,.6,'#4d7954');leaf.rotation.y=i*Math.PI/3.5;leaf.rotation.z=.18}}for(let z=-75;z<80;z+=15){palm(7,z);palm(-67,z)}
+const cairo = installCairo(T,scene,box,sign,solids,{detailedTrees:!!renderer.isWebGLRenderer&&!isMobileOptimized,mobileLite:isMobileOptimized});
 const realisticRoads=createRealisticRoads({T,scene});
 const streetDetails=installStreetDetailsV15({T,scene,box,sign,blocked});
+const mobileStaticV52=installMobileStaticBatchingV52({T,scene,renderer,mobileLite:isMobileOptimized});
 const cockpit=createCockpitV15({T,scene,camera});
 function car(color){
  const g=new T.Group(),wheels=[];
@@ -125,7 +128,7 @@ function car(color){
  g.userData.wheels=wheels;g.userData.chassis=chassis;
  scene.add(g);return g;
 }
-const taxi=car('#d7a52f');prepareDetailedCar(taxi,'#d7a52f',{enabled:!!renderer.isWebGLRenderer});taxi.position.set(2,0,8);box(0,1.72,0,.52,.20,.32,'#fff1c8',taxi.userData.chassis);
+const taxi=car('#d7a52f');prepareDetailedCar(taxi,'#d7a52f',{enabled:!!renderer.isWebGLRenderer&&!isMobileOptimized});taxi.position.set(2,0,8);box(0,1.72,0,.52,.20,.32,'#fff1c8',taxi.userData.chassis);
 function motorcycle(color){
  const g=new T.Group();g.userData.wheels=[];
  box(0,.52,0,.26,.13,1.22,'#35383b',g);box(0,.85,-.25,.40,.13,.68,'#25272b',g);
@@ -150,7 +153,7 @@ function motorcycle(color){
  box(0,1.15,-.12,.36,.48,.26,'#3a5260',g);const helmet=new T.Mesh(new T.SphereGeometry(.19,12,10),mat('#222b32'));helmet.position.set(0,1.55,-.06);g.add(helmet);box(0,1.57,.10,.28,.09,.06,'#6d8b95',g);
  for(const x of [-.25,.25]){box(x,.73,-.27,.13,.42,.20,'#334352',g);box(x,1.12,.28,.11,.12,.57,'#3a5260',g)}scene.add(g);return g;
 }
-const traffic=[];for(let i=0;i<22;i++){let c=i%4===3?motorcycle(['#b94536','#32657e','#b9ad82'][i%3]):car(['#d5d7d4','#466878','#742e2e','#b8b2a4','#34393e','#e0d2ad','#47745e'][i%7]);if(i%4!==3){if(i%3===0)c.scale.set(1.08,1.15,1.12);else if(i%3===1)c.scale.set(.94,.96,.90)}const direction=i%2?1:-1;c.userData.direction=direction;c.userData.axis=i<12?'z':'x';c.userData.cruise=i%4===3?10.2+(i%3)*.8:7.7+(i%4)*1.25;c.userData.actualCruise=c.userData.cruise;
+const traffic=[];for(let i=0;i<22;i++){if(isMobileOptimized&&i%3===0)continue;let c=i%4===3?motorcycle(['#b94536','#32657e','#b9ad82'][i%3]):car(['#d5d7d4','#466878','#742e2e','#b8b2a4','#34393e','#e0d2ad','#47745e'][i%7]);if(i%4!==3){if(i%3===0)c.scale.set(1.08,1.15,1.12);else if(i%3===1)c.scale.set(.94,.96,.90)}const direction=i%2?1:-1;c.userData.direction=direction;c.userData.axis=i<12?'z':'x';c.userData.cruise=i%4===3?10.2+(i%3)*.8:7.7+(i%4)*1.25;c.userData.actualCruise=c.userData.cruise;
  c.userData.massV19=i%4===3?215:i%3===0?1590:i%3===1?1125:1310;
  const lane=roads[i%5]+direction*2.6;const along=-76+(i%11)*14;if(c.userData.axis==='z')c.position.set(lane,0,along);else c.position.set(along,0,lane);c.rotation.y=(c.userData.axis==='x'?Math.PI/2:0)+(direction<0?Math.PI:0);traffic.push(c)}
 // Articulated lightweight protagonist, based on the approved character reference.
@@ -201,7 +204,7 @@ function makeHero(){
  return root;
 }
 const player=makeHero();dressReferenceHeroV47({T,player,renderer});scene.add(player);player.position.set(0,0,12);
-const crowd=createEgyptianCrowd(T,scene,(x,z)=>blocked(x,z,.38));
+const crowd=createEgyptianCrowd(T,scene,(x,z)=>blocked(x,z,.38),{mobileLite:isMobileOptimized});
 const walkers=crowd.people; // Forty unique residents
 
 const target=new T.Vector3(62,0,-50);let beacon=new T.Mesh(new T.CylinderGeometry(2,2,.12,32),new T.MeshBasicMaterial({color:0xffcd68,transparent:true,opacity:.7}));scene.add(beacon);let pillar=new T.Mesh(new T.CylinderGeometry(.25,.25,13,12),new T.MeshBasicMaterial({color:0xffd57e,transparent:true,opacity:.45}));scene.add(pillar);
@@ -368,7 +371,7 @@ function activateGarageVehicle(id){
    model.scale.set(.96,1.02,.95);
    box(0,1.66,-.13,1.27,.10,1.18,'#3c7886',model.userData.chassis);
   }
-  if(id!=='motorbike')prepareDetailedCar(model,id==='sport'?'#a91e32':'#294f60',{enabled:!!renderer.isWebGLRenderer});
+  if(id!=='motorbike')prepareDetailedCar(model,id==='sport'?'#a91e32':'#294f60',{enabled:!!renderer.isWebGLRenderer&&!isMobileOptimized});
   garageModels[id]=model;
  }
  activeVehicle=garageModels[id]||taxi;

@@ -3,6 +3,14 @@ export function installRealismRender({T,scene,renderer,sun}){
  if(!renderer.isWebGLRenderer)return {enabled:false,reason:'webgl-unavailable'};
  renderer.outputColorSpace=T.SRGBColorSpace;
  renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=.88;
+ // Touch devices: skip costly PMREM/environment map, real-time shadow atlas,
+ // and conversion of hundreds of city materials. Existing materials remain intact.
+ if(window.matchMedia?.('(pointer: coarse)')?.matches){
+  renderer.shadowMap.enabled=false;
+  sun.castShadow=false;
+  renderer.toneMappingExposure=1.08;
+  return {enabled:true,mobileLite:true,changed:0};
+ }
  const textures=new Map(),converted=new Map();let seed=819;
  const random=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
  function texture(kind){if(textures.has(kind))return textures.get(kind);const c=document.createElement('canvas');c.width=c.height=256;const q=c.getContext('2d');q.fillStyle=kind==='asphalt'?'#959595':'#ddd9d0';q.fillRect(0,0,256,256);

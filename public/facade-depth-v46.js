@@ -1,7 +1,7 @@
 // Physical architectural depth over the existing Cairo wall atlas.
 // Shared instanced geometry keeps thousands of fixtures within five draw calls.
 export function installFacadeDepthV46({T,scene,renderer}){
- if(!renderer?.isWebGLRenderer)return {enabled:false,stats:()=>({facades:0,fixtures:0})};
+ if(!renderer?.isWebGLRenderer||window.matchMedia?.('(pointer: coarse)')?.matches)return {enabled:false,stats:()=>({facades:0,fixtures:0})};
  const facades=[];
  scene.traverse(o=>{
   const g=o.geometry?.parameters,image=o.material?.map?.image;

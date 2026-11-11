@@ -44,7 +44,7 @@ export const EGYPTIAN_RESIDENTS = [
   ['الحاجة زينب','سيدة مسنّة','f','galabeya','#aa9f83','hijab','cane']
 ];
 // Mobile-aware Egyptian pedestrian rigs: better anatomy, facial identity and local clothing.
-export function createEgyptianCrowd(T,scene,isBlocked){
+export function createEgyptianCrowd(T,scene,isBlocked,options={}){
  const skintones=['#bb8565','#cb9777','#ad7555','#d3a17d','#99664e','#c48e6c','#b47c5c','#dda988'];
  const denim=['#40536d','#3b4a51','#4c4c53','#606057','#263f62','#4e4d48'];
  const haircolors=['#221c19','#332822','#201d1b','#413127'];
@@ -239,6 +239,7 @@ export function createEgyptianCrowd(T,scene,isBlocked){
  }
  const residents=[],paths=[-93,-60,-30,0,30,60,93,133],occupied=[];
  for(let i=0;i<EGYPTIAN_RESIDENTS.length;i++){
+   if(options.mobileLite&&i%3===2)continue;
    const g=makeResident(EGYPTIAN_RESIDENTS[i],i);
    const lane=Math.floor(i/5),z=paths[lane]+(i%2? -4.5:4.5),u=g.userData;
    u.minX=lane===7?-117:-77;u.maxX=lane===7?67:74;

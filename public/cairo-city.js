@@ -5,9 +5,9 @@ export function installCairo(T,scene,box,sign,solids,options={}){
 let seed=7431;const random=()=>{seed=seed*16807%2147483647;return seed/2147483647};
 const material=c=>new T.MeshLambertMaterial({color:c});
 const palettes=['#d2bda0','#bfa98c','#c8c2b2','#ddd0b7','#b7b8aa','#ba9a7c'];
-const facades=[];
+const facades=[],liteMobile=options.mobileLite===true;
 for(let style=0;style<6;style++){
- const c=document.createElement('canvas');c.width=512;c.height=1024;const g=c.getContext('2d');g.scale(2,2);
+ const c=document.createElement('canvas');c.width=liteMobile?256:512;c.height=liteMobile?512:1024;const g=c.getContext('2d');g.scale(liteMobile?1:2,liteMobile?1:2);
  g.fillStyle=palettes[style];g.fillRect(0,0,256,512);
  for(let n=0;n<90;n++){g.fillStyle=n%2?'#ffffff12':'#5f524010';g.fillRect(random()*256,random()*512,4+random()*24,2+random()*5)}
  for(let floor=0;floor<5;floor++){
@@ -30,7 +30,7 @@ for(let style=0;style<6;style++){
   g.fillStyle='#302c2412';g.fillRect(x-3,y+78,68,2);
   for(let streak=0;streak<3;streak++){g.fillStyle='#3c32280b';g.fillRect(x+random()*62,y+80,.7+random(),5+random()*10)}
  }
- const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=4;facades.push(new T.MeshLambertMaterial({map:tex,side:T.DoubleSide}));
+ const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=liteMobile?1:4;facades.push(new T.MeshLambertMaterial({map:tex,side:T.DoubleSide}));
 }
 function front(x,z,w,h,d,i){
  const p=new T.Mesh(new T.PlaneGeometry(w-.22,Math.max(1,h-2.4)),facades[i%6]);
