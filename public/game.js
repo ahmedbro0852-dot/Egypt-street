@@ -1,4 +1,5 @@
 import { createV30 } from './v30-expedition.js';
+import { createCairoRacesV31 } from './cairo-races-v31.js';
 import { installRealismRender } from './realism-render-v16.js';
 import { createStreetAudio } from './street-audio.js';
 import * as T from './three.js';
@@ -369,6 +370,11 @@ function activateGarageVehicle(id){
   model.position.copy(taxi.position);model.rotation.y=taxi.rotation.y;
  }
 }
+let raceSystem=null;
+const currentRaceVehicleId=()=>{
+ const race=raceSystem?.getRace();
+ return race?.id==='formula'?'sport':race?.id==='moto'?'motorbike':garage.getVehicle().id;
+};
 const garage=createGarageV8({
  ui:{
   open:$('garageBtn'),panel:$('garagePanel'),close:$('garageClose'),
@@ -385,15 +391,17 @@ const garage=createGarageV8({
   $('money').textContent='ج.م '+Math.round(cash);saveWallet();return true;
  },
  isDriving:()=>driving,notify:message=>toast(message),
- onSelect:activateGarageVehicle,onChanged:()=>saveWorld(true)
+ onSelect:id=>{if(raceSystem?.isRunning())raceSystem.finish(false,true);activateGarageVehicle(id)},
+ onChanged:()=>saveWorld(true)
 });
 activateGarageVehicle(garage.getVehicle().id);
 const drivingRealism=createDrivingRealismV9({notify:message=>toast(message)});
 let lastAbsUiV21=-Infinity;
 const collisionWorld=createCollisionPhysicsV18({
  traffic,pedestrians:walkers,storage:walletStorage,
- getVehicleType:()=>garage.getVehicle().id,
- getVehicleMass:()=>getVehicleDynamicsV19(garage.getVehicle().id).mass,
+ getRaceCars:()=>raceSystem?.getOpponents()||[],
+ getVehicleType:()=>currentRaceVehicleId(),
+ getVehicleMass:()=>getVehicleDynamicsV19(currentRaceVehicleId()).mass,
  registerDamage:force=>fuelSystem.registerImpact(force),
  reactPedestrian:(resident,away,power,time,physics)=>
     crowd.reactCollision(resident,away,power,time,physics),
@@ -406,7 +414,7 @@ const collisionWorld=createCollisionPhysicsV18({
  ui:$('collisionStatus'),forceUi:$('pedestrianForceV20')
 });
 const multiBodyV19=createMultiBodyV19({
- traffic,getId:()=>garage.getVehicle().id,
+ traffic,getId:()=>currentRaceVehicleId(),
  // Every contact is accounted for by the existing V18 damage/safety system.
  onExtra:()=>{},
  onInfo:message=>toast(message)
@@ -435,6 +443,50 @@ const rideDispatch=createTaxiDispatchV15({
  }
 });
 if(rideDispatch.getState().active)document.body.classList.add('rideActive');
+raceSystem=createCairoRacesV31({
+ T,scene,storage:walletStorage,fresh:freshStartV55,
+ getActive:()=>active,getPaused:()=>paused,getDriving:()=>driving,
+ getVehicle:()=>vehicleState,
+ requestDrive:()=>{if(!driving)enter();return driving},
+ prepareCar:(course,spawn)=>{
+  if(!driving)return false;
+  autoDriver.stop();updateAutoPilotLabel();
+  parkingBrake=false;updateParkingUi();
+  Object.assign(vehicleState,createVehiclePhysics(spawn.x,spawn.z,spawn.yaw));
+  taxi.position.set(spawn.x,0,spawn.z);taxi.rotation.y=spawn.yaw;
+  player.position.copy(taxi.position);yaw=spawn.yaw;speed=0;
+  cameraYaw=spawn.yaw;cameraFreeUntil=0;
+  // Formula and motorcycle modes provide their own open-wheel/racing visuals.
+  if(course.kind==='formula'||course.kind==='moto'){
+   for(const m of Object.values(garageModels))m.visible=false;
+   activeVehicle=raceSystem.getPlayerRaceModel(course.kind);
+   activeVehicle.position.copy(taxi.position);
+   activeVehicle.rotation.y=spawn.yaw;activeVehicle.visible=true;
+  }
+  if(fuelSystem.getState().fuel>.01){
+   if(!fuelSystem.getState().auto)fuelSystem.toggle();
+   const needed=120-fuelSystem.getState().target;
+   if(needed>0)fuelSystem.changeSpeed(needed);
+  }
+  if(!drivingRealism.getState().engineOn)
+   drivingRealism.toggleEngine(fuelSystem.getState().fuel,0);
+  $('controlsHint').textContent='🏁 اتبع الدواير الذهبية، لف بالدريكسيون، والفرامل بإيدك';
+  saveWorld(true);return true;
+ },
+ restoreCar:()=>{
+  activeVehicle.visible=false;
+  activateGarageVehicle(garage.getVehicle().id);
+  $('controlsHint').textContent='🧭 GPS للمهمات • العصاية للتحكم اليدوي';
+  saveWorld(true);
+ },
+ onReward:(amount,course,rank)=>{
+  cash=Math.min(1e7,cash+amount);
+  $('money').textContent='ج.م '+Math.round(cash);
+  saveWallet();saveWorld(true);
+ },
+ onFinish:()=>saveWorld(true),
+ notify:message=>toast(message)
+});
 let v9Live={engineOn:false,rpm:0,gear:'N',turn:'off',hazards:false,left:false,right:false,throttleScale:0};
 let v9UiLast=-1;
 function updateV9Lamps(){
@@ -473,6 +525,7 @@ function updateAutoPilotLabel(){
 }
 $('autoPilot').onclick=()=>{
  if(!driving)return;
+ if(raceSystem?.isRunning()){toast('🏁 أثناء السباق القيادة يدوية — استخدم الدريكسيون والفرامل');return;}
  if(parkingBrake){toast('فك فرامل اليد الأول عشان تشغّل القيادة الذاتية');return;}
  autoDriver.toggle(vehicleState);
  if(autoDriver.getState().enabled&&!fuelSystem.getState().auto&&fuelSystem.getState().fuel>.01)fuelSystem.toggle();
@@ -707,6 +760,12 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
   map.strokeStyle='#67e6eb';map.lineWidth=2;
   map.beginPath();map.arc(mx(eventWaypoint.x),mz(eventWaypoint.z),7,0,Math.PI*2);map.stroke();
  }
+ const racePoint=raceSystem?.getRace()?.waypoint;
+ if(racePoint){
+  map.strokeStyle='#ffca62';map.lineWidth=3;
+  map.beginPath();map.arc(mx(racePoint.x),mz(racePoint.z),8,0,Math.PI*2);map.stroke();
+  map.fillStyle='#ffce79';map.font='bold 11px Arial';map.fillText('🏁',mx(racePoint.x)-5,mz(racePoint.z)-10);
+ }
  const workPoint=career.waypoint();
  if(workPoint){
   map.strokeStyle='#80ffc2';map.lineWidth=2.8;
@@ -750,15 +809,21 @@ function frame(t){
    if(autoDriver.getState().enabled&&Math.abs(manualSteer)>.24){
      autoDriver.stop();updateAutoPilotLabel();
    }
+   if(raceSystem?.isRunning()&&autoDriver.getState().enabled){
+    autoDriver.stop();updateAutoPilotLabel();
+   }
    const autopilot=autoDriver.controls(vehicleState,traffic,walkers,dt,{cruiseKmh:fuelSystem.getState().target});
-   const tune={...garage.getTuning(),...getVehicleDynamicsV19(garage.getVehicle().id)};
+   const racingId=currentRaceVehicleId();
+   const tune={...garage.getTuning(),...getVehicleDynamicsV19(racingId)};
+   if(racingId==='sport'&&raceSystem?.isFormula()){tune.topSpeed=52;tune.engineForce=10100}
    const roadSurface=realisticRoads.surfaceAt(vehicleState.x,vehicleState.z);
    const tyreGrip=roadGrip(p.x,p.z)*cityLife.grip()*streetDetails.grip(p.x,p.z)*
        roadSurface.grip*tune.gripScale;
    const steer=autopilot.active?autopilot.steer:manualSteer;
    const braking=brakePedal||sprint||keys.shift||keys[' ']||
       $('jobsPanel').style.display==='block'||$('garagePanel').style.display==='block'||
-      $('gpsPanel').style.display==='block'||autopilot.brake||parkingBrake||reverseBraking;
+      $('gpsPanel').style.display==='block'||autopilot.brake||parkingBrake||reverseBraking||
+      raceSystem?.getRace()?.phase==='countdown';
    const demandedThrottle=autopilot.active?
       (braking||fuelSystem.getState().fuel<=.01||!fuelSystem.getState().auto?
         0:Math.min(fuelSystem.throttle({manual:1}),autopilot.throttle)):
@@ -771,7 +836,8 @@ function frame(t){
       steer:vehicleState.steer,yaw:vehicleState.yaw,fuel:fuelSystem.getState().fuel,
       parking:parkingBrake,skid:vehicleState.skid,vehicleId:garage.getVehicle().id
    });
-   const throttle=demandedThrottle*v9Live.throttleScale;
+   const throttle=demandedThrottle*v9Live.throttleScale*
+      (raceSystem?.getRace()?.phase==='countdown'?0:1);
    const oldPos={x:vehicleState.x,z:vehicleState.z};
    const result=stepVehiclePhysics(vehicleState,{
      throttle,steer,brake:braking,absEnabled:true,
@@ -889,6 +955,7 @@ function frame(t){
   career.update(dt,t);
   rideDispatch.update(dt);
   gps.update(dt);
+  raceSystem.update(dt,t);
   if(driving&&p.distanceTo(target)<4&&Math.abs(speed)<10){
    cash+=150;completed++;
    $('money').textContent='ج.م '+Math.round(cash);saveWallet();
