@@ -864,6 +864,14 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
   map.beginPath();map.arc(mx(racePoint.x),mz(racePoint.z),8,0,Math.PI*2);map.stroke();
   map.fillStyle='#ffce79';map.font='bold 11px Arial';map.fillText('🏁',mx(racePoint.x)-5,mz(racePoint.z)-10);
  }
+ // V41 laptop desk: turquoise 💻 marker near the spawn intersection.
+ if(!raceModeV32){
+  const laptopPos=streetLaptopV41.position;
+  map.fillStyle='#57f1d4';map.beginPath();
+  map.arc(mx(laptopPos.x),mz(laptopPos.z),5.4,0,Math.PI*2);map.fill();
+  map.font='bold 12px Arial';
+  map.fillText('💻',mx(laptopPos.x)-7,mz(laptopPos.z)-10);
+ }
  const workPoint=career.waypoint();
  if(workPoint){
   map.strokeStyle='#80ffc2';map.lineWidth=2.8;
