@@ -619,14 +619,40 @@ body.cockpitActive #camera{background:#e1a85e!important;color:#182c36!important}
 /* Manual brakes with realistic ABS are retained; no proximity safety controls. */
 #v21AbsStatus{color:#d4efe9;font-size:10px;margin:3px 1px;direction:rtl}
 @media(max-width:760px){#v21AbsStatus{font-size:9px}}
+
+/* V34 – hold-to-drift. Sits above the regular pedals, never on the joystick. */
+#driftPedalV34{display:none;position:fixed;right:13px;bottom:205px;z-index:29;
+ width:90px;height:56px;border-radius:15px;background:#7a3b30;color:#fff4dd;
+ border:1px solid #f6bd7b;box-shadow:0 5px 18px #0009;font:700 12px Tahoma,Arial;
+ touch-action:none;user-select:none;-webkit-user-select:none;line-height:1.2}
+#driftPedalV34 small{font-size:9px;font-weight:400}
+.driving #driftPedalV34{display:block}
+#driftPedalV34[aria-pressed="true"]{background:#d18439;color:#251a12;transform:scale(.96)}
+#driftV34Hud{position:fixed;z-index:24;right:10px;bottom:278px;
+ width:170px;padding:7px 10px;border-radius:12px;direction:rtl;text-align:right;
+ background:#192832eb;border:1px solid #f2b45d99;color:#ffe4b3;
+ pointer-events:none;box-shadow:0 6px 18px #0008;font:11px Tahoma,Arial}
+#driftV34Hud strong{font-size:15px;display:block}
+#driftV34Hud #driftV34Info{margin-top:4px;font-size:9px;color:#c7dccb}
+#driftV34Hud[data-drifting="true"]{border-color:#ffd15f;background:#67452fe9}
+#driftV34Hud[hidden]{display:none!important}
+@media(max-width:760px){
+ #driftPedalV34{right:10px;bottom:202px;width:78px;height:50px;font-size:11px}
+ #driftV34Hud{right:8px;bottom:258px;width:145px;padding:6px 8px}
+ #driftV34Hud strong{font-size:13px}
+}
+@media(orientation:landscape) and (max-height:520px){
+ #driftPedalV34{right:195px;bottom:96px;width:65px;height:46px;font-size:10px}
+ #driftV34Hud{right:10px;bottom:172px;width:145px}
+}
 </style>
-<canvas id="world"></canvas><div class="hud"><div class="tag">CAIRO • OPEN WORLD • V30 FREE DRIVE</div><div class="brand"><img class="logoHud" src="egypt-streets-logo.svg" alt="شوارع مصر — Egypt Streets"></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><div class="missionHeading"><span class="missionDot" aria-hidden="true"></span><small>المهمة الحالية</small><span class="missionChip">LIVE</span></div><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
+<canvas id="world"></canvas><div class="hud"><div class="tag">CAIRO • OPEN WORLD • V34 DRIFT</div><div class="brand"><img class="logoHud" src="egypt-streets-logo.svg" alt="شوارع مصر — Egypt Streets"></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><div class="missionHeading"><span class="missionDot" aria-hidden="true"></span><small>المهمة الحالية</small><span class="missionChip">LIVE</span></div><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
  <strong id="cityTime">🕒 07:30</strong>
  <span id="cityWeather">☀️ صحو</span>
  <span id="cityLaw">🚦 إشارات مرور ومخالفات</span>
  <div id="lifeButtons"><button id="cityNight" type="button">🌙 الليل</button>
  <button id="cityWeatherBtn" type="button">غيّر الطقس</button></div>
- </section><div id="cityVersion">شوارع مصر • V21 FREE DRIVE</div><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div>
+ </section><div id="cityVersion">شوارع مصر • V34</div><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div>
 <section id="fuelHud" aria-live="off">
  <div id="fuelTitle">⛽ تانك العربية <span id="gearBadge" aria-label="الغيار الحالي">N</span></div>
  <div id="driveReadout" aria-live="off">🚗 واقف • الدريكسيون مستقيم</div>
@@ -654,7 +680,10 @@ body.cockpitActive #camera{background:#e1a85e!important;color:#182c36!important}
  <button id="v9Right" type="button" aria-label="إشارة يمين">▶</button>
  <button id="v9Ignition" type="button" aria-label="تشغيل أو إطفاء الموتور">🔑</button>
  </div>
-<button id="interact" type="button" aria-label="التفاعل مع الشخصيات والأحداث">💬 اتفاعل</button><button id="sound" aria-label="تشغيل أو كتم أصوات اللعبة" aria-pressed="true">الصوت شغال</button><div class="pedals"><button id="accelerate" aria-label="زود السرعة التلقائية">سرعة +</button><button id="brakePedal" aria-label="فرامل">فرامل ■</button><button id="reverse" aria-label="رجوع للخلف">رجوع ▼</button></div><div class="bottom"><button id="camera" aria-label="تغيير زاوية الكاميرا">كاميرا 🎥</button><div id="speed">0<small>كم / س</small></div><button id="horn">بوق</button><button id="run">جري</button><button id="jump" aria-label="قفز">قفز ⤴</button><button id="enter" class="primary">اركب</button></div><div id="heroCard"><div>بطل شوارع مصر<small>تيشيرت فحمي • جينز أزرق</small></div><img src="character-reference.jpg" alt="مرجع تصميم الشخصية"></div><button id="garageBtn" type="button">🔧 جراج</button>
+<button id="interact" type="button" aria-label="التفاعل مع الشخصيات والأحداث">💬 اتفاعل</button><button id="sound" aria-label="تشغيل أو كتم أصوات اللعبة" aria-pressed="true">الصوت شغال</button><div class="pedals"><button id="accelerate" aria-label="زود السرعة التلقائية">سرعة +</button><button id="brakePedal" aria-label="فرامل">فرامل ■</button><button id="reverse" aria-label="رجوع للخلف">رجوع ▼</button></div>
+<button id="driftPedalV34" type="button" aria-label="اضغط باستمرار للدرفت أثناء اللف" aria-pressed="false">🏎️ درفت<br><small>اضغط واستمر</small></button>
+<section id="driftV34Hud" hidden aria-label="نقاط الدرفت"><strong id="driftV34Score">🏁 نقاط الدرفت 0</strong><div id="driftV34Info">أفضل سلسلة: 0 • الإجمالي: 0</div></section>
+<div class="bottom"><button id="camera" aria-label="تغيير زاوية الكاميرا">كاميرا 🎥</button><div id="speed">0<small>كم / س</small></div><button id="horn">بوق</button><button id="run">جري</button><button id="jump" aria-label="قفز">قفز ⤴</button><button id="enter" class="primary">اركب</button></div><div id="heroCard"><div>بطل شوارع مصر<small>تيشيرت فحمي • جينز أزرق</small></div><img src="character-reference.jpg" alt="مرجع تصميم الشخصية"></div><button id="garageBtn" type="button">🔧 جراج</button>
 <section id="garagePanel" role="dialog" aria-label="جراج شوارع مصر">
  <button id="garageClose" type="button" aria-label="إغلاق الجراج">✕</button>
  <h2>🔧 جراج شوارع مصر <span>V15</span></h2>
