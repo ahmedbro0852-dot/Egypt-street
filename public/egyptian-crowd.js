@@ -82,11 +82,11 @@ export function createEgyptianCrowd(T,scene,isBlocked){
       ell(leg,skirt?outer:pants,0,-.325,0,.112,.37,.115);
       ell(leg,i%4===0?'#dfd9ca':'#393b3d',0,-.71,.075,.13,.08,.205);
     }
+    ell(body,outer,0,1.17,0,gender==='f'?.29:.32,.39,.205);
     if(skirt){
-      const dress=mesh(body,geo('cone',[.38,.94,9]),outer,0,.53,0);
-      dress.rotation.z=Math.PI; // broad hem, narrower shoulders
+      // Cone is wide at the bottom so the galabeya has a natural hem.
+      mesh(body,geo('cone',[.37,.92,9]),outer,0,.59,0);
     }else{
-      ell(body,outer,0,1.12,0,gender==='f'?.29:.32,.40,.205);
       rect(body,pants,0,.84,0,.26,.17,.15);
     }
     if(style==='formal'){
@@ -195,8 +195,9 @@ export function createEgyptianCrowd(T,scene,isBlocked){
       const u=p.userData;
       const dx=p.position.x-f.x,dz=p.position.z-f.z;
       const dist2=dx*dx+dz*dz;
-      p.visible=dist2<118*118;
-      if(dist2>135*135)continue;
+      const drawRange=(typeof innerWidth==='number'&&innerWidth<760)?78:112;
+      p.visible=dist2<drawRange*drawRange;
+      if(dist2>(drawRange+20)*(drawRange+20))continue;
       const pauseNearPlayer=dist2<2.8*2.8;
       let yieldCar=false;
       if(controlledCar){
