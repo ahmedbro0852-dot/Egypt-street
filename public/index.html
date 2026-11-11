@@ -610,14 +610,19 @@ body.cockpitActive #camera{background:#e1a85e!important;color:#182c36!important}
 #vehicleMassV19{padding:4px 7px;font-size:10px;line-height:1.45;color:#cae8df;
  background:#1c343d91;border-radius:7px;border:1px solid #b8e5de45}
 @media(max-width:760px){#vehicleMassV19{font-size:9px;padding:3px 6px}}
+/* V20 educational in-game impulse indicator */
+#pedestrianForceV20{font-size:10px;line-height:1.45;color:#d7e9eb;
+ padding:3px 7px;margin-top:3px;border:1px solid #84b5b35c;border-radius:7px;
+ background:#152f37bb;direction:rtl}
+@media(max-width:760px){#pedestrianForceV20{font-size:9px;padding:3px 5px}}
 </style>
-<canvas id="world"></canvas><div class="hud"><div class="tag">CAIRO • OPEN WORLD • V19</div><div class="brand"><img class="logoHud" src="egypt-streets-logo.svg" alt="شوارع مصر — Egypt Streets"></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><div class="missionHeading"><span class="missionDot" aria-hidden="true"></span><small>المهمة الحالية</small><span class="missionChip">LIVE</span></div><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
+<canvas id="world"></canvas><div class="hud"><div class="tag">CAIRO • OPEN WORLD • V20</div><div class="brand"><img class="logoHud" src="egypt-streets-logo.svg" alt="شوارع مصر — Egypt Streets"></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><div class="missionHeading"><span class="missionDot" aria-hidden="true"></span><small>المهمة الحالية</small><span class="missionChip">LIVE</span></div><p id="task">اركب العربية الصفرا ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
  <strong id="cityTime">🕒 07:30</strong>
  <span id="cityWeather">☀️ صحو</span>
  <span id="cityLaw">🚦 إشارات مرور ومخالفات</span>
  <div id="lifeButtons"><button id="cityNight" type="button">🌙 الليل</button>
  <button id="cityWeatherBtn" type="button">غيّر الطقس</button></div>
- </section><div id="cityVersion">شوارع مصر • V19</div><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div>
+ </section><div id="cityVersion">شوارع مصر • V20</div><section id="eventPanel" aria-live="polite"><div id="eventTitle"></div><div id="eventText"></div></section><button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button><div id="joy" role="group" aria-label="عصاية الحركة والتوجيه"><div id="knob"></div></div><div id="controlsHint" aria-live="polite">اسحب العصاية للمشي</div>
 <section id="fuelHud" aria-live="off">
  <div id="fuelTitle">⛽ تانك العربية <span id="gearBadge" aria-label="الغيار الحالي">N</span></div>
  <div id="driveReadout" aria-live="off">🚗 واقف • الدريكسيون مستقيم</div>
@@ -630,6 +635,7 @@ body.cockpitActive #camera{background:#e1a85e!important;color:#182c36!important}
  <div id="fuelAmount">16 / 45 لتر</div><div id="fuelCondition">🔧 حالة العربية 100% • 25°</div>
  <div id="vehicleMassV19">⚖️ الوزن 1310 كجم • قاعدة العجل 2.70 م</div>
  <div id="collisionStatus" aria-live="off">🛡️ سواقة آمنة • خلي بالك من المشاة</div>
+ <div id="pedestrianForceV20" aria-live="off">⚖️ قوة التصادم: F = m × a</div>
  <div id="fuelTrack"><div id="fuelFill"></div></div>
  <div id="fuelActions"><button id="autoDrive" type="button">⏸️ وقف البنزين التلقائي</button>
  <button id="autoPilot" type="button">🤖 قيادة ذاتية: شغالة</button>
@@ -684,7 +690,7 @@ body.cockpitActive #camera{background:#e1a85e!important;color:#182c36!important}
  <strong id="v15RideTitle">🚕 مشوار تاكسي</strong>
  <p id="v15RideText">اركب وسوق للراكب</p>
  <button id="v15RideCancel" type="button">إلغاء المشوار</button>
- </section><div id="versionBadge">شوارع مصر · V19</div><button id="jobsBtn" type="button">💼 تقديم شغل</button><section id="jobsPanel" role="dialog" aria-label="وظايف شوارع مصر">
+ </section><div id="versionBadge">شوارع مصر · V20</div><button id="jobsBtn" type="button">💼 تقديم شغل</button><section id="jobsPanel" role="dialog" aria-label="وظايف شوارع مصر">
  <button id="jobsClose" aria-label="اقفل الوظائف">✕</button>
  <h2>💼 مكتب تشغيل شوارع مصر</h2><p>قدّم على الشغل، اتقبل في الوظيفة، وبعدها ابدأ وردية وخد مرتبك!</p>
  <div id="jobsList">
@@ -698,7 +704,7 @@ body.cockpitActive #camera{background:#e1a85e!important;color:#182c36!important}
  <button id="workAction" type="button">نفّذ المهمة</button><div id="toast">حي النيل • القاهرة</div><div id="npcDialogue" role="status" aria-live="polite"></div><div id="intro" class="overlay v55-intro" role="dialog" aria-label="شاشة بداية شوارع مصر">
  <div class="v55-glow" aria-hidden="true"></div>
  <section class="v55-box">
-  <span class="v55-eyebrow"><span class="v55-liveDot"></span> THE CITY IS YOURS · EGYPT STREETS V19</span>
+  <span class="v55-eyebrow"><span class="v55-liveDot"></span> THE CITY IS YOURS · EGYPT STREETS V20</span>
   <img class="logoHero" src="egypt-streets-logo.svg" alt="شوارع مصر"><h1 class="srOnly">شوارع مصر</h1>
   <div class="v55-line" aria-hidden="true"></div><div class="introRoadBadge">✦ القاهرة · بين النيل والشوارع والناس ✦</div>
   <p class="v55-subtitle">من أول شارع لحد آخر حكاية. اركب عربيتك وسوق في القاهرة من كاميرا الصالون، واستلم ركاب تاكسي حقيقيين، مع GPS وشغل وجراج ومهمات وإشارات مرور.</p>
