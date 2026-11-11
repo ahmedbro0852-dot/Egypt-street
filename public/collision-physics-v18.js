@@ -37,7 +37,7 @@ export function pedestrianContact(car,person,radius=.43){
  const axis=front<sides?f:r,negative=front<sides?along:across;
  return {penetration:radius+Math.min(front,sides),normal:{x:axis.x*(negative<0?1:-1),z:axis.z*(negative<0?1:-1)}};
 }
-export function createCollisionPhysicsV18({traffic=[],pedestrians=[],getVehicleType=()=>'taxi',
+export function createCollisionPhysicsV18({traffic=[],pedestrians=[],getRaceCars=()=>[],getVehicleType=()=>'taxi',
  getVehicleMass=()=>1310,registerDamage=()=>{},reactPedestrian=()=>{},charge=()=>false,
  notify=()=>{},sound=()=>{},storage,ui,forceUi}={}){
  let stats={hits:0,carHits:0,pedHits:0,trafficHits:0,totalPenalty:0};
@@ -55,7 +55,7 @@ export function createCollisionPhysicsV18({traffic=[],pedestrians=[],getVehicleT
  function probe(x,z,yaw=0,id=getVehicleType()){
   if(![x,z,yaw].every(Number.isFinite))return null;
   const me=vehicleShape(x,z,yaw,id);let hit=null,contacts=[];
-  for(const other of traffic){
+  for(const other of [...traffic,...getRaceCars()]){
    if((other.position.x-x)**2+(other.position.z-z)**2>36)continue;
    const contact=vehicleContact(me,bodyOf(other));
    if(contact){
