@@ -1,6 +1,7 @@
 // Egypt Streets V32 — Cairo championships now take place at an empty dedicated racetrack.
 import { createRaceArenaV32, RACE_CIRCUIT_V32 } from './race-arena-v32.js';
 import { createTimedDriftV35, DRIFT_CHALLENGE_V35 } from './drift-challenge-v35.js';
+import { createTimeAttackV37, TIME_ATTACK_V37 } from './time-attack-v37.js';
 // Sequential checkpoints prohibit shortcut victories; NPCs race on actual road-grid segments.
 export const CAIRO_RACES_V31=[
  {id:'formula',name:'فورملا القاهرة',icon:'🏎️',laps:2,reward:900,kind:'formula',difficulty:'محترفين',
@@ -14,6 +15,9 @@ export const CAIRO_RACES_V31=[
   points:RACE_CIRCUIT_V32},
  {id:'drift',name:'تحدّي درفت القاهرة',icon:'🔥',laps:0,reward:950,kind:'drift',
   difficulty:'مهارة وتحكم',duration:90,color:0xffa85e,speed:0,
+  points:RACE_CIRCUIT_V32},
+ {id:'timeattack',name:'تحدّي الرقم القياسي',icon:'⏱️',laps:1,reward:850,
+  kind:'timeattack',difficulty:'ضد نفسك',duration:150,color:0x67dbf3,speed:0,
   points:RACE_CIRCUIT_V32}
 ];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -178,6 +182,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  };
  const pointsById=Object.fromEntries(CAIRO_RACES_V31.map(r=>[r.id,toPoints(r)]));
  const raceArena=createRaceArenaV32({T,scene});
+ const timeAttackV37=createTimeAttackV37({storage});
  function renderPanel(){
   summary.textContent='🏅 انتصارات: '+history.wins+' • سباقات: '+history.races+
     ' • أرباح مسابقات: '+history.earned+' ج.م';
@@ -189,11 +194,14 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    const best=history.best[course.id];
    small.textContent=course.kind==='drift'?
     '🏟️ الحلبة الفاضية • ⏱️ 90 ثانية • 🔥 درفت بالنقاط على الأسفلت • 🏅 برونز 200 / فضة 480 / ذهب 850 / أسطوري 1350 • 🏆 حتى 950 جنيه • أفضل رقم: '+history.bestDrift:
+    course.kind==='timeattack'?
+    '⏱️ لفة واحدة ضد الساعة • 👻 عربية شبح من أسرع محاولة سابقة • 🥇 أقل من 48ث / 🥈 72ث / 🥉 110ث • أفضل زمن: '+fmt(timeAttackV37.getHistory().bestTime):
     '🏟️ في الحلبة الفاضية بعيد عن زحمة المدينة • 🔁 '+course.laps+' لفة • 👥 3 منافسين • ⭐ '+course.difficulty+
      ' • 🏆 الأول +'+course.reward+' جنيه • أفضل زمن: '+fmt(best);
    const btn=make('button','',c);
    btn.type='button';btn.className='start';
-   btn.textContent=course.kind==='drift'?'🔥 ابدأ تحدّي الدرفت':'🏁 ابدأ السباق';
+   btn.textContent=course.kind==='drift'?'🔥 ابدأ تحدّي الدرفت':
+    course.kind==='timeattack'?'⏱️ اكسر رقمك القياسي':'🏁 ابدأ السباق';
    btn.disabled=!!active;
    btn.onclick=()=>start(course.id);
   }
@@ -210,7 +218,13 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  }
  const formulaPlayer=createRacerModel(T,'formula',0xd52e3e);
  const motoPlayer=createRacerModel(T,'moto',0xc83b3b);
- scene.add(formulaPlayer,motoPlayer);
+ const timeGhostV37=createRacerModel(T,'street',0x63eee1);
+ timeGhostV37.traverse(node=>{
+  if(node.material){node.material.transparent=true;node.material.opacity=.26;
+   node.material.depthWrite=false}
+ });
+ scene.add(formulaPlayer,motoPlayer,timeGhostV37);
+ timeGhostV37.visible=false;
  let marker=null,beam=null,startingLine=null;
  if(T.TorusGeometry&&T.CylinderGeometry){
   marker=new T.Mesh(new T.TorusGeometry(2.3,.22,6,24),
@@ -234,6 +248,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   for(const m of models)m.visible=false;
   if(marker)marker.visible=beam.visible=startingLine.visible=false;
   formulaPlayer.visible=false;motoPlayer.visible=false;
+  timeGhostV37.visible=false;
  }
  function configureModels(kind){
   for(let i=0;i<3;i++){
@@ -253,10 +268,10 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   const yaw=Math.atan2(second.x-first.x,second.z-first.z);
   if(prepareCar(course,{x:first.x,z:first.z,yaw})===false)return false;
   raceArena.show();
-  const driftMode=course.kind==='drift';
-  if(driftMode)resetModels();
+  const driftMode=course.kind==='drift',timeMode=course.kind==='timeattack';
+  if(driftMode||timeMode)resetModels();
   else configureModels(course.kind);
-  const enemies=driftMode?[]:models.map((model,i)=>{
+  const enemies=driftMode||timeMode?[]:models.map((model,i)=>{
    // Real starting grid: competitors are staged ahead on the actual asphalt,
    // not in the unpaved infield or outside the circuit.
    const gap=(i+1)*5.8,side=[-1.8,1.8,0][i];
@@ -271,6 +286,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   active={id,course,points:pts,steps:0,lap:0,elapsed:0,lapStart:0,bestLap:Infinity,
    count:3.35,phase:'countdown',enemies,lastPosition:null,rank:4,startingHealth:100,
    driftChallenge:driftMode?createTimedDriftV35({points:pts,duration:course.duration}):null,
+   timeAttack:timeMode?timeAttackV37:null,
    driftScore:0,driftMedal:'none'};
   panel.hidden=true;podium.hidden=true;hud.hidden=false;
   document.body.classList.add('racingActive');
@@ -282,8 +298,14 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   if(course.kind==='moto')motoPlayer.visible=true;
   if(driftMode){if(marker)marker.visible=false;if(beam)beam.visible=false}
   else updateMarker();
+  if(timeMode&&timeAttackV37.getHistory().hasGhost){
+   const p=timeAttackV37.getGhost(0);
+   timeGhostV37.position.set(p.x,0,p.z);
+   timeGhostV37.rotation.y=p.yaw;timeGhostV37.visible=true;
+  }
   lastCountdown=0;
   notify(driftMode?'🔥 تحدّي الدرفت 90 ثانية: لف واضغط زر درفت على الأسفلت!':
+    timeMode?'⏱️ لفة واحدة: اكسر رقمك القياسي! عربيتك الشبح من أسرع لفة سابقة 👻':
     '🏁 وصلت حلبة السباق الفاضية! '+course.name+' — '+course.laps+' لفة');
   updateHud(true);return true;
  }
@@ -291,6 +313,17 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   if(!active){hud.hidden=true;countdown.hidden=true;return}
   const a=active,course=a.course;
   hudTitle.textContent=course.icon+' '+course.name;
+  if(a.timeAttack){
+   const record=a.timeAttack.getHistory(),remaining=Math.max(0,a.course.duration-a.elapsed);
+   stats.textContent='⏱️ '+fmt(a.elapsed)+' • باقي '+Math.ceil(remaining)+'ث • لفة 1/1';
+   leaderboard.textContent=record.hasGhost?'👻 أسرع شبح: '+fmt(record.bestTime):
+      '👻 أول محاولة: احفظ رقمك القياسي';
+   const next=a.points[(a.steps+1)%a.points.length];
+   hint.textContent=a.phase==='countdown'?'🚦 استعد! ابدأ بعد العدّ التنازلي':
+      '🏁 نقطة '+(a.steps%a.points.length+1)+'/'+a.points.length+
+      ' • '+Math.round(dist(getVehicle(),next))+'م • أسرع من '+fmt(record.bestTime)+'؟';
+   return;
+  }
   if(a.driftChallenge){
    const result=a.driftChallenge.getState();
    stats.textContent='🔥 نقاط '+result.score+' • ⏱️ متبقي '+Math.ceil(result.remaining)+' ثانية';
@@ -315,11 +348,27 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   if(!active)return;
   const a=active,course=a.course,driftMode=!!a.driftChallenge,
    driftResult=driftMode?a.driftChallenge.getState():null,
-   rank=driftMode?(driftResult.medal==='elite'||driftResult.medal==='gold'?1:
+   rank=a.timeAttack?1:driftMode?(driftResult.medal==='elite'||driftResult.medal==='gold'?1:
         driftResult.medal==='silver'?2:driftResult.medal==='bronze'?3:4):
         (forfeit?4:a.rank),
    completed=a.phase==='racing'&&!forfeit&&won;
-  if(completed&&driftMode){
+  if(a.timeAttack&&!completed)a.timeAttack.abort();
+  if(completed&&a.timeAttack){
+   const result=a.timeAttack.finish(a.elapsed,getVehicle(),{valid:true});
+   if(result.accepted){
+    history.races++;history.wins++;history.earned+=result.reward;
+    history.best[a.id]=result.best;persist();
+    if(result.reward>0)onReward(result.reward,course,1);
+    const medal=result.medal==='gold'?'🥇 ذهب':result.medal==='silver'?'🥈 فضة':
+      result.medal==='bronze'?'🥉 برونز':'🏁 إكمال';
+    podium.hidden=false;
+    podium.textContent='⏱️ تحدّي الرقم القياسي • '+fmt(result.time)+' • '+medal+
+     ' • '+(result.personalBest?'🎉 رقم قياسي جديد!':'أفضل رقم '+fmt(result.best))+
+     ' • +'+result.reward+' جنيه';
+    notify('🏁 '+(result.personalBest?'رقم قياسي جديد! ':'')+
+       'زمنك '+fmt(result.time)+' • +'+result.reward+' جنيه');
+   }
+  }else if(completed&&driftMode){
    // Only time expiry ends a drift event. Quitting or closing gives no prize.
    history.races++;history.driftChallenges++;
    if(rank===1)history.wins++;
@@ -413,6 +462,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    if(num!==lastCountdown)lastCountdown=num;
    if(a.count<=-.65){
     a.phase='racing';countdown.hidden=true;a.elapsed=0;a.lapStart=0;
+    if(a.timeAttack)a.timeAttack.begin(car);
    }
    updateHud();return;
   }
@@ -428,6 +478,16 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    return;
   }
   a.elapsed+=delta;
+  if(a.timeAttack){
+   a.timeAttack.record(a.elapsed,car);
+   if(timeGhostV37.visible){
+    const ghost=a.timeAttack.getGhost(a.elapsed);
+    if(ghost){timeGhostV37.position.set(ghost.x,0,ghost.z);
+      timeGhostV37.rotation.y=ghost.yaw}
+   }
+   if(a.elapsed>=a.course.duration){finish(false,true);
+    notify('⌛ وقت الرقم القياسي خلص! جرّب من جديد');return}
+  }
   // Sequential ordered checkpoints; unrelated shortcuts never advance a race.
   const updated=checkpointProgressV31(a.points,car.x,car.z,a.steps);
   if(updated>a.steps){
@@ -467,6 +527,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   getPlayerRaceModel:kind=>kind==='moto'?motoPlayer:formulaPlayer,
   getPlayerFormula:()=>formulaPlayer,
   getOpponents:()=>active?active.enemies.filter(x=>!x.finished).map(x=>x.model):[],
-  getHistory:()=>({...history}),getCourses:()=>CAIRO_RACES_V31,
+  getHistory:()=>({...history}),getTimeAttackHistory:()=>timeAttackV37.getHistory(),
+  getCourses:()=>CAIRO_RACES_V31,
   isRunning:()=>!!active};
 }
