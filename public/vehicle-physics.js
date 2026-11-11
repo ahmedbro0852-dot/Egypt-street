@@ -25,7 +25,7 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
  const steerScale=clamp(Number.isFinite(tuning.steerScale)?tuning.steerScale:1,.7,1.45);
  const topSpeed=clamp(Number.isFinite(tuning.topSpeed)?tuning.topSpeed:MAX_FORWARD,24,56);
  const grip=clamp(Number.isFinite(input.grip)?input.grip:1,.45,1.25);
- let impact=0,collision=false,maxSlip=0,sideAccel=0;
+ let impact=0,collision=false,contact=null,maxSlip=0,sideAccel=0;
  const steps=Math.max(1,Math.ceil(dt/(1/120))),h=dt/steps;
  for(let i=0;i<steps;i++){
    const speed=Math.abs(p.speed);
@@ -73,7 +73,13 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
    let hit=false;
    for(let j=1;j<=n;j++){
      const f=j/n;
-     if(intersects(p.x+(nx-p.x)*f,p.z+(nz-p.z)*f,p.yaw+(nyaw-p.yaw)*f)){hit=true;break}
+     const candidate=intersects(p.x+(nx-p.x)*f,p.z+(nz-p.z)*f,p.yaw+(nyaw-p.yaw)*f);
+     if(candidate){
+       hit=true;
+       // Static buildings still return boolean; moving contacts carry a body/normal.
+       if(candidate!==true&&typeof candidate==='object'&&!contact)contact=candidate;
+       break;
+     }
    }
    if(hit){
      collision=true;impact=Math.max(impact,Math.hypot(u,p.lateralSpeed));
@@ -99,5 +105,5 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
  p.acceleration=(p.speed-oldSpeed)/Math.max(dt,1e-5);
  p.lateralAcceleration=sideAccel;
  p.skid=damp(p.skid,clamp((maxSlip-.13)*1.3,0,1),5,dt);
- return {collision,impact,acceleration:p.acceleration,lateralAcceleration:sideAccel,skid:p.skid};
+ return {collision,impact,contact,acceleration:p.acceleration,lateralAcceleration:sideAccel,skid:p.skid};
 }
