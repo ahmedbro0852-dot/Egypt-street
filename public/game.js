@@ -850,11 +850,11 @@ function frame(t){
    const vehicleAngle=vehicleState.yaw;
    const forwardX=Math.sin(vehicleAngle),forwardZ=Math.cos(vehicleAngle);
    const rightX=Math.cos(vehicleAngle),rightZ=-Math.sin(vehicleAngle);
-   const seat=new T.Vector3(p.x+forwardX*.40-rightX*.31,1.65,
+   const seat=new T.Vector3(p.x+forwardX*.40-rightX*.31,1.65+taxi.position.y,
      p.z+forwardZ*.40-rightZ*.31);
    camera.position.lerp(seat,1-Math.exp(-dt*12));
    const lookAngle=vehicleAngle+cockpitLook;
-   camera.lookAt(p.x+Math.sin(lookAngle)*12,1.62,p.z+Math.cos(lookAngle)*12);
+   camera.lookAt(p.x+Math.sin(lookAngle)*12,1.62+taxi.position.y,p.z+Math.cos(lookAngle)*12);
    cockpit.update(vehicleState.steer,vehicleState.speed,garage.getVehicle().id==='motorbike');
  }else{
    // Smooth chase camera or walking orbit; wall avoidance stays intact.
