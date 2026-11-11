@@ -11,6 +11,9 @@ import { createAutoDriver } from './auto-drive-v6.js';
 import { createGpsV6 } from './gps-v6.js';
 import { createGarageV8 } from './garage-v8.js';
 import { createDrivingRealismV9 } from './driving-realism-v9.js';
+import { createTaxiDispatchV15 } from './taxi-dispatch-v15.js';
+import { createCockpitV15 } from './cockpit-v15.js';
+import { installStreetDetailsV15 } from './street-details-v15.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
 import { stickFromPointer, footDirection, steeringFromStick, blendHeading } from './controls-v3.js';
 import { updateCarWheels, spinTrafficWheels, gearStatus } from './wheel-rig.js';
@@ -29,6 +32,8 @@ function sign(text,x,y,z,w=5){const c=document.createElement('canvas');c.width=5
 let seed=7;function rand(){seed=(seed*16807)%2147483647;return seed/2147483647}const colors=['#beaa8c','#d4bd99','#b7977d','#d2c2a8','#aaa58c'];for(let a=-2;a<2;a++)for(let b=-2;b<2;b++){const cx=a*30+15,cz=b*30+15;for(let j=0;j<2;j++){let x=cx+(j?5.4:-5.4),h=10+Math.floor(rand()*5)*3;box(x,.2,cz,10,.35,21,'#cfc4ac');box(x,h/2,cz,9.5,h,18,colors[Math.floor(rand()*5)]);solids.push({x,z:cz,w:5.3,d:9.6});box(x,h+.3,cz,10,.5,18.5,'#e4d2b2');for(let y=3;y<h-1;y+=3)for(let wx=-2.8;wx<=3;wx+=2.8){box(x+wx,y,cz+9.03,1.25,1.65,.08,'#42595c');box(x+wx,y-.8,cz+9.3,1.8,.15,.6,'#e1cba5');box(x+wx,y,cz-9.03,1.2,1.6,.08,'#536466')}box(x,1.2,cz+9.08,7,2,.1,j?'#376e70':'#877047');sign(['قهوة البلد','سوبر ماركت النيل','كشري عم سيد','عصير قصب'][((a+2)*4+b+2)%4],x,2.8,cz+9.2,7);box(x,h+1,cz,2,1.8,2,'#8e9a9a')}}
 function palm(x,z){box(x,3,z,.35,6,.35,'#8e7956');for(let i=0;i<7;i++){let leaf=box(x,6,z,4,.15,.6,'#4d7954');leaf.rotation.y=i*Math.PI/3.5;leaf.rotation.z=.18}}for(let z=-75;z<80;z+=15){palm(7,z);palm(-67,z)}
 const cairo = installCairo(T,scene,box,sign,solids);
+const streetDetails=installStreetDetailsV15({T,scene,box,sign,blocked});
+const cockpit=createCockpitV15({T,scene,camera});
 function car(color){
  const g=new T.Group(),wheels=[];
  const paint=new T.MeshStandardMaterial({color,metalness:.65,roughness:.29});
@@ -354,6 +359,30 @@ const garage=createGarageV8({
 });
 activateGarageVehicle(garage.getVehicle().id);
 const drivingRealism=createDrivingRealismV9({notify:message=>toast(message)});
+const rideDispatch=createTaxiDispatchV15({
+ T,scene,storage:walletStorage,
+ ui:{start:$('v15TaxiRide'),cancel:$('v15RideCancel'),
+    counter:$('v15TaxiCounter'),hud:$('v15RideHud'),
+    title:$('v15RideTitle'),text:$('v15RideText')},
+ getCar:()=>taxi.position,getSpeed:()=>vehicleState.speed,
+ isDriving:()=>driving,getVehicle:()=>activeVehicle,
+ navigate:(point,label)=>{
+  gps.select('tour',true);
+  autoDriver.setDestination(point,label,vehicleState,false);
+  $('gpsPanel').style.display='none';
+ },
+ onReward:fare=>{
+  cash+=fare;
+  $('money').textContent='ج.م '+Math.round(cash);saveWallet();
+ },
+ notify:message=>toast(message),
+ onChange:()=>{
+  if(rideDispatch.getState().active)document.body.classList.add('rideActive');
+  else document.body.classList.remove('rideActive');
+  saveWorld(true);
+ }
+});
+if(rideDispatch.getState().active)document.body.classList.add('rideActive');
 let v9Live={engineOn:false,rpm:0,gear:'N',turn:'off',hazards:false,left:false,right:false,throttleScale:0};
 let v9UiLast=-1;
 function updateV9Lamps(){
@@ -401,10 +430,10 @@ function worldSnapshot(){
  return {
   player:{x:player.position.x,z:player.position.z,yaw:player.rotation.y},
   taxi:{x:taxi.position.x,z:taxi.position.z,yaw:taxi.rotation.y},
-  driving,parkingBrake,cameraYaw,cameraPitch,money:cash,
+  driving,parkingBrake,cameraYaw,cameraPitch,cameraMode,money:cash,
   mission:{completed,target:{x:target.x,z:target.z}},
   fuel:fuelSystem.getState(),career:career.getStats(),
-  sideEvent:streetEvents.snapshot(),autopilot:autoDriver.getState(),gps:gps.getState(),garage:garage.getState(),drivingRealism:drivingRealism.getState()
+  sideEvent:streetEvents.snapshot(),autopilot:autoDriver.getState(),gps:gps.getState(),garage:garage.getState(),drivingRealism:drivingRealism.getState(),rideDispatch:rideDispatch.getState()
  };
 }
 function saveWorld(force=false){
@@ -428,6 +457,9 @@ function restoreWorld(state){
    'تم توصيل '+completed+' طلب • المهمة الجاية عند العلامة الدهبية.':
    'وصل الطلب للعلامة الدهبية عشان تكسب ١٥٠ جنيه.';
  cameraYaw=state.cameraYaw;cameraPitch=state.cameraPitch;
+ cameraMode=state.driving&&state.cameraMode==='cockpit'?'cockpit':
+   state.cameraMode==='near'?'near':'wide';
+ cameraNear=cameraMode==='near';cockpitLook=0;
  driving=!!state.driving;
  if(driving){
   player.visible=false;player.position.copy(taxi.position);
@@ -450,6 +482,9 @@ function restoreWorld(state){
  autoDriver.restore(state.autopilot,vehicleState);
  if(parkingBrake&&autoDriver.getState().enabled)autoDriver.stop();
  gps.restore(state.gps);
+ rideDispatch.restore(state.rideDispatch);
+ if(rideDispatch.getState().active)document.body.classList.add('rideActive');
+ else document.body.classList.remove('rideActive');
  updateAutoPilotLabel();
  return true;
 }
@@ -492,6 +527,7 @@ function enter(){
   if(!safe){toast('حرّك العربية شوية عشان تلاقي مكان تنزل فيه');return}
   driving=false;player.visible=true;player.position.set(safe[0],0,safe[1]);
   speed=0;onFoot.vx=onFoot.vz=0;onFoot.vy=onFoot.y=0;onFoot.grounded=true;jumpRequested=false;vehicleState.speed=0;vehicleState.lateralSpeed=0;vehicleState.yawRate=0;
+  if(cameraMode==='cockpit'){cameraMode='wide';cameraNear=false;cockpitLook=0;}
   autoDriver.stop();drivingRealism.exit();
   v9Live={...v9Live,left:false,right:false,engineOn:false,rpm:0};updateV9Lamps();
   parkingBrake=false;updateParkingUi();fuelSystem.exit();document.body.classList.remove('driving');pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
@@ -521,9 +557,13 @@ pad.onpointerdown=e=>{
 pad.onpointermove=e=>{if(pad.hasPointerCapture(e.pointerId)){e.preventDefault();stickMove(e)}};
 pad.onpointerup=pad.onpointercancel=pad.onlostpointercapture=()=>resetPad();
 $('camera').onclick=()=>{
- cameraNear=!cameraNear;toast(cameraNear?'كاميرا قريبة':'كاميرا واسعة');
+ if(driving)cameraMode=cameraMode==='wide'?'near':cameraMode==='near'?'cockpit':'wide';
+ else cameraMode=cameraMode==='near'?'wide':'near';
+ cameraNear=cameraMode==='near';cockpitLook=0;
+ toast(cameraMode==='cockpit'?'🎥 كاميرا داخل العربية':cameraNear?'🎥 كاميرا قريبة':'🎥 كاميرا واسعة');
+ saveWorld(true);
 };
-let cameraNear=false,drag=null;
+let cameraMode='wide',cameraNear=false,cockpitLook=0,drag=null;
 worldCanvas.onpointerdown=e=>{
  if(!active)return;
  e.preventDefault();
@@ -533,7 +573,11 @@ worldCanvas.onpointerdown=e=>{
 worldCanvas.onpointermove=e=>{
  if(!drag||drag.id!==e.pointerId)return;
  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
- cameraYaw-=dx*.0053;cameraPitch=Math.max(-.24,Math.min(.52,cameraPitch+dy*.0035));
+ if(driving&&cameraMode==='cockpit'){
+  cockpitLook=Math.max(-.70,Math.min(.70,cockpitLook-dx*.0042));
+ }else{
+  cameraYaw-=dx*.0053;cameraPitch=Math.max(-.24,Math.min(.52,cameraPitch+dy*.0035));
+ }
  cameraFreeUntil=performance.now()+2800;
  drag.x=e.clientX;drag.y=e.clientY;
 };
@@ -603,6 +647,11 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
    const end=route[route.length-1];
    map.fillStyle='#eaffb4';map.beginPath();map.arc(mx(end.x),mz(end.z),4.8,0,Math.PI*2);map.fill();
  }
+ const ridePoint=rideDispatch.getPoint();
+ if(ridePoint){
+  map.fillStyle='#ffe29b';map.beginPath();map.arc(mx(ridePoint.x),mz(ridePoint.z),6,0,Math.PI*2);map.fill();
+  map.fillStyle='#172c32';map.font='bold 11px Arial';map.fillText('🚕',mx(ridePoint.x)-6,mz(ridePoint.z)-8);
+ }
  const eventWaypoint=streetEvents.waypoint();
  if(eventWaypoint){
   map.strokeStyle='#67e6eb';map.lineWidth=2;
@@ -630,6 +679,7 @@ function frame(t){
  const p=driving?taxi.position:player.position;
  if(active&&!paused){
   cityLife.update(dt,t,p);
+  streetDetails.update(cityLife.illumination());
   let f=-joy.y+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);
   let turn=joy.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
   f=Math.max(-1,Math.min(1,f));turn=Math.max(-1,Math.min(1,turn));
@@ -671,7 +721,7 @@ function frame(t){
    const tune=garage.getTuning();
    const result=stepVehiclePhysics(vehicleState,{
      throttle,steer,brake:braking,
-     grip:roadGrip(p.x,p.z)*cityLife.grip()*tune.gripScale,tuning:tune
+     grip:roadGrip(p.x,p.z)*cityLife.grip()*streetDetails.grip(p.x,p.z)*tune.gripScale,tuning:tune
    },dt,carCollision);
    cityLife.observeDriving(oldPos,vehicleState);
    taxi.position.x=vehicleState.x;taxi.position.z=vehicleState.z;
@@ -761,6 +811,7 @@ function frame(t){
   crowd.update(dt,t,p,traffic,taxi,driving?vehicleState.speed:0);
   streetEvents.update(dt,t);
   career.update(dt,t);
+  rideDispatch.update(dt);
   gps.update(dt);
   if(driving&&p.distanceTo(target)<4&&Math.abs(speed)<10){
    cash+=150;completed++;
