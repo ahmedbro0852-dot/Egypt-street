@@ -211,7 +211,8 @@ export function createEgyptianCrowd(T,scene,isBlocked){
           if(xx*xx+zz*zz<2.7*2.7){yieldCar=true;break;}
         }
       }
-      const moving=!pauseNearPlayer&&!yieldCar&&!u.rest;
+      const startled=(u.startledUntil||0)>t;
+      const moving=!pauseNearPlayer&&!yieldCar&&!u.rest&&!startled;
       const delta=moving?u.speed*dt*u.dir:0;
       const next=p.position.x+delta;
       if(next<u.minX||next>u.maxX||isBlocked?.(next,p.position.z)){
@@ -224,6 +225,15 @@ export function createEgyptianCrowd(T,scene,isBlocked){
       u.legs[0].rotation.x=swing;u.legs[1].rotation.x=-swing;
       u.arms[0].rotation.x=-swing*.7;u.arms[1].rotation.x=swing*.7;
       u.body.position.y=moving?Math.abs(Math.sin(phase))*.035:0;
+      // Conversations trigger an actual wave; horns make nearby people flinch briefly.
+      if((u.waveUntil||0)>t){
+        u.arms[1].rotation.x=-1.2;u.arms[1].rotation.z=-.22;
+        u.body.rotation.y=Math.sin(t*.005)*.10;
+      }else{u.arms[1].rotation.z=0;u.body.rotation.y=0;}
+      if(startled){
+        u.body.rotation.x=-.08;
+        u.arms[0].rotation.x=-.55;
+      }else u.body.rotation.x=0;
     }
   }
   return {people,update,profiles:EGYPTIAN_RESIDENTS};
