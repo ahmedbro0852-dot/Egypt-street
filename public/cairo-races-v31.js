@@ -527,6 +527,8 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   getPlayerRaceModel:kind=>kind==='moto'?motoPlayer:formulaPlayer,
   getPlayerFormula:()=>formulaPlayer,
   getOpponents:()=>active?active.enemies.filter(x=>!x.finished).map(x=>x.model):[],
+  getGhostPosition:()=>active?.timeAttack&&timeGhostV37.visible?
+    {x:timeGhostV37.position.x,z:timeGhostV37.position.z}:null,
   getHistory:()=>({...history}),getTimeAttackHistory:()=>timeAttackV37.getHistory(),
   getCourses:()=>CAIRO_RACES_V31,
   isRunning:()=>!!active};
