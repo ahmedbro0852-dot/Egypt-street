@@ -7,7 +7,8 @@ import { createCareerSystem } from './street-careers.js';
 import { createFuelSystem, PETROL_STATIONS } from './realistic-fuel.js';
 import { createCityLife } from './city-life-v5.js';
 import { createWorldSave, GAME_KEYS_V55 } from './game-save-v55.js';
-import { createAutoDriver } from './auto-drive-v55.js';
+import { createAutoDriver } from './auto-drive-v6.js';
+import { createGpsV6 } from './gps-v6.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
 import { stickFromPointer, footDirection, steeringFromStick, blendHeading } from './controls-v3.js';
 // A deliberate "new game" clears only Egypt Street keys before systems are constructed.
@@ -249,6 +250,21 @@ const autoDriver=createAutoDriver({
  signalStop:car=>cityLife.trafficMustBrake(car),
  onStatus:message=>toast(message)
 });
+const gps=createGpsV6({
+ autoDriver,isDriving:()=>driving,
+ getCar:()=>vehicleState,
+ getJob:()=>career.waypoint(),
+ getDelivery:()=>({x:target.x,z:target.z,label:'طلب التوصيل'}),
+ getSideEvent:()=>streetEvents.waypoint(),
+ getStations:()=>PETROL_STATIONS,
+ notify:message=>toast(message),
+ ui:{
+  btn:$('gpsBtn'),panel:$('gpsPanel'),close:$('gpsClose'),
+  title:$('gpsTitle'),detail:$('gpsDetail'),active:$('gpsActive'),
+  buttons:{job:$('gpsJob'),delivery:$('gpsDelivery'),side:$('gpsSide'),
+    fuel:$('gpsFuel'),tour:$('gpsTour')}
+ }
+});
 function updateAutoPilotLabel(){
  $('autoPilot').textContent=autoDriver.getState().enabled?'🤖 أوقف القيادة الذاتية':'🤖 شغّل القيادة الذاتية';
 }
@@ -265,7 +281,7 @@ function worldSnapshot(){
   driving,cameraYaw,cameraPitch,money:cash,
   mission:{completed,target:{x:target.x,z:target.z}},
   fuel:fuelSystem.getState(),career:career.getStats(),
-  sideEvent:streetEvents.snapshot(),autopilot:autoDriver.getState()
+  sideEvent:streetEvents.snapshot(),autopilot:autoDriver.getState(),gps:gps.getState()
  };
 }
 function saveWorld(force=false){
@@ -304,6 +320,7 @@ function restoreWorld(state){
  career.restore(state.career);
  streetEvents.restore(state.sideEvent);
  autoDriver.restore(state.autopilot,vehicleState);
+ gps.restore(state.gps);
  updateAutoPilotLabel();
  return true;
 }
@@ -353,11 +370,11 @@ function enter(){
   yaw=taxi.rotation.y;cameraYaw=yaw;cameraFreeUntil=0;speed=0;brakePedal=false;reverseKeyHeld=false;jumpRequested=false;resetPad();
   document.body.classList.add('driving');fuelSystem.enter();autoDriver.start(vehicleState.x,vehicleState.z);
   updateAutoPilotLabel();$('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
-  $('controlsHint').textContent='تلقائي: سرعة ٦٠ كم/س • العصاية للدريكسيون';
+  $('controlsHint').textContent='🧭 GPS للمهمات • العصاية للتحكم اليدوي';
   toast('🤖 العربية بتسوق لوحدها. حرك العصاية للتوجيه اليدوي أو دوس فرامل.');
   saveWorld(true);
  }else toast('قرب من العربية الصفرا الأول')
-} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;jumpRequested=false;keys={};resetPad();sprint=false};
+} $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{const k=e.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k===' '&&!e.repeat&&!driving)jumpRequested=true;if(k==='e'&&!e.repeat)enter();if(k==='f'&&!e.repeat){if(!career.interact())streetEvents.interact()}if(k==='j'&&!e.repeat)$('jobsBtn').click();if(k==='g'&&!e.repeat)$('gpsBtn').click()};window.onkeyup=e=>keys[e.key.toLowerCase()]=false;window.onblur=()=>{pedal=0;brakePedal=false;reverseKeyHeld=false;jumpRequested=false;keys={};resetPad();sprint=false};
 const pad=$('joy'),knob=$('knob'),worldCanvas=$('world');
 function resetPad(){joy.x=0;joy.y=0;if(knob)knob.style.transform='translate(0px,0px)'}
 function stickMove(e){
@@ -441,6 +458,16 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
  for(const station of PETROL_STATIONS){
    map.fillStyle='#56fac1';map.font='bold 10px Arial';
    map.fillText('⛽',mx(station.x)-5,mz(station.z)+5);
+ }
+ const route=gps.getRoute();
+ if(route.length){
+   map.strokeStyle='#70f0c1';map.lineWidth=3.2;
+   map.beginPath();
+   map.moveTo(mx(taxi.position.x),mz(taxi.position.z));
+   for(const point of route)map.lineTo(mx(point.x),mz(point.z));
+   map.stroke();
+   const end=route[route.length-1];
+   map.fillStyle='#eaffb4';map.beginPath();map.arc(mx(end.x),mz(end.z),4.8,0,Math.PI*2);map.fill();
  }
  const eventWaypoint=streetEvents.waypoint();
  if(eventWaypoint){
@@ -590,6 +617,7 @@ function frame(t){
   crowd.update(dt,t,p,traffic,taxi,driving?vehicleState.speed:0);
   streetEvents.update(dt,t);
   career.update(dt,t);
+  gps.update(dt);
   if(driving&&p.distanceTo(target)<4&&Math.abs(speed)<10){
    cash+=150;completed++;
    $('money').textContent='ج.م '+Math.round(cash);saveWallet();
