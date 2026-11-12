@@ -1,6 +1,6 @@
 import { createPedestrianMotionV20, stepPedestrianMotionV20 } from './pedestrian-physics-v20.js';
-import { createCitizenBehaviorV112 } from './citizen-behavior-v112.js?v=112.1';
-import { citizenHeadingV112, animateCitizenStrideV112 } from './citizen-locomotion-v112.js?v=112.2';
+import { createCitizenBehaviorV112 } from './citizen-behavior-v112.js?v=153.1';
+import { citizenHeadingV112, animateCitizenStrideV112 } from './citizen-locomotion-v112.js?v=153.1';
 // Forty distinct Egyptian street residents for the existing mobile 3D game.
 // Shared geometry/materials keep models lightweight; nearby NPCs animate, distant ones sleep.
 export const EGYPTIAN_RESIDENTS = [
