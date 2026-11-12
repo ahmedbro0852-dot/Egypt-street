@@ -62,3 +62,12 @@ V45 is a **visual improvement, not photorealism**. Its effects require desktop W
 - Reuses the chase/cockpit camera vectors instead of allocating them every rendered frame and reduces redundant on-screen speed/HUD writes on mobile, without altering steering or vehicle physics.
 - Refreshes the offline service-worker cache for V60 and includes the new module; existing mission, money and garage saves are untouched.
 - Validation: `node --test tests/road-feedback-v60.test.mjs` (Node 22+) plus static module parsing and integration checks. Browser GPU/frame-rate QA is still required before a production release.
+
+#### V60 cinematic graphics + animation pass
+
+- Mobile WebGL gains a cheap animated sky gradient (day/night horizon, golden-hour sun glow, weather-sensitive clouds) instead of the flat fallback. The richer V45 desktop sky remains unchanged.
+- Devices with sufficient resources get a single procedural sun-halo sprite. No external asset downloads, additional WebGL postprocessing passes or shadow-casting lights.
+- Camera follows turns with spring-smoothed micro-roll and subtle heading anticipation, plus restrained speed-dependent road vibration. First-person movement is gentler than third-person; reduced-motion preferences and the existing steady-camera option disable those motions.
+- Added **جرافيك وحركة سينمائية** toggle in Graphics Settings; balanced mode scales the effects down. The on-screen vignette is CSS-only.
+- The mobile adaptive renderer continues controlling pixel density to prioritize frame pacing; no promise of a fixed FPS on all devices.
+- Regression checks: `node --test tests/cinematic-graphics-v60.test.mjs tests/road-feedback-v60.test.mjs`. Full-device visual QA remains necessary before production release.
