@@ -40,7 +40,7 @@ export function dressReferenceHeroV47({T,player,renderer}){
  const scarfTexture=new T.CanvasTexture(scarfCanvas);scarfTexture.colorSpace=T.SRGBColorSpace;
  const scarfMat=new T.MeshStandardMaterial({map:scarfTexture,roughness:1});
  const scarf=new T.Mesh(new T.TorusGeometry(.119,.037,8,24),scarfMat);scarf.rotation.x=Math.PI/2;scarf.position.set(0,1.52,.015);rig.add(scarf);
- const drape=new T.Mesh(new T.PlaneGeometry(.18,.22,4,5),scarfMat);drape.position.set(.06,1.37,.178);drape.rotation.z=-.25;rig.add(drape);
+ const drape=new T.Mesh(new T.PlaneGeometry(.18,.22,4,5),scarfMat);drape.name='v112ScarfDrape';drape.position.set(.06,1.37,.178);drape.rotation.z=-.25;rig.add(drape);
  player.userData.referenceOutfit=true;
 }
 export function installReferenceHudV47(){
