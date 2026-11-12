@@ -1263,7 +1263,7 @@ function frame(t){
    camera.position.lerp(seat,1-Math.exp(-dt*12));
    const lookAngle=vehicleAngle+cockpitLook;
    camera.lookAt(p.x+Math.sin(lookAngle)*12,1.62+taxi.position.y,p.z+Math.cos(lookAngle)*12);
-   cockpit.update(vehicleState.steer,vehicleState.speed,garage.getVehicle().id==='motorbike');
+   cockpit.update(vehicleState.steer,vehicleState.speed,currentRaceVehicleId()==='motorbike');
  }else{
    // Smooth chase camera or walking orbit; wall avoidance stays intact.
    if(driving&&t>cameraFreeUntil)cameraYaw=blendHeading(cameraYaw,vehicleState.yaw,1.8,dt);
