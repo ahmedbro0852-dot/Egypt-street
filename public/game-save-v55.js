@@ -25,6 +25,15 @@ export function sanitizeSnapshot(data){
   savedAt:clamp(finite(data.savedAt,0),0,1e15),
   player:place(data.player,{x:0,z:12},true),
   taxi:place(data.taxi,{x:2,z:8},true),
+  // V151: keep the selected traffic model after refresh without trusting arbitrary IDs.
+  streetRide:Number.isInteger(data.streetRide?.index)&&data.streetRide.index>=0&&
+    data.streetRide.index<22?{
+      index:data.streetRide.index,
+      kind:['sedan','sport','motorbike'].includes(data.streetRide.kind)?
+        data.streetRide.kind:'sedan'
+    }:null,
+  taxiPark:data.taxiPark&&Number.isFinite(data.taxiPark.x)&&
+    Number.isFinite(data.taxiPark.z)?place(data.taxiPark,{x:2,z:8}):null,
   driving:!!data.driving,
   parkingBrake:!!data.parkingBrake,
   cameraYaw:finite(data.cameraYaw,0),
