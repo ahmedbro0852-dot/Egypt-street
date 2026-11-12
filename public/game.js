@@ -185,7 +185,12 @@ const vehicleVisualsV161=createKenneyCarVisualsV157({
  maxCars:isMobileOptimized?3:8
 });
 const worldPhysicsV161=createStreetRigidBodiesV157({
- T,scene,mobile:isMobileOptimized,maxProps:isMobileOptimized?4:10
+ T,scene,mobile:isMobileOptimized,
+ // An unavailable WebGL renderer or a 2 GB phone skips the optional engine.
+ // The existing car collisions and road physics remain fully functional.
+ maxProps:!renderer.isWebGLRenderer?0:
+   isMobileOptimized&&(Number(navigator.deviceMemory)||4)<3?0:
+   isMobileOptimized?4:10
 });
 let lastVisualRequestV161=-Infinity;
 // Articulated lightweight protagonist, based on the approved character reference.
