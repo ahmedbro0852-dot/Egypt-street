@@ -14,6 +14,8 @@ function fakeElement(id=''){
   setAttribute(k,v){attrs[k]=String(v)},
   getAttribute(k){return attrs[k]},
   addEventListener(k,fn){events[k]=fn},
+  removeEventListener(k,fn){if(events[k]===fn)delete events[k]},
+  fire(k,e={}){events[k]?.(e)},
   click(){events.click?.({})},
   append(child){this.children.push(child);child.parent=this},
   insertBefore(child){this.children.push(child);child.parent=this},
@@ -40,6 +42,10 @@ test('V162 expands optional controls while keeping physical gameplay buttons in 
  assert.match(toggle.textContent,/إخفاء/);
  toggle.click();
  assert.equal(ui.getExpanded(),false);
+ body.fire('click',{target:{id:'v51CarToggle'}});
+ assert.equal(ui.getExpanded(),true);
+ body.fire('click',{target:{id:'v51CarClose'}});
+ assert.equal(ui.getExpanded(),false);
  ui.setExpanded(true);
  ui.dispose();
  assert.equal(ui.getExpanded(),false);
@@ -56,9 +62,9 @@ test('all important controls and missions remain in document',async()=>{
    'accelerate','reverse','camera','fuelHud','fuelActions','mission','map','jobsBtn','garageBtn','gpsBtn'])
   if(id==='mission')assert.match(s,/class="mission"/);
   else assert.ok(s.includes('id="'+id+'"'),id+' must remain in markup');
- assert.ok(s.includes('street-design-v162.css?v=162.0'));
+ assert.ok(s.includes('street-design-v162.css?v=162.2'));
  assert.ok(s.indexOf('street-design-v162.css')>s.indexOf('royal-hud-v49.css'),'new art direction loads last');
- assert.match(s,/game\.js\?v=162\.0/);
+ assert.match(s,/game\.js\?v=162\.2/);
 });
 test('V162 theme supports thumb targets and fast fallback on weak phones',async()=>{
  const css=await readFile(new URL('../public/street-design-v162.css',import.meta.url),'utf8');
@@ -70,11 +76,14 @@ test('V162 theme supports thumb targets and fast fallback on weak phones',async(
  assert.match(css,/body\.v49-no-actions/);
  assert.match(css,/body\.reference-v47\.v43-photo/);
  assert.match(css,/43px!important/);
+ assert.match(css,/body\.royal-v49\.mobile-v51 #v49-quick/);
+ assert.match(css,/#v151RaceFab:not\(\[hidden\]\)/);
+ assert.match(css,/#v51CarToggle:not\(\[hidden\]\)/);
  assert.ok(!css.includes('filter: blur(30px)'), 'no expensive full-screen Gaussian blur');
 });
 test('PWA pre-cache contains the new design and interaction module',async()=>{
  const sw=await readFile(new URL('../public/sw-v50.js',import.meta.url),'utf8');
  assert.match(sw,/street-design-v162\.css/);
  assert.match(sw,/ui-skin-v162\.js/);
- assert.match(sw,/egypt-streets-static-v162-visual-rework/);
+ assert.match(sw,/egypt-streets-static-v162-2-mobile-design/);
 });
