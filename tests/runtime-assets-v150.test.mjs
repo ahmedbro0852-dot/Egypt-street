@@ -42,7 +42,8 @@ test('PWA pre-cache includes every reachable game script',async()=>{
  const cached=new Set(JSON.parse(shellMatch[1]).map(name=>name.replace(/^\.\//,'')));
  const uncached=[...visited].filter(name=>!cached.has(name));
  assert.deepEqual(uncached,[],'offline shell is missing imported scripts');
- assert.ok(worker.includes('egypt-streets-static-v150-2-mobile-races'));
+ // The offline cache must advance when game assets change, not stay on V150.
+ assert.match(worker,/const CACHE='egypt-streets-static-v(?:15[1-9]|1[6-9]\\d|[2-9]\\d{2})-[^']+';/);
 });
 test('entry document references the current V150 game script',async()=>{
  const html=await readFile(path.join(root,'index.html'),'utf8');
