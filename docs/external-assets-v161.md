@@ -38,6 +38,17 @@ To avoid WebAssembly setup costs and redundant dependencies on old phones, the
 engine is lazy-loaded after gameplay starts. It does not initialize an external
 physics instance for every car. It is optional: CDN failures leave the game playable.
 
+## Character animation — Three.js AnimationMixer
+
+Three.js official documentation: https://threejs.org/docs/pages/AnimationMixer.html
+
+V161.1 creates three procedural `AnimationClip` sequences (idle, walk and run)
+and blends them through `AnimationMixer` on the existing articulated hero.
+Unlike a single hard-coded sinusoidal gait, the actual Three.js animation
+engine computes a state-weighted mix based on real walking speed. Jump and
+boarding sequences retain their previous control, and weaker phones keep the
+existing procedural path without the mixer.
+
 ## Existing animation and rendering stack
 
 Three.js with GLTFLoader, the existing articulated character animation system,
