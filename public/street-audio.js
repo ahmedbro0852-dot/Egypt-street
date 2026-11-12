@@ -65,6 +65,13 @@ export function createStreetAudio(){
   if(t>nextBird){tone(2200,.11,.012,'sine',-.7,3100);tone(2900,.14,.009,'sine',.4,2400);nextBird=t+6+Math.random()*9}
   if(t>nextHorn){horn(true);nextHorn=t+12+Math.random()*16}
  }
+ // Three/two/one/GO cues are synthesized, short and respect audio mute.
+ function raceCountdown(count){
+  if(!ctx||muted||document.hidden)return;
+  const go=count===0;
+  if(!go&&!(count>=1&&count<=3))return;
+  tone(go?930:510,go?.30:.15,go?.042:.022,go?'sawtooth':'triangle',0,go?1120:435);
+ }
  function impact(severity=4,kind='vehicle'){
   // Short mechanical impact, not music; respects mute and suspended audio.
   if(!ctx||muted)return;
@@ -76,5 +83,5 @@ export function createStreetAudio(){
  }
  function toggle(){start();muted=!muted;return muted}
  function suspend(){if(ctx)ctx.suspend().catch(()=>{})}
- return {start,tick,horn,impact,toggle,suspend};
+ return {start,tick,horn,impact,raceCountdown,toggle,suspend};
 }
