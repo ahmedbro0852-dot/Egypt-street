@@ -28,6 +28,10 @@ export function animateCitizenStrideV112(person,{dt=0,phase=0,near=true,walking=
   if(u.legs[1]?.rotation){u.legs[1].rotation.y=0;u.legs[1].rotation.z=0;}
   if(u.knees[0]?.rotation)u.knees[0].rotation.z=0;
   if(u.knees[1]?.rotation)u.knees[1].rotation.z=0;
+  // During impacts, restore neutral ankles; the existing fall rig stays in charge.
+  for(const foot of u.feet||[]){
+   foot.rotation.x=0;foot.rotation.z=0;foot.position.y=-.31;
+  }
   return {enabled:true,lod:near?'near':'far',priority:'collision'};
  }
  if(!near){
@@ -55,6 +59,18 @@ export function animateCitizenStrideV112(person,{dt=0,phase=0,near=true,walking=
  }
  if(u.knees[0]?.rotation)u.knees[0].rotation.z=liftL*.035*eased;
  if(u.knees[1]?.rotation)u.knees[1].rotation.z=-liftR*.035*eased;
+ // Contact-aware heel-to-toe action: the planted shoe settles flat; the swing
+ // foot clears the pavement. These are visual pivots, not IK or collision edits.
+ if(u.feet?.length===2){
+  const contactL=Math.max(0,stride),contactR=Math.max(0,-stride);
+  const fL=u.feet[0],fR=u.feet[1];
+  fL.rotation.x=eased*(contactL*.075-liftL*.19);
+  fR.rotation.x=eased*(contactR*.075-liftR*.19);
+  fL.rotation.z=eased*liftL*.020;
+  fR.rotation.z=-eased*liftR*.020;
+  fL.position.y=-.31+eased*liftL*.035;
+  fR.position.y=-.31+eased*liftR*.035;
+ }
  if(raining&&moving){
   body.rotation.x+=.016*eased;
  }
