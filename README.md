@@ -81,3 +81,11 @@ V45 is a **visual improvement, not photorealism**. Its effects require desktop W
 - V111 entrypoint and PWA cache version changed to avoid stale mixed assets. The three required city/car modules are precached for repeat play.
 - Regression tests: `node --test tests/vehicle-details-v111.test.mjs tests/v111-entry-smoke.test.mjs`. The import smoke test guards against the V61-style missing-module regression.
 - Browser WebGL visuals and device FPS still require hands-on testing. V111 is a draft preview, not an automatic production promotion.
+
+### V112 preview — living 3D character movement
+- New additive **player character dynamics** build on V31 (never replace controls or the existing skeletal rig): softer torso turn, natural arm swing, knee/foot follow-through, subtle breathing and a landing response.
+- The scarf from the V47 outfit now has procedural fabric inertia while running and during rain; no extra cloth solver, textures or draw calls.
+- **Footsteps**: one pooled instanced 3D effect provides subtle walking dust on dry roads and small splashes on wet streets. Touch devices allocate at most 14 slots (8 on low-memory phones), and stop creating steps when driving or jumping.
+- Restores the missing V111 city 3D modules and retains V61 races, GPS, garage and existing saves; the update is visual-only and uses no new network assets.
+- Bumps the HTML entrypoint to `game.js?v=112.0` and refreshes the PWA offline cache with both V112 modules.
+- Automated checks include `tests/v112-motion.test.mjs` and the updated `tests/v111-entry-smoke.test.mjs`. Browser/device visual QA is still required before production.
