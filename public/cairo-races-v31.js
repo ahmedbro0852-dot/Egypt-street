@@ -1,6 +1,7 @@
 // Egypt Streets V32 — Cairo championships now take place at an empty dedicated racetrack.
 import { createRaceArenaV32, RACE_CIRCUIT_V32 } from './race-arena-v32.js';
 import { targetOpponentSpeedV150, evolveOpponentSpeedV150 } from './race-opponents-v150.js';
+import { raceRouteStatsV152, raceRouteSvgV152 } from './race-preview-v152.js';
 import { createTimedDriftV35, DRIFT_CHALLENGE_V35 } from './drift-challenge-v35.js';
 import { createTimeAttackV37, TIME_ATTACK_V37 } from './time-attack-v37.js';
 // Sequential checkpoints prohibit shortcut victories; NPCs race on actual road-grid segments.
@@ -267,6 +268,26 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    const c=make('article','',list);
    if(course.world)c.className='worldRace';
    const b=make('strong','',c);b.textContent=course.icon+' '+course.name;
+   if(course.world){
+    // Compact offline 2D maps instead of additional WebGL layers on mobile.
+    const stats=raceRouteStatsV152(course);
+    const preview=make('div','',c);preview.className='v152CoursePreview';
+    preview.setAttribute('role','group');
+    preview.setAttribute('aria-label','معاينة مسار '+course.name);
+    const map=make('div','',preview);map.className='v152RouteMap';
+    map.innerHTML=raceRouteSvgV152(course.points,course.color);
+    const meta=make('div','',preview);meta.className='v152CourseMeta';
+    const difficulty=make('span','',meta);difficulty.className='v152Difficulty';
+    difficulty.dataset.level=course.difficulty==='مبتدئ'?'beginner':
+      course.difficulty==='متوسط'?'medium':'hard';
+    difficulty.textContent='⭐ '+course.difficulty;
+    const distance=make('span','',meta);
+    distance.textContent='🛣️ '+stats.total+' م إجمالي';
+    const laps=make('span','',meta);
+    laps.textContent='🔁 '+stats.laps+(stats.laps===1?' لفة':' لفات')+' • '+stats.checkpointCount+' نقاط مرور';
+    const opponents=make('span','',meta);
+    opponents.textContent='🚘 3 منافسين • '+Math.round(stats.lap)+' م/لفة';
+   }
    const small=make('small','',c);
    const best=history.best[course.id];
    small.textContent=course.world?
@@ -557,14 +578,22 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
     wheel.userData.rolling.rotation.x+=enemy.pace*dt/(wheel.userData.radius||.4);
   }
  }
+ let lastBeaconAtV152=-Infinity;
  function update(dt,t=0){
   open.hidden=!getActive()||!!active;
-  // Show 3D event pins only within visual range; hide them during races.
-  for(const b of worldBeacons){
-   const near=!!getActive()&&!active&&!document.hidden&&dist(getVehicle(),b)<125;
-   b.node.visible=near;
-   if(near){b.ring.rotation.z+=Math.min(.04,dt*.65);
-    b.pin.position.y=4.6+Math.sin(t*.002)*.18}
+  // Skip expensive per-beacon distance tests on mobile between UI frames.
+  if(!mobileLite||t-lastBeaconAtV152>=140){
+   lastBeaconAtV152=t;
+   const show=!!getActive()&&!active&&!document.hidden;
+   const car=show?getVehicle():null;
+   for(const b of worldBeacons){
+    const near=show&&dist(car,b)<(mobileLite?95:125);
+    b.node.visible=near;
+    if(near){
+     b.ring.rotation.z+=Math.min(.07,Math.max(0,dt)*.65);
+     b.pin.position.y=4.6+Math.sin(t*.002)*.18;
+    }
+   }
   }
   if(!active||!getActive()||getPaused()||document.hidden)return;
   const a=active,car=getVehicle();
