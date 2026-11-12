@@ -24,6 +24,8 @@ import { createRoadFeedbackV60 } from './road-feedback-v60.js?v=60.0';
 import { installCitySculptV60 } from './city-sculpt-v60.js?v=60.2';
 import { installMobilePalmsV60 } from './mobile-palms-v60.js?v=60.2';
 import { installVehicleDetailsV111 } from './vehicle-details-v111.js?v=111.0';
+import { createCharacterDynamicsV112 } from './character-dynamics-v112.js?v=112.0';
+import { createFootstepFXV112 } from './footstep-fx-v112.js?v=112.0';
 import { installCinematicGraphicsV60 } from './cinematic-graphics-v60.js?v=60.1';
 import { installMobileInstrumentsV56 } from './mobile-instruments-v56.js';
 import * as T from './three.js';
@@ -215,6 +217,8 @@ function makeHero(){
  return root;
 }
 const player=makeHero();dressReferenceHeroV47({T,player,renderer});scene.add(player);player.position.set(0,0,12);
+const characterDynamicsV112=createCharacterDynamicsV112({hero:player});
+const footstepFXV112=createFootstepFXV112({T,scene,renderer,mobile:isMobileOptimized});
 const crowd=createEgyptianCrowd(T,scene,(x,z)=>blocked(x,z,.38),{mobileLite:isMobileOptimized});
 const walkers=crowd.people; // Forty unique residents
 
@@ -1120,6 +1124,11 @@ function frame(t){
   }
   gait+=dt*Math.abs(speed)*2.8;
   animateHeroV31(player,gait,driving?0:Math.min(1,Math.abs(speed)/4.3),{dt,speed:driving?0:speed,grounded:driving||onFoot.grounded,vertical:onFoot.vy});
+  characterDynamicsV112.update({dt,phase:gait,amount:driving?0:Math.min(1,Math.abs(speed)/4.3),
+   speed:driving?0:speed,grounded:driving||onFoot.grounded,vertical:onFoot.vy,driving,
+   rain:cityLife.getState().weather==='مطر'});
+  footstepFXV112.update({dt,player,active,paused,driving,grounded:onFoot.grounded,
+   speed:driving?0:speed,weather:cityLife.getState().weather,heading:player.rotation.y});
   crowdClockV51+=dt;
   if(!mobileLiteV51.enabled||crowdClockV51>=.08){crowd.update(Math.min(.12,crowdClockV51),t,p,traffic,taxi,driving?vehicleState.speed:0);crowdClockV51=0;}
   streetEvents.update(dt,t);
