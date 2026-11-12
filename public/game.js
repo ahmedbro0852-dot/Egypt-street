@@ -35,7 +35,7 @@ import { createFuelSystem, PETROL_STATIONS } from './realistic-fuel.js';
 import { createCityLife } from './city-life-v5.js';
 import { createWorldSave, GAME_KEYS_V55 } from './game-save-v55.js';
 import { nearestRideV151, rideKindV151 } from './vehicle-entry-v151.js?v=151.0';
-import { createVehicleEntryCinemaV153, rideSideV153 } from './vehicle-entry-cinema-v153.js?v=153.0';
+import { createVehicleEntryCinemaV153, rideSideV153 } from './vehicle-entry-cinema-v153.js?v=156.0';
 import { createRideCameraV156 } from './ride-camera-v156.js?v=156.0';
 import { createSeatedDriverV154 } from './driver-avatar-v154.js?v=155.0';
 import { createAutoDriver } from './auto-drive-v6.js';
