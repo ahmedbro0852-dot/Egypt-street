@@ -124,7 +124,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  getDriving=()=>false,getVehicle=()=>({x:0,z:0,speed:0}),
  getDriftInput=()=>({holding:false}),
  requestDrive=()=>false,prepareCar=()=>{},restoreCar=()=>{},
- onReward=()=>{},onFinish=()=>{},onNavigate=()=>{},onCountdown=()=>{},notify=()=>{},storage=null,fresh=false}={}){
+ onReward=()=>{},onFinish=()=>{},onNavigate=()=>{},onCountdown=()=>{},notify=()=>{},storage=null,fresh=false,mobileLite=false}={}){
  const KEY='egypt-streets-races-v31';
  if(fresh){try{storage?.removeItem(KEY)}catch(e){}}
  let history={wins:0,races:0,earned:0,best:{},bestLap:{},bestDrift:0,driftChallenges:0};
@@ -229,7 +229,9 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    worldBeacons.push({node,ring,pin,x,z});
   }
  }
- const raceArena=createRaceArenaV32({T,scene});
+ // Load racetrack batches only if the player selects a closed-circuit event.
+ let raceArena=null;
+ const ensureRaceArena=()=>raceArena||(raceArena=createRaceArenaV32({T,scene}));
  const timeAttackV37=createTimeAttackV37({storage});
  function renderPanel(){
   summary.textContent='🏅 انتصارات: '+history.wins+' • سباقات: '+history.races+
@@ -272,11 +274,8 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  open.onclick=openPanel;
  close.onclick=()=>{panel.hidden=true};
  panel.addEventListener('keydown',e=>{if(e.key==='Escape')panel.hidden=true});
- const models=[];
- for(let i=0;i<3;i++){
-  const m=createRacerModel(T,'formula',[0x387ca6,0xd44440,0xeec864][i]);
-  scene.add(m);models.push(m);
- }
+ const models=[null,null,null]; // 3 rivals created only when the race starts.
+ let configuredRivalKind=null,rivalModelBuilds=0;
  const formulaPlayer=createRacerModel(T,'formula',0xd52e3e);
  const motoPlayer=createRacerModel(T,'moto',0xc83b3b);
  const timeGhostV37=createRacerModel(T,'street',0x63eee1);
@@ -306,18 +305,25 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   marker.visible=beam.visible=true;
  }
  function resetModels(){
-  for(const m of models)m.visible=false;
+  for(const m of models)if(m)m.visible=false;
   if(marker)marker.visible=beam.visible=startingLine.visible=false;
   formulaPlayer.visible=false;motoPlayer.visible=false;
   timeGhostV37.visible=false;
  }
  function configureModels(kind){
-  for(let i=0;i<3;i++){
-   const old=models[i];scene.remove(old);
-   old.traverse?.(obj=>{obj.geometry?.dispose?.();obj.material?.dispose?.()});
-   models[i]=createRacerModel(T,kind,[0x3c89ad,0xd34143,0xe8be58][i]);
-   scene.add(models[i]);models[i].visible=true;
+  if(configuredRivalKind===kind&&models.every(Boolean)){
+   for(const model of models)model.visible=true;
+   return;
   }
+  for(let i=0;i<3;i++){
+   const old=models[i];
+   if(old){scene.remove(old);old.traverse?.(obj=>{
+    obj.geometry?.dispose?.();obj.material?.dispose?.();
+   })}
+   models[i]=createRacerModel(T,kind,[0x3c89ad,0xd34143,0xe8be58][i]);
+   scene.add(models[i]);models[i].visible=true;rivalModelBuilds++;
+  }
+  configuredRivalKind=kind;
  }
  function start(id){
   if(active){notify('خلّص السباق الحالي الأول');return false}
@@ -333,7 +339,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   if(!getDriving()&&!requestDrive()){notify('🚗 اركب العربية الأول، وبعدها ابدأ السباق');return false}
   const yaw=Math.atan2(second.x-first.x,second.z-first.z);
   if(prepareCar(course,{x:first.x,z:first.z,yaw})===false)return false;
-  if(!course.world)raceArena.show();
+  if(!course.world)ensureRaceArena().show();
   const driftMode=course.kind==='drift',timeMode=course.kind==='timeattack';
   if(driftMode||timeMode)resetModels();
   else configureModels(course.kind);
@@ -467,7 +473,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
      ' • أسرع لفة '+fmt(a.bestLap)+' • المكافأة +'+amount+' جنيه';
    notify('🏆 خلصت '+course.name+' • المركز '+rank+'/4 • +'+amount+' جنيه');
   }else{podium.hidden=true;notify('⛔ خرجت من سباق '+course.name)}
-  active=null;resetModels();if(!course.world)raceArena.hide();restoreCar(course);
+  active=null;resetModels();if(!course.world)raceArena?.hide();restoreCar(course);
   hud.hidden=true;countdown.hidden=true;document.body.classList.remove('racingActive');
   onFinish(course,completed,rank,{elapsed:a.elapsed,bestLap:a.bestLap,driftScore:a.driftScore});
   renderPanel();
@@ -475,15 +481,16 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  }
  quit.onclick=()=>finish(false,true);
  function updateOpponents(a,dt,t){
-  const n=a.points.length;
+  const n=a.points.length,playerCar=getVehicle();
+  const renderDistance=mobileLite?85:145,maxDistanceSq=renderDistance*renderDistance;
   for(const enemy of a.enemies){
-   if(enemy.finished)continue;
+   if(enemy.finished){enemy.model.visible=false;continue}
    // V150: AI anticipates corners and gives the player's car space.
    // Velocity changes are acceleration-limited, never instant multipliers.
    const u=enemy.model.userData;
    const targetPace=targetOpponentSpeedV150({
     baseSpeed:enemy.speed,points:a.points,steps:enemy.steps,
-    segment:enemy.segment,player:getVehicle(),
+    segment:enemy.segment,player:playerCar,
     position:enemy.model.position,lane:enemy.lane,crashHold:u.crashHold>t
    });
    enemy.pace=evolveOpponentSpeedV150(enemy.pace,targetPace,dt);
@@ -507,8 +514,12 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
     segmentLength=Math.max(1,dist(p0,p1)),fraction=clamp(enemy.segment/segmentLength,0,1);
    const face=Math.atan2(p1.x-p0.x,p1.z-p0.z);
    const sideX=Math.cos(face)*enemy.lane,sideZ=-Math.sin(face)*enemy.lane;
-   enemy.model.position.set(p0.x+(p1.x-p0.x)*fraction+sideX,0,
-    p0.z+(p1.z-p0.z)*fraction+sideZ);
+   const drawX=p0.x+(p1.x-p0.x)*fraction+sideX,drawZ=p0.z+(p1.z-p0.z)*fraction+sideZ;
+   enemy.model.position.set(drawX,0,drawZ);
+   // Keep V150 AI, ranks and distances simulated when far competitors aren't rendered.
+   const draw=(drawX-playerCar.x)**2+(drawZ-playerCar.z)**2<maxDistanceSq;
+   enemy.model.visible=draw;
+   if(!draw){enemy.progress=enemy.steps+fraction;continue}
    // Continuous steering animation; avoid instant 90-degree yaw snaps.
    const turn=Math.atan2(Math.sin(face-enemy.model.rotation.y),Math.cos(face-enemy.model.rotation.y));
    enemy.model.rotation.y+=turn*clamp(dt*6.5,0,1);
@@ -601,7 +612,9 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
       active.points[(active.steps+1)%active.points.length],
    driftScore:active.driftScore,driftMedal:active.driftMedal
   }:null,
-  getArena:()=>raceArena,
+  getArena:()=>ensureRaceArena(),
+  getPerformance:()=>({arenaCreated:!!raceArena,rivalModelBuilds,
+   rivalType:configuredRivalKind,rivalsReady:models.filter(Boolean).length}),
   isFormula:()=>active?.id==='formula',
   getPlayerRaceModel:kind=>kind==='moto'?motoPlayer:formulaPlayer,
   getPlayerFormula:()=>formulaPlayer,

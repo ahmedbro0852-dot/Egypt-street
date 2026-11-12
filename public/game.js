@@ -13,7 +13,7 @@ import { installMobileStaticBatchingV52 } from './mobile-static-batching-v52.js'
 import { createCityQuestsV50 } from './city-quests-v50.js';
 import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
-import { createCairoRacesV31 } from './cairo-races-v31.js?v=150.0';
+import { createCairoRacesV31 } from './cairo-races-v31.js?v=150.1';
 import { createRaceLeagueV100 } from './race-league-v100.js?v=150.0';
 import { createDriftV34 } from './drift-system-v34.js';
 import { createStreetLaptopV41 } from './street-laptop-v41.js';
@@ -470,7 +470,7 @@ const rideDispatch=createTaxiDispatchV15({
 });
 if(rideDispatch.getState().active)document.body.classList.add('rideActive');
 raceSystem=createCairoRacesV31({
- T,scene,storage:walletStorage,fresh:freshStartV55,
+ T,scene,storage:walletStorage,fresh:freshStartV55,mobileLite:isMobileOptimized,
  getActive:()=>active,getPaused:()=>paused,getDriving:()=>driving,
  getVehicle:()=>vehicleState,
  getDriftInput:()=>({holding:driftHeldV34||!!keys.x}),
