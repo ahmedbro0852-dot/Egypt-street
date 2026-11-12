@@ -32,9 +32,9 @@ test('every static import in the V153 entry and crowd exists',()=>{
 });
 test('versioning and offline caching include every character module',()=>{
  const html=read('index.html'),sw=read('sw-v50.js');
- assert.match(html,/game\.js\?v=153\.0/);
+ assert.match(html,/game\.js\?v=153\.1/);
  assert.match(html,/V153 LIVING CHARACTERS/);
- assert.match(sw,/egypt-streets-static-v153-living-characters-1/);
+ assert.match(sw,/egypt-streets-static-v153-living-characters-2/);
  for(const file of ['character-dynamics-v112.js','footstep-fx-v112.js',
   'hero-presence-v112.js','citizen-behavior-v112.js','citizen-locomotion-v112.js']){
   assert.ok(existsSync(resolve(pub,file)),file+' not found');
