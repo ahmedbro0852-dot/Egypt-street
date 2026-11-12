@@ -52,6 +52,8 @@ export function createCitizenBehaviorV112({mobile=false}={}){
    return;
   }
   animated++;
+  // The crowd base pose doesn't reset head X; set it explicitly to avoid a held nod.
+  u.head.rotation.x=0;
   if(talkingNow)talking++;
   const gesture=e.gesture;
   if(talkingNow){
