@@ -13,13 +13,13 @@ import { installMobileStaticBatchingV52 } from './mobile-static-batching-v52.js'
 import { createCityQuestsV50 } from './city-quests-v50.js';
 import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
-import { createCairoRacesV31 } from './cairo-races-v31.js?v=100.0';
-import { createRaceLeagueV100 } from './race-league-v100.js?v=100.0';
+import { createCairoRacesV31 } from './cairo-races-v31.js?v=150.0';
+import { createRaceLeagueV100 } from './race-league-v100.js?v=150.0';
 import { createDriftV34 } from './drift-system-v34.js';
 import { createStreetLaptopV41 } from './street-laptop-v41.js';
 import { isRaceArenaV32, RACE_ARENA_BOUNDS_V32 } from './race-arena-v32.js';
 import { installRealismRender } from './realism-render-v16.js';
-import { createStreetAudio } from './street-audio.js?v=56.0';
+import { createStreetAudio } from './street-audio.js?v=150.0';
 import { createDrivingEffectsV56 } from './driving-effects-v56.js';
 import { createRoadFeedbackV60 } from './road-feedback-v60.js?v=60.0';
 import { installCitySculptV60 } from './city-sculpt-v60.js?v=60.2';
@@ -46,7 +46,7 @@ import { createCollisionPhysicsV18 } from './collision-physics-v18.js';
 import { getVehicleDynamicsV19, createMultiBodyV19 } from './vehicle-dynamics-v19.js';
 import { createVehiclePhysics, stepVehiclePhysics } from './vehicle-physics.js';
 import { stickFromPointer, footDirection, steeringFromStick, blendHeading } from './controls-v3.js';
-import { updateCarWheels, spinTrafficWheels, gearStatus } from './wheel-rig.js';
+import { updateCarWheels, spinTrafficWheels, gearStatus } from './wheel-rig.js?v=150.0';
 // A deliberate "new game" clears only Egypt Street keys before systems are constructed.
 let freshStartV55=false;
 try{
@@ -543,6 +543,7 @@ raceSystem=createCairoRacesV31({
   saveWorld(true);
  },
  onNavigate:(course,point)=>raceLeagueV100?.navigate(course,point),
+ onCountdown:num=>sound.raceCountdown(num),
  notify:message=>toast(message)
 });
 raceLeagueV100=createRaceLeagueV100({
