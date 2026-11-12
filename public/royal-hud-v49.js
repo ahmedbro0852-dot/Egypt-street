@@ -13,7 +13,7 @@ export function installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive
  let draft={...state},currentTab='graphics';
  const tabs=[['graphics','▣','الرسومات'],['audio','◖','الصوت'],['controls','⌘','عناصر التحكم'],['ui','▦','الواجهة'],['sensitivity','⊕','الحساسية'],['game','⚑','اللعب'],['language','◎','اللغة']];
  const quick=document.createElement('nav');quick.id='v49-quick';quick.setAttribute('aria-label','اختصارات العالم المفتوح');
- for(const [target,icon,label] of [['garageBtn','🚘','الجراج والمركبات'],['gpsBtn','🧭','الخريطة والملاحة'],['jobsBtn','🎒','الوظائف والمهام'],['camera','📷','تغيير الكاميرا']]){
+ for(const [target,icon,label] of [['garageBtn','🚘','الجراج والمركبات'],['gpsBtn','🧭','الخريطة والملاحة'],['jobsBtn','🎒','الوظائف والمهام'],['v31RaceOpen','🏁','سباقات القاهرة'],['camera','📷','تغيير الكاميرا']]){
   const button=document.createElement('button');button.type='button';button.textContent=icon;button.title=label;button.setAttribute('aria-label',label);button.onclick=()=>$(target)?.click();quick.append(button);
  }
  const stateHud=document.createElement('div');stateHud.id='v49-state';stateHud.setAttribute('aria-label','حالة اللاعب والمركبة');

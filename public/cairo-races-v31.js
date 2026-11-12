@@ -256,7 +256,14 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   summary.textContent='🏅 انتصارات: '+history.wins+' • سباقات: '+history.races+
     ' • أرباح مسابقات: '+history.earned+' ج.م • 🌆 6 بطولات في العالم المفتوح';
   list.replaceChildren();
-  for(const course of CAIRO_RACES_V31){
+  let category=null;
+  for(const course of [...CAIRO_RACES_V31].sort((a,b)=>Number(b.world)-Number(a.world))){
+   if(course.world!==category){
+    category=course.world;
+    const heading=make('h3','',list);
+    heading.className='v151RaceCategory';
+    heading.textContent=course.world?'🌆 سباقات العالم المفتوح':'🏟️ تحديات الحلبة';
+   }
    const c=make('article','',list);
    if(course.world)c.className='worldRace';
    const b=make('strong','',c);b.textContent=course.icon+' '+course.name;
