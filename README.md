@@ -71,3 +71,13 @@ V45 is a **visual improvement, not photorealism**. Its effects require desktop W
 - Added **جرافيك وحركة سينمائية** toggle in Graphics Settings; balanced mode scales the effects down. The on-screen vignette is CSS-only.
 - The mobile adaptive renderer continues controlling pixel density to prioritize frame pacing; no promise of a fixed FPS on all devices.
 - Regression checks: `node --test tests/cinematic-graphics-v60.test.mjs tests/road-feedback-v60.test.mjs`. Full-device visual QA remains necessary before production release.
+
+### V111 preview — repaired 3D world + vehicle cinematics
+
+- **Critical launch recovery:** the published V61 entrypoint requested `city-sculpt-v60.js` and `mobile-palms-v60.js`, but both files were absent in production (HTTP 404). V111 restores both modules on the release branch and restores the budgeted mobile facade-depth code.
+- Preserves the V61 Cairo street-racing championships and existing player saves, jobs, traffic and physics.
+- Adds a new lightweight vehicle 3D exterior pass to the player's taxi and garage cars, with batched chrome body trim, radiator grille and molded hood accents. It never adds geometry to traffic cars or bikes.
+- Two animated windshield wipers respond to **rain + running engine**, and park when the rain stops. The effects are cosmetic and do not change collisions or controls.
+- V111 entrypoint and PWA cache version changed to avoid stale mixed assets. The three required city/car modules are precached for repeat play.
+- Regression tests: `node --test tests/vehicle-details-v111.test.mjs tests/v111-entry-smoke.test.mjs`. The import smoke test guards against the V61-style missing-module regression.
+- Browser WebGL visuals and device FPS still require hands-on testing. V111 is a draft preview, not an automatic production promotion.
