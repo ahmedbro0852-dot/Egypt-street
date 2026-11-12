@@ -340,14 +340,14 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   const enemies=driftMode||timeMode?[]:models.map((model,i)=>{
    // Real starting grid: competitors are staged ahead on the actual asphalt,
    // not in the unpaved infield or outside the circuit.
-   const gap=(i+1)*5.8,side=[-1.8,1.8,0][i];
+   const gap=Math.min((i+1)*5.8,Math.max(0,dist(first,second)-2)),side=[-1.8,1.8,0][i];
    model.position.set(first.x+Math.sin(yaw)*gap+Math.cos(yaw)*side,0,
     first.z+Math.cos(yaw)*gap-Math.sin(yaw)*side);
    model.rotation.y=yaw;
    return {model,name:['الأزرق','الأحمر','الذهبي'][i],steps:0,
-    segment:0,seconds:0,finished:false,finishTime:Infinity,
+    segment:gap,seconds:0,finished:false,finishTime:Infinity,
     speed:course.speed*[1.03,.94,1.10][i],pace:course.speed*.48,lane:[-1.35,1.35,0][i],
-    progress:0};
+    progress:gap/Math.max(1,dist(first,second))};
   });
   active={id,course,points:pts,steps:0,lap:0,elapsed:0,lapStart:0,bestLap:Infinity,
    count:3.35,phase:'countdown',enemies,lastPosition:null,rank:4,startingHealth:100,
