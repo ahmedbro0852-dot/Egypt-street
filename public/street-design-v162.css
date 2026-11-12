@@ -1,0 +1,339 @@
+/* Egypt Streets V162 — unified clean cinematic mobile-first art direction.
+   Loaded LAST to replace layered V41/V47/V49 positions without breaking their logic. */
+:root{
+ --v162-bg:#091016;--v162-panel:rgba(10,19,26,.91);
+ --v162-edge:rgba(223,233,229,.16);--v162-soft:rgba(255,255,255,.07);
+ --v162-text:#f4f2e9;--v162-muted:#a8b8bd;
+ --v162-accent:#edb979;--v162-mint:#85d7c8;
+ --v162-radius:15px;
+}
+body{font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif!important;color:var(--v162-text);background:var(--v162-bg);}
+button{font-family:inherit!important;-webkit-tap-highlight-color:transparent;}
+button:focus-visible,#joy:focus-visible{outline:3px solid var(--v162-mint)!important;outline-offset:3px!important}
+button:disabled{opacity:.6!important;cursor:wait!important}
+#world{filter:none!important}
+/* Restrained vignette gives world depth without a postprocessing pass. */
+#v162Vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+ background:linear-gradient(180deg,rgba(4,10,16,.20),transparent 30%,transparent 72%,rgba(5,10,17,.30));
+}
+/* LAUNCH — cinematic typography, not a crowded app dashboard. */
+#intro.v55-intro{
+ position:fixed;inset:0;z-index:110;padding:clamp(16px,3.7vw,52px)!important;
+ display:flex!important;justify-content:flex-start!important;align-items:center!important;
+ direction:rtl!important;
+ background:linear-gradient(270deg,rgba(5,12,19,.96) 0%,rgba(6,13,19,.88) 33%,rgba(6,14,22,.36) 73%,rgba(5,12,19,.34)),
+ url("cairo-menu-bg.svg") center 52%/cover no-repeat!important;
+}
+#intro.v55-intro[style*="display: none"],#intro.v55-intro[style*="display:none"]{display:none!important}
+#intro.v55-intro::before,#intro.v55-intro::after,#intro .v55-glow{display:none!important}
+#intro .v55-box{
+ position:relative;z-index:3;
+ width:min(475px,46vw)!important;max-width:475px!important;
+ padding:clamp(24px,3vw,38px)!important;margin:0 4vw 0 0!important;
+ border-radius:22px!important;border:1px solid rgba(241,212,169,.28)!important;
+ background:linear-gradient(150deg,rgba(12,23,30,.94),rgba(7,15,22,.88))!important;
+ box-shadow:0 22px 85px rgba(0,0,0,.40),inset 0 1px rgba(255,255,255,.09)!important;
+ backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+ max-height:min(780px,calc(100dvh - 34px))!important;overflow-y:auto;overscroll-behavior:contain;
+ scrollbar-width:thin;scrollbar-color:#59636b transparent;
+}
+#intro .v55-eyebrow{display:flex!important;align-items:center;gap:8px!important;
+ direction:ltr!important;text-align:left!important;letter-spacing:2px!important;
+ font-size:9px!important;color:var(--v162-mint)!important;font-weight:800!important;
+}
+#intro .v55-liveDot{background:#80d6a9!important;box-shadow:0 0 0 4px rgba(128,214,169,.12)!important;}
+#intro .designGameTitle{
+ color:#fcf2e0!important;font-size:clamp(42px,4.5vw,69px)!important;font-weight:950!important;
+ line-height:1.25!important;margin:17px 0 5px!important;
+ letter-spacing:-2.5px!important;text-shadow:0 5px 30px rgba(0,0,0,.35)!important;
+}
+#intro .designGameTitle span{color:var(--v162-accent)!important}
+#intro .v55-line{width:64px!important;height:3px!important;margin:16px 0!important;
+ border-radius:4px;background:linear-gradient(90deg,var(--v162-accent),#855d3e)!important}
+#intro .introRoadBadge{display:inline-flex;letter-spacing:.1px;padding:7px 0!important;
+ color:var(--v162-accent)!important;background:none!important;border:0!important;
+ font-size:12px!important;font-weight:750!important;}
+#intro .v55-subtitle{font-size:13px!important;line-height:1.95!important;color:#c6d1d1!important;
+ max-width:440px;margin:10px 0 18px!important}
+#intro .v55-highlights{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ gap:8px!important;margin:17px 0!important}
+#intro .v55-highlights span{display:flex;align-items:center;justify-content:center;
+ min-height:39px;border:1px solid rgba(255,255,255,.10)!important;
+ background:rgba(255,255,255,.045)!important;border-radius:9px!important;
+ font-size:11px!important;font-weight:650!important;color:#deebe8!important;
+ padding:9px 7px!important;text-align:center}
+#intro .v55-save{color:#d7eadc!important;background:rgba(69,112,93,.14)!important;
+ border:1px solid rgba(129,207,168,.25)!important;border-radius:10px!important;
+ padding:10px 13px!important;font-size:11px!important;line-height:1.7!important;margin:11px 0!important}
+#intro .v55-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ gap:8px!important;margin-top:16px!important}
+#intro .v55-actions button{height:49px!important;min-height:49px!important;width:100%!important;
+ padding:0 10px!important;border-radius:10px!important;font-size:12px!important;
+ background:#1c2b32!important;color:#e8e9e3!important;border:1px solid rgba(255,255,255,.17)!important;
+ box-shadow:none!important;font-weight:750!important;letter-spacing:0!important;
+ transition:transform .16s ease,background .16s ease}
+#intro .v55-actions #start,#intro .v55-actions #continueGame{
+ grid-column:1/-1;background:linear-gradient(125deg,#ffd5a3,#daa26b)!important;
+ color:#1b2024!important;border:1px solid #ffe3bb!important;
+ font-size:15px!important;font-weight:900!important;min-height:54px!important;height:54px!important}
+#intro .v55-actions #start{background:#213b3e!important;color:#eff8f3!important;border-color:#5b9893!important}
+#intro .v55-actions button:active{transform:scale(.98)}
+#intro .v55-tip{font-size:10px!important;line-height:1.7!important;color:#94a9a9!important;margin:12px 0 0!important}
+#intro .v55-box>p:has(a){margin:12px 0 0!important}
+#intro .v55-box>p a{font-size:10px!important;color:#b5c5cb!important;text-decoration:none}
+#intro .cairoCaption{display:block!important;position:absolute!important;left:6vw!important;bottom:8vh!important;
+ z-index:2;color:rgba(255,245,226,.85)!important;text-shadow:0 6px 36px #0008!important}
+#intro .cairoCaption strong{font:900 clamp(64px,11vw,170px)/.85 system-ui,Arial!important;
+ letter-spacing:-7px!important;opacity:.7}
+#intro .cairoCaption span{font:700 10px system-ui,Arial!important;letter-spacing:4px!important;
+ color:rgba(255,229,192,.75)!important}
+/* HUD — individual coherent regions; less chrome, more visible city. */
+body.royal-v49 :is(.hud,.mission,#lifeV5,#fuelHud,.bottom,#v49-state,#v49-quick button){
+ color:var(--v162-text)!important;
+ background:var(--v162-panel)!important;
+ border:1px solid var(--v162-edge)!important;
+ box-shadow:0 8px 26px rgba(0,0,0,.24),inset 0 1px rgba(255,255,255,.06)!important;
+ backdrop-filter:blur(9px)!important;-webkit-backdrop-filter:blur(9px)!important;
+}
+body.royal-v49 .hud{position:fixed!important;z-index:26;top:16px!important;left:18px!important;right:auto!important;
+ width:232px!important;height:66px!important;padding:9px 15px 8px 69px!important;
+ border-radius:14px!important;overflow:hidden}
+body.royal-v49 .hud .tag{display:none!important}
+body.royal-v49 .hud .designWordmark{font-size:18px!important;color:#f6dfbd!important;
+ text-shadow:none!important;line-height:1.25!important;padding:0!important}
+body.royal-v49 .hud .designWordmark small{font-size:8px!important;letter-spacing:2px!important;color:#91adaf!important}
+body.royal-v49 .hud .v47-profile-name{font-size:12px!important;color:#f4edda!important}
+body.royal-v49 .hud #modeLabel{font-size:10px!important;color:var(--v162-mint)!important;letter-spacing:0!important}
+body.royal-v49 .hud #modeLabel:after{height:2px!important;margin-top:4px!important;background:var(--v162-mint)!important}
+body.royal-v49 .hud .v47-avatar{border-color:rgba(237,185,121,.65)!important;box-shadow:none!important}
+body.royal-v49 #money{position:fixed!important;z-index:27;right:166px!important;left:auto!important;
+ top:22px!important;width:auto!important;height:auto!important;padding:9px 12px!important;
+ border-radius:10px!important;background:rgba(11,23,30,.91)!important;
+ border:1px solid rgba(237,185,121,.33)!important;color:var(--v162-accent)!important;
+ font-size:13px!important;box-shadow:none!important}
+body.royal-v49 .mission{position:fixed!important;z-index:21;left:18px!important;right:auto!important;top:94px!important;
+ width:236px!important;max-width:calc(100vw - 36px)!important;padding:13px 15px!important;
+ border-radius:14px!important;border-color:rgba(237,185,121,.28)!important;transform:none!important;
+ font-size:11px!important}
+body.royal-v49 .mission::before,body.royal-v49 .mission::after{display:none!important}
+body.royal-v49 .mission .missionHeading small{color:var(--v162-accent)!important;font-weight:800!important}
+body.royal-v49 .mission p{line-height:1.65!important;color:#e2e8e5!important;margin-top:7px!important;font-size:11px!important}
+body.royal-v49 .missionChip{background:rgba(133,215,200,.14)!important;color:var(--v162-mint)!important}
+body.royal-v49 #map{position:fixed!important;z-index:20;right:18px!important;left:auto!important;top:98px!important;
+ width:140px!important;height:140px!important;border:2px solid rgba(225,224,204,.57)!important;
+ border-radius:16px!important;box-shadow:0 6px 25px rgba(0,0,0,.24)!important;
+ background:rgba(10,24,29,.8)!important}
+body.royal-v49 #lifeV5{position:fixed!important;right:18px!important;left:auto!important;top:248px!important;
+ width:140px!important;padding:11px!important;border-radius:13px!important}
+body.royal-v49 #lifeV5 strong{font-size:12px!important;color:var(--v162-accent)!important}
+body.royal-v49 #lifeV5 span{font-size:10px!important;color:#cad5d1!important}
+body.royal-v49 #lifeV5 button{border:1px solid rgba(255,255,255,.17)!important;background:#24363a!important}
+body.royal-v49 :is(#v40Menu,#pause){position:fixed!important;top:18px!important;width:43px!important;height:43px!important;
+ border-radius:11px!important;border:1px solid rgba(239,230,205,.32)!important;
+ background:rgba(12,25,33,.93)!important;color:#f4ead9!important;box-shadow:none!important}
+body.royal-v49 #pause{right:18px!important;left:auto!important}
+body.royal-v49 #v40Menu{right:70px!important;left:auto!important}
+body.royal-v49 #sound{top:72px!important;right:18px!important;left:auto!important;
+ background:rgba(11,23,30,.88)!important;border:1px solid rgba(255,255,255,.14)!important}
+body.royal-v49 #v49-quick{position:fixed!important;z-index:24!important;top:405px!important;right:18px!important;
+ left:auto!important;display:grid!important;grid-template-columns:repeat(2,45px)!important;gap:8px!important}
+body.royal-v49 #v49-quick button{width:45px!important;height:45px!important;border-radius:12px!important;
+ font-size:21px!important;display:grid;place-items:center}
+body.royal-v49 #v49-quick button:nth-child(4){border-color:rgba(237,185,121,.62)!important;color:var(--v162-accent)!important}
+body.royal-v49 #v49-quick button:active{transform:scale(.94)!important}
+body.royal-v49 #v49-state{position:fixed!important;z-index:23;left:18px!important;right:auto!important;top:236px!important;
+ bottom:auto!important;transform:none!important;width:176px!important;padding:8px 12px!important;
+ border-radius:11px!important;color:#e5f1e8!important;font-size:10px!important}
+body.royal-v49 #v49-state i{background:linear-gradient(90deg,#53ac80,#a0d5a6)!important}
+body.royal-v49 :is(#jobsBtn,#garageBtn,#gpsBtn,#v31RaceOpen){display:none!important}
+/* Controls: practical thumb targets with restrained accent. */
+body.royal-v49 .bottom{position:fixed!important;z-index:30!important;right:18px!important;left:auto!important;
+ bottom:18px!important;top:auto!important;transform:none!important;
+ display:grid!important;grid-template-columns:repeat(3,56px)!important;grid-auto-rows:52px!important;
+ gap:7px!important;min-width:0!important;width:auto!important;padding:8px!important;
+ border-radius:15px!important}
+body.royal-v49 .bottom button{display:grid!important;place-items:center!important;
+ width:56px!important;height:52px!important;min-width:0!important;min-height:0!important;
+ background:rgba(35,51,58,.95)!important;border:1px solid rgba(233,234,225,.20)!important;
+ color:#f4efe4!important;border-radius:11px!important;font-size:11px!important;line-height:1.2!important;
+ box-shadow:none!important}
+body.royal-v49 .bottom #enter{background:linear-gradient(135deg,#ffd5a0,#e1a76c)!important;
+ color:#1d2426!important;border-color:#fbd6a9!important;font-weight:900!important}
+body.royal-v49.driving .bottom{bottom:104px!important;display:flex!important;align-items:center!important;gap:6px!important}
+body.royal-v49.driving .bottom :is(#run,#jump){display:none!important}
+body.royal-v49 .bottom #speed{position:fixed!important;left:50%!important;bottom:19px!important;
+ transform:translateX(-50%)!important;right:auto!important;min-width:87px!important;
+ padding:9px 12px!important;border-radius:14px!important;
+ background:rgba(9,20,27,.91)!important;border:1px solid rgba(237,185,121,.39)!important;
+ font:900 33px/1 system-ui,Arial!important;color:#f6dbb8!important;
+ text-shadow:none!important;box-shadow:0 7px 25px #0005!important}
+body.royal-v49 .bottom #speed small{display:block!important;text-align:center;font:700 9px/1.7 system-ui!important;
+ color:#a9bfc1!important;letter-spacing:0!important}
+body.royal-v49:not(.driving) .bottom #speed{display:none!important}
+body.royal-v49 #joy{position:fixed!important;z-index:30!important;left:24px!important;right:auto!important;
+ bottom:25px!important;top:auto!important;width:138px!important;height:138px!important;
+ border-radius:50%!important;border:2px solid rgba(230,233,227,.37)!important;
+ background:radial-gradient(circle at 50% 45%,rgba(106,148,152,.13),rgba(10,24,32,.72))!important;
+ box-shadow:0 8px 26px #0006,inset 0 0 0 13px rgba(255,255,255,.035)!important}
+body.royal-v49 #joy #knob{position:absolute;left:47px!important;top:47px!important;width:42px!important;height:42px!important;
+ border:1px solid rgba(255,255,255,.58)!important;background:linear-gradient(145deg,#f0eee5,#8caaa8)!important;
+ box-shadow:0 5px 18px #0006!important;border-radius:50%!important}
+body.royal-v49 #interact{position:fixed!important;left:22px!important;right:auto!important;bottom:185px!important;
+ width:110px!important;height:46px!important;border:1px solid rgba(133,215,200,.55)!important;
+ border-radius:11px!important;background:rgba(18,49,49,.91)!important;color:#d5fbef!important;
+ font-size:12px!important;z-index:31!important}
+body.royal-v49 #controlsHint{display:none!important}
+body.royal-v49 .pedals{position:fixed!important;z-index:31!important;right:18px!important;left:auto!important;
+ bottom:22px!important;gap:6px!important;display:none}
+body.royal-v49.driving .pedals{display:flex!important}
+body.royal-v49 .pedals button{width:61px!important;height:70px!important;border-radius:12px!important;
+ border:1px solid rgba(255,255,255,.18)!important;font-size:11px!important;font-weight:800!important}
+body.royal-v49 #accelerate{background:linear-gradient(150deg,#2c7c66,#1e5047)!important;color:#effef7!important}
+body.royal-v49 #brakePedal{background:linear-gradient(150deg,#b85b53,#753533)!important;color:#fff3ef!important}
+body.royal-v49 #reverse{background:#2b404b!important}
+body.royal-v49 #v9SignalStrip{z-index:28!important}
+body.royal-v49 #v9SignalStrip button{border-radius:9px!important}
+body.royal-v49 #driftPedalV34{z-index:28!important;border-radius:11px!important}
+body.royal-v49 #fuelHud{position:fixed!important;z-index:23!important;
+ left:18px!important;right:auto!important;bottom:190px!important;top:auto!important;
+ width:265px!important;max-width:265px!important;max-height:min(39vh,350px)!important;
+ padding:13px!important;overflow:auto!important;border-radius:14px!important;
+ scrollbar-width:thin}
+body.royal-v49 #fuelTitle{color:var(--v162-accent)!important}
+body.royal-v49 #gearBadge{background:rgba(237,185,121,.15)!important;color:var(--v162-accent)!important}
+body.royal-v49 #fuelHud button{border-radius:9px!important}
+#v162DriveDetails{display:none;width:100%;margin-top:7px;height:40px;min-height:40px;border-radius:10px;
+ background:#253f41;color:#d0f5eb;border:1px solid rgba(133,215,200,.35);font-size:11px;font-weight:800}
+body.royal-v49 #toast{z-index:60!important;background:rgba(10,23,31,.94)!important;
+ border:1px solid rgba(238,188,130,.24)!important;border-radius:12px!important;
+ color:#fff0d9!important;max-width:min(380px,80vw)!important;
+ font-size:12px!important;box-shadow:0 8px 30px #0005!important}
+body.royal-v49 #eventPanel{background:rgba(11,29,34,.91)!important;border:1px solid rgba(133,215,200,.32)!important;
+ border-radius:12px!important}
+body.v49-no-actions :is(.bottom,#v49-quick){display:none!important}
+body.reference-v47.v43-photo :is(.hud,.mission,.bottom,#v49-quick,#v49-state,#fuelHud,#interact){display:none!important}
+/* MOBILE — top status + map, central unobstructed city, two thumb zones. */
+@media(max-width:760px){
+ #intro.v55-intro{padding:12px!important;justify-content:center!important;align-items:center!important;
+  background:linear-gradient(180deg,rgba(6,13,19,.34),rgba(5,12,18,.91) 49%,rgba(6,12,17,.99)),
+  url("cairo-menu-bg.svg") 58% center/cover no-repeat!important}
+ #intro .v55-box{width:100%!important;max-width:460px!important;
+  max-height:calc(100dvh - 24px)!important;margin:auto!important;padding:22px!important;
+  border-radius:18px!important;background:linear-gradient(150deg,rgba(9,21,28,.91),rgba(7,16,22,.91))!important}
+ #intro .cairoCaption{display:none!important}
+ #intro .designGameTitle{font-size:clamp(40px,12vw,54px)!important;margin:13px 0 2px!important}
+ #intro .v55-subtitle{font-size:12px!important;line-height:1.8!important;margin:7px 0 13px!important}
+ #intro .v55-highlights{gap:6px!important;margin:11px 0!important}
+ #intro .v55-highlights span{font-size:10px!important;min-height:35px;padding:7px!important}
+ #intro .v55-actions{margin-top:11px!important}
+ #intro .v55-actions button{height:45px!important;min-height:45px!important}
+ #intro .v55-actions #start,#intro .v55-actions #continueGame{height:50px!important;min-height:50px!important}
+ #intro .v55-tip{font-size:9px!important}
+ body.royal-v49 .hud{left:10px!important;top:10px!important;width:174px!important;
+  height:57px!important;padding:8px 10px 6px 60px!important;border-radius:12px!important}
+ body.royal-v49 .hud .v47-avatar{width:46px!important;height:46px!important;top:5px!important;left:5px!important}
+ body.royal-v49 .hud .v47-profile-name{font-size:10px!important}
+ body.royal-v49 .hud .designWordmark{font-size:15px!important}
+ body.royal-v49 #money{left:10px!important;right:auto!important;top:73px!important;
+  font-size:11px!important;padding:5px 9px!important;border-radius:8px!important}
+ body.royal-v49 #v49-state{left:10px!important;right:auto!important;top:105px!important;
+  width:128px!important;padding:5px 9px!important;border-radius:9px!important;font-size:9px!important}
+ body.royal-v49 .mission{left:10px!important;right:auto!important;top:141px!important;
+  width:min(180px,calc(100vw - 137px))!important;max-height:90px!important;
+  padding:9px 10px!important;border-radius:11px!important;font-size:10px!important;overflow:hidden}
+ body.royal-v49 .mission p{font-size:10px!important;line-height:1.5!important}
+ body.royal-v49 #map{right:10px!important;left:auto!important;top:10px!important;
+  width:93px!important;height:93px!important;border-radius:13px!important}
+ body.royal-v49 #lifeV5{display:none!important}
+ body.royal-v49 :is(#v40Menu,#pause){top:113px!important;width:42px!important;height:42px!important}
+ body.royal-v49 #pause{right:10px!important}
+ body.royal-v49 #v40Menu{right:60px!important}
+ body.royal-v49 #v49-quick{right:10px!important;top:171px!important;
+  gap:7px!important;grid-template-columns:repeat(2,43px)!important}
+ body.royal-v49 #v49-quick button{width:43px!important;height:43px!important;
+  border-radius:11px!important;font-size:20px!important}
+ body.royal-v49 #v49-state{box-shadow:none!important}
+ body.royal-v49 .bottom{right:10px!important;bottom:max(12px,env(safe-area-inset-bottom))!important;
+  grid-template-columns:repeat(3,48px)!important;grid-auto-rows:46px!important;
+  gap:6px!important;padding:7px!important;border-radius:12px!important}
+ body.royal-v49 .bottom button{width:48px!important;height:46px!important;font-size:10px!important;
+  border-radius:9px!important}
+ body.royal-v49.driving .bottom{bottom:94px!important;display:flex!important;gap:5px!important}
+ body.royal-v49 .bottom #speed{bottom:max(12px,env(safe-area-inset-bottom))!important;
+  font-size:28px!important;min-width:72px!important;padding:8px 10px!important;border-radius:12px!important}
+ body.royal-v49 #joy{left:12px!important;bottom:max(16px,env(safe-area-inset-bottom))!important;
+  width:114px!important;height:114px!important;box-shadow:inset 0 0 0 10px rgba(255,255,255,.025)!important}
+ body.royal-v49 #joy #knob{width:38px!important;height:38px!important;left:36px!important;top:36px!important}
+ body.royal-v49 .pedals{right:10px!important;bottom:max(12px,env(safe-area-inset-bottom))!important;gap:5px!important}
+ body.royal-v49 .pedals button{width:53px!important;height:67px!important;font-size:10px!important}
+ body.royal-v49 #interact{left:12px!important;right:auto!important;
+  bottom:153px!important;width:96px!important;height:44px!important;font-size:11px!important}
+ body.royal-v49 #fuelHud{left:10px!important;right:auto!important;top:238px!important;
+  bottom:auto!important;width:180px!important;max-width:180px!important;
+  padding:9px!important;max-height:calc(100dvh - 370px)!important;border-radius:11px!important}
+ body.royal-v49.driving #fuelHud:not(.v162-expanded) :is(
+  #driveReadout,#steeringTrack,.v9Tach,.v9RpmTrack,#v9SignalStatus,#fuelMode,
+  #fuelCondition,#collisionStatus,.visualTechnicalV41,#fuelActions,#fuelWarning,#fuelStation,
+  #fuelBtn,#fuelRepair){display:none!important}
+ body.royal-v49 #fuelHud #fuelTitle{font-size:11px!important}
+ body.royal-v49 #fuelHud #fuelAmount{font-size:10px!important}
+ body.royal-v49 #fuelHud #fuelTrack{margin:6px 0!important}
+ body.royal-v49 #v162DriveDetails{display:block!important;height:34px!important;min-height:34px!important;
+  padding:0 5px!important;margin-top:5px!important;font-size:10px!important;
+  background:rgba(36,65,67,.98)!important}
+ body.royal-v49 #v9SignalStrip{right:10px!important;bottom:158px!important;left:auto!important}
+ body.royal-v49 #v9SignalStrip button{width:37px!important;height:35px!important}
+ body.royal-v49 #driftPedalV34{right:10px!important;bottom:203px!important;
+  left:auto!important;width:88px!important;height:47px!important;font-size:10px!important}
+ body.royal-v49 #eventPanel{left:10px!important;right:auto!important;top:330px!important;
+  width:180px!important;max-height:80px!important;overflow:hidden}
+ body.royal-v49 #toast{bottom:210px!important;left:50%!important;right:auto!important;
+  transform:translateX(-50%)!important;max-width:calc(100vw - 24px)!important;text-align:center}
+ body.royal-v49 #sound{display:none!important}
+ body.royal-v49 #pcControlsV40{display:none!important}
+}
+@media(max-width:395px){
+ #intro .v55-box{padding:17px!important}
+ #intro .v55-subtitle{display:block!important;font-size:11px!important}
+ #intro .v55-tip{display:none!important}
+ body.royal-v49 .mission{width:158px!important}
+ body.royal-v49 #fuelHud{width:158px!important;max-width:158px!important}
+ body.royal-v49 #v49-quick{top:176px!important}
+}
+@media(orientation:landscape) and (max-height:540px){
+ #intro.v55-intro{padding:9px!important}
+ #intro .v55-box{margin:0 3vw 0 auto!important;width:min(440px,57vw)!important;
+  max-height:calc(100dvh - 18px)!important;padding:14px 18px!important}
+ #intro .designGameTitle{font-size:34px!important}
+ #intro .v55-subtitle{font-size:10px!important;margin:3px 0!important}
+ #intro .v55-highlights{margin:7px 0!important}
+ #intro .v55-highlights span{min-height:27px!important;padding:4px!important}
+ #intro .v55-actions button{height:36px!important;min-height:36px!important}
+ #intro .v55-actions #start,#intro .v55-actions #continueGame{height:39px!important;min-height:39px!important}
+ #intro .v55-tip{display:none!important}
+ body.royal-v49 .hud{top:7px!important;left:9px!important;height:46px!important}
+ body.royal-v49 .hud .v47-avatar{height:36px!important;width:36px!important}
+ body.royal-v49 .mission{top:60px!important;left:9px!important;width:200px!important;
+  max-height:75px!important}
+ body.royal-v49 #money{left:9px!important;top:140px!important}
+ body.royal-v49 #v49-state{left:9px!important;top:174px!important}
+ body.royal-v49 #map{top:8px!important;right:9px!important;width:87px!important;height:87px!important}
+ body.royal-v49 :is(#pause,#v40Menu){top:103px!important}
+ body.royal-v49 #v49-quick{top:155px!important;right:9px!important}
+ body.royal-v49 #joy{left:10px!important;bottom:12px!important;width:91px!important;height:91px!important}
+ body.royal-v49 #joy #knob{left:26px!important;top:26px!important;width:35px!important;height:35px!important}
+ body.royal-v49 #interact{left:109px!important;bottom:15px!important;width:84px!important;height:41px!important}
+ body.royal-v49 .bottom{bottom:8px!important;right:9px!important;grid-auto-rows:39px!important}
+ body.royal-v49 .bottom button{height:39px!important}
+ body.royal-v49.driving .bottom{bottom:85px!important}
+ body.royal-v49 .pedals{bottom:8px!important;right:9px!important}
+ body.royal-v49 .pedals button{height:58px!important}
+ body.royal-v49 #fuelHud{left:210px!important;top:7px!important;bottom:auto!important;
+  width:158px!important;max-height:125px!important}
+ body.royal-v49 #v9SignalStrip{bottom:137px!important;right:9px!important}
+ body.royal-v49 #driftPedalV34{bottom:178px!important;right:9px!important}
+ body.royal-v49 #eventPanel{display:none!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #intro *,body.royal-v49 button{transition:none!important;animation:none!important}
+}
