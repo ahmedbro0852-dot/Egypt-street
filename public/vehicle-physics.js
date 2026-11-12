@@ -4,6 +4,15 @@ const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
 const damp=(n,goal,k,dt)=>n+(goal-n)*(1-Math.exp(-k*dt));
 const G=9.81,BASE_MASS=1250,BASE_IZ=2280,BASE_WHEELBASE=2.7;
 const MU=.96,MAX_FORWARD=41.0,MAX_REVERSE=10.0;
+// Remaining cornering force after each axle has used grip to accelerate/brake.
+export function axleGripBudget(frontLoad,rearLoad,grip,force,braking=false){
+ const frontCapacity=MU*frontLoad*grip,rearCapacity=MU*rearLoad*grip;
+ // Brake bias follows load transfer; drive torque goes to the rear axle.
+ const bias=braking?clamp(frontLoad/(frontLoad+rearLoad),.5,.8):0;
+ const frontForce=force*bias,rearForce=force*(1-bias);
+ const remaining=(capacity,longitudinal)=>Math.sqrt(Math.max(0,capacity*capacity-longitudinal*longitudinal));
+ return {front:remaining(frontCapacity,frontForce),rear:remaining(rearCapacity,rearForce)};
+}
 export function createVehiclePhysics(x=0,z=0,yaw=0){
  return {x,z,yaw,speed:0,lateralSpeed:0,steer:0,yawRate:0,
  roll:0,rollVelocity:0,pitch:0,pitchVelocity:0,heave:0,heaveVelocity:0,
@@ -72,9 +81,9 @@ export function stepVehiclePhysics(p,input={},dt=1/60,intersects=()=>false){
    // V34: rear handbrake slows the car but never replaces the normal brake.
    if(driftBrake)fx-=Math.sign(p.speed)*Math.min(brakeForce*.21,mass*G*grip*.26);
    if(braking)fx=clamp(fx,-effectiveBrake,effectiveBrake);
-   const usedGrip=clamp(Math.abs(fx)/(MU*mass*G*grip),0,.995);
-   const fg=MU*frontLoad*grip*Math.sqrt(1-usedGrip*usedGrip*.65);
-   const rg=MU*rearLoad*grip*Math.sqrt(1-usedGrip*usedGrip*.85)*(driftBrake?.41:1);
+   const budget=axleGripBudget(frontLoad,rearLoad,grip,fx,braking||changingDirection);
+   const fg=budget.front;
+   const rg=budget.rear*(driftBrake?.41:1);
    const weight=clamp((speed-2)/3,0,1),direction=p.speed>=0?1:-1;
    const aFront=Math.atan2(p.lateralSpeed+lf*p.yawRate,Math.max(speed,1.8))-p.steer*direction;
    const aRear=Math.atan2(p.lateralSpeed-lr*p.yawRate,Math.max(speed,1.8));
