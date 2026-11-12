@@ -20,6 +20,7 @@ import { isRaceArenaV32, RACE_ARENA_BOUNDS_V32 } from './race-arena-v32.js';
 import { installRealismRender } from './realism-render-v16.js';
 import { createStreetAudio } from './street-audio.js?v=56.0';
 import { createDrivingEffectsV56 } from './driving-effects-v56.js';
+import { createRoadFeedbackV60 } from './road-feedback-v60.js?v=60.0';
 import { installMobileInstrumentsV56 } from './mobile-instruments-v56.js';
 import * as T from './three.js';
 import { installCairo } from './cairo-city.js?v=54.0';
@@ -905,6 +906,9 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
  map.fillStyle='#fff';map.font='bold 10px Arial';map.fillText('N',9,14);
 }
 let saveClockV55=0,lastMapV51=-10000,lastStreetV51=-10000,lastLandscapeV51=-10000,crowdClockV51=0;
+// Reuse camera vectors: avoid per-frame allocations on mobile browsers.
+const seatV60=new T.Vector3(),chaseV60=new T.Vector3();
+let speedLabelV60=-1,lastDashV60=-1000;
 window.addEventListener?.('pagehide',()=>saveWorld(true));
 document.addEventListener('visibilitychange',()=>{
  if(document.hidden)saveWorld(true);
@@ -1125,7 +1129,7 @@ function frame(t){
    const vehicleAngle=vehicleState.yaw;
    const forwardX=Math.sin(vehicleAngle),forwardZ=Math.cos(vehicleAngle);
    const rightX=Math.cos(vehicleAngle),rightZ=-Math.sin(vehicleAngle);
-   const seat=new T.Vector3(p.x+forwardX*.40-rightX*.31,1.65+taxi.position.y,
+   const seat=seatV60.set(p.x+forwardX*.40-rightX*.31,1.65+taxi.position.y,
      p.z+forwardZ*.40-rightZ*.31);
    camera.position.lerp(seat,1-Math.exp(-dt*12));
    const lookAngle=vehicleAngle+cockpitLook;
@@ -1142,13 +1146,16 @@ function frame(t){
    }
    const baseH=driving?4.2:2.35;
    const height=baseH+Math.sin(cameraPitch)*distance+(driving?Math.min(1.0,Math.abs(speed)*.03):0);
-   const chase=new T.Vector3(p.x-Math.sin(angle)*distance,height,p.z-Math.cos(angle)*distance);
+   const chase=chaseV60.set(p.x-Math.sin(angle)*distance,height,p.z-Math.cos(angle)*distance);
    camera.position.lerp(chase,1-Math.exp(-dt*(driving?5.3:7.0)));
    const lookAhead=driving?Math.min(2.6,Math.abs(speed)*.13):.4;
    camera.lookAt(p.x+Math.sin(angle)*lookAhead,driving?1.42:1.35,p.z+Math.cos(angle)*lookAhead);
  }
- $('speed').innerHTML=Math.round(Math.abs(speed)*3.6)+'<small>كم / س</small>';
- if(driving){
+ const speedKmhV60=Math.round(Math.abs(speed)*3.6);
+ if(speedLabelV60!==speedKmhV60){speedLabelV60=speedKmhV60;$('speed').innerHTML=speedKmhV60+'<small>كم / س</small>';}
+ // Keep driving instrumentation responsive while avoiding repeated DOM layout on touch devices.
+ if(driving&&(!mobileLiteV51.enabled||t-lastDashV60>=110)){
+  lastDashV60=t;
   const gear=gearStatus(vehicleState.speed,parkingBrake,pedal<0||reverseKeyHeld);
   $('gearBadge').textContent=gear.gear==='D'&&v9Live.engineOn?'D'+drivingRealism.getState().gear:
     (!v9Live.engineOn?'N':gear.gear);
@@ -1174,6 +1181,9 @@ function frame(t){
  drivingFXV56.update({dt,vehicle:activeVehicle,active,paused,driving,speed,
   skid:driving?vehicleState.skid:0,night:cityLife.illumination()<.22,braking:v56Brake,
   engineOn:v56Engine,weather:cityLife.getState().weather});
+ roadFeedbackV60.update({dt,vehicle:activeVehicle,active,paused,driving,speed,
+  skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather,
+  motorbike:garage.getVehicle().id==='motorbike'});
  const v56Fuel=fuelSystem.getState();
  mobileInstrumentsV56.update(t,{speed,rpm:v9Live.rpm,gear:driving?v9Live.gear:'N',
   fuel:v56Fuel.fuel,capacity:v56Fuel.capacity,braking:v56Brake});
@@ -1189,6 +1199,7 @@ const v30=createV30({getPlayer:()=>driving?taxi.position:player.position,getDriv
 const cityQuestsV50=createCityQuestsV50({getPosition:()=>driving?taxi.position:player.position,getDriving:()=>driving,getSpeed:()=>vehicleState.speed,getActive:()=>active,getPaused:()=>paused,getInRace:()=>raceModeV32,fresh:freshStartV55,onReward:(amount,q)=>{cash+=amount;$('money').textContent='ج.م '+Math.round(cash);saveWallet();saveWorld(true);toast('🎉 تحدي '+q.id+' اكتمل! +'+amount+' جنيه')}});
 const visualPolishV31=createVisualPolishV31({T,scene,renderer,player});
 const drivingFXV56=createDrivingEffectsV56({T,scene,renderer,mobile:isMobileOptimized});
+const roadFeedbackV60=createRoadFeedbackV60({T,scene,renderer,mobile:isMobileOptimized});
 const mobileV40=createMobileExperienceV40({getActive:()=>active,getPaused:()=>paused,setPaused:value=>{paused=value;$('pause').textContent=paused?'▶':'Ⅱ'},resetInput:()=>{keys={};pedal=0;brakePedal=false;sprint=false;reverseKeyHeld=false;reversePressed=false;driftHeldV34=false;jumpRequested=false;drag=null;resetPad()},notify:toast});
 const desktopWorldV43=installDesktopWorldV43({T,scene,renderer,sun,getVehicle:()=>activeVehicle,getState:()=>({driving,illumination:cityLife.illumination(),weather:cityLife.getState().weather,yaw:vehicleState.yaw,speed:vehicleState.speed,skid:vehicleState.skid}),notify:toast});
 const travelLightingV44=installTravelLightingV44({T,scene,renderer,sun,getPosition:()=>driving?taxi.position:player.position,getDaylight:()=>cityLife.illumination()});
