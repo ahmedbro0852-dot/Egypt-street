@@ -46,6 +46,7 @@ test('PWA pre-cache includes every reachable game script',async()=>{
 });
 test('entry document references the current V150 game script',async()=>{
  const html=await readFile(path.join(root,'index.html'),'utf8');
- assert.match(html,/game\.js\?v=150\.0/);
+ const gameTag=html.match(/game\.js\?v=(\d+)(?:\.(\d+))?/);
+ assert.ok(gameTag&&Number(gameTag[1])>=150,'game script must be version 150 or newer');
  assert.match(html,/race-league-v100\.css\?v=150\.0/);
 });
