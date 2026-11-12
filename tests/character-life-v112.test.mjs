@@ -27,6 +27,7 @@ test('NPC has eye contact, social gestures and animated mouth only near player',
   focus:{x:3,z:2},distanceSq:13,visible:true,walking:false});
  assert.ok(person.userData.expressionV112.gesture>.6);
  assert.ok(person.userData.mouth.scale.y>.011);
+ assert.ok(person.userData.arms[0].rotation.x<-.08,'talking should animate both sides of the body');
  assert.ok(Number.isFinite(person.userData.head.rotation.y));
  const old=person.userData.mouth.scale.y;
  behavior.update(person,{dt:.05,time:20000,focus:{x:50,z:50},distanceSq:5000,visible:true});
@@ -57,6 +58,15 @@ test('hero gaze never accumulates yaw and eye blink restores rig state',()=>{
  presence.dispose();
  assert.equal(hero.userData.heroPupils[0].scale.y,.013);
  assert.equal(hero.userData.heroPupils[0].position.x,-.063);
+});
+test('speaking never overrides an NPC greeting animation',()=>{
+ const behavior=createCitizenBehaviorV112(),person=fakeResident();
+ person.userData.waveUntil=25000;
+ person.userData.arms[1].rotation.x=-1.22;
+ behavior.update(person,{dt:.05,time:22000,focus:{x:2,z:1},distanceSq:5,
+  visible:true,walking:false,faceNear:true});
+ assert.equal(person.userData.arms[1].rotation.x,-1.22);
+ assert.ok(person.userData.arms[0].rotation.x<0);
 });
 test('missing rig safely disables facial animation',()=>{
  assert.equal(createHeroPresenceV112({hero:{userData:{}}}).enabled,false);
