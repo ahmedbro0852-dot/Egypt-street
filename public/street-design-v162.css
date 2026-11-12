@@ -337,3 +337,14 @@ body.reference-v47.v43-photo :is(.hud,.mission,.bottom,#v49-quick,#v49-state,#fu
 @media(prefers-reduced-motion:reduce){
  #intro *,body.royal-v49 button{transition:none!important;animation:none!important}
 }
+
+/* V162.1 readability QA: event messages stay clear of the mobile vehicle card. */
+#intro .v55-box,body.royal-v49 #fuelHud{touch-action:pan-y}
+@media(max-width:760px){
+ body.royal-v49 #eventPanel{left:auto!important;right:10px!important;top:330px!important;
+  width:136px!important;max-width:40vw!important;max-height:92px!important}
+ body.royal-v49 #v162DriveDetails{height:42px!important;min-height:42px!important}
+}
+@media(orientation:landscape) and (max-height:540px){
+ body.royal-v49 #eventPanel{display:none!important}
+}
