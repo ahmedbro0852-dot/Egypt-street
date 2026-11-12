@@ -10,10 +10,26 @@ export function ackermannAngles(steer,track=1.88,wheelbase=2.7){
  const outer=Math.atan2(wheelbase,radius+track/2);
  return {left:sign*(sign<0?inner:outer),right:sign*(sign>0?inner:outer)};
 }
+// Per-wheel, load-sensitive travel. All inputs are in SI units.
+// The chassis is already animated by vehicle-physics.js; wheels remain
+// separate so the tyres can visibly absorb braking, cornering and small bumps.
+export function wheelOffsetV150(physical={},front=true,side=1){
+ const finite=(value)=>Number.isFinite(value)?value:0;
+ const speed=Math.abs(finite(physical.speed));
+ const longLoad=clamp(-finite(physical.acceleration)*.007,-.048,.048)*(front?1:-1);
+ const sideLoad=clamp(finite(physical.lateralAcceleration)*.006,-.05,.05)*(side<0?-1:1);
+ const roll=finite(physical.wheelSpin);
+ const roadRipple=clamp(speed/5,0,1)*(
+   .009*Math.sin(roll*.68+(front?1.4:0)+side*.75)+
+   .004*Math.sin(roll*.29+(front?0:1.8)-side*.43));
+ const impact=clamp(finite(physical.impact)*.003,0,.04)*
+   Math.sin(roll*1.8+(front?0:1.1)+side);
+ return clamp(longLoad+sideLoad+roadRipple+impact,-.075,.075);
+}
 export function updateCarWheels(car,physical,dt=1/60){
  if(!car?.userData?.wheels||!physical)return;
  const wheels=car.userData.wheels,angles=ackermannAngles(physical.steer);
- const sin=Math.sin(physical.wheelSpin||0);
+ const blend=1-Math.exp(-12*clamp(Number.isFinite(dt)?dt:1/60,0,.05));
  for(const wheel of wheels){
    const meta=wheel.userData||{},front=meta.front??wheel.position.z>0;
    const side=meta.side??Math.sign(wheel.position.x);
@@ -25,9 +41,11 @@ export function updateCarWheels(car,physical,dt=1/60){
      meta.rolling.rotation.x=spin;
    }else wheel.rotation.x=spin;
    if(Number.isFinite(meta.baseY)){
-     // Tyres contact the road: subtle unsprung oscillation only.
-     const roadRipple=Math.min(.025,Math.abs(physical.speed||0)*.0012);
-     wheel.position.y=meta.baseY+roadRipple*Math.sin((physical.wheelSpin||0)*.65+side*.8+(front?1.1:0));
+     // V150: spring-filtered independent wheel travel, not shared sine wobble.
+     const target=wheelOffsetV150(physical,front,side);
+     const previous=Number.isFinite(meta.travelV150)?meta.travelV150:0;
+     meta.travelV150=previous+(target-previous)*blend;
+     wheel.position.y=meta.baseY+meta.travelV150;
    }
  }
 }
