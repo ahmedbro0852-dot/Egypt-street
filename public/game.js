@@ -750,7 +750,7 @@ function beginV55(restoreSave=false){
  if(restoreSave&&previousWorld)restoreWorld(previousWorld);
  else saveWorld(true);
  if(driving)toast('✅ رجعت لنفس العربية والمكان. القيادة الذاتية جاهزة.');
- else toast(restoreSave?'✅ رجعت لنفس المكان وتقدمك محفوظ.':'🇪🇬 أهلاً بيك في شوارع مصر! قرب من العربية أو قدّم على شغل.');
+ else toast(restoreSave?'✅ رجعت لنفس المكان وتقدمك محفوظ.':'🇪🇬 أهلاً بيك في شوارع مصر! قرب من أي عربية واضغط اركب.');
 }
 $('interact').onclick=()=>career.interact()||streetEvents.interact();
 $('start').onclick=()=>beginV55(false);
@@ -787,7 +787,10 @@ function enter(){
   autoDriver.stop();drivingRealism.exit();
   v9Live={...v9Live,left:false,right:false,engineOn:false,rpm:0};updateV9Lamps();
   parkingBrake=false;updateParkingUi();fuelSystem.exit();document.body.classList.remove('driving');pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
- }else if(player.position.distanceTo(taxi.position)<6){
+ }else{
+  const candidate=nearbyRideV151();
+  if(!candidate){toast('🚗 قرب من أي عربية في الشارع واضغط اركب — مش لازم الصفرا!');return}
+  chooseRideV151(candidate);
   driving=true;player.visible=false;
   Object.assign(vehicleState,createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y));
   yaw=taxi.rotation.y;cameraYaw=yaw;cameraFreeUntil=0;speed=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;resetPad();
@@ -795,9 +798,9 @@ function enter(){
   autoDriver.start(vehicleState.x,vehicleState.z);
   updateAutoPilotLabel();$('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
   $('controlsHint').textContent='🧭 GPS للمهمات • العصاية للتحكم اليدوي';
-  toast('🤖 العربية بتسوق لوحدها. حرك العصاية للتوجيه اليدوي أو دوس فرامل.');
+  toast('🚗 ركبت '+(borrowedVehicle?(rideKindV151(borrowedVehicle)==='motorbike'?'موتوسيكل الشارع':'عربية من الشارع'):'عربيتك')+'! حرّك العصاية للسواقة أو شغّل القيادة الذاتية.');
   saveWorld(true);
- }else toast('قرب من العربية الصفرا الأول')
+ }
 } $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{if(streetLaptopV41.isOpen()){
  const typing=['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName);
  if(e.key==='Escape'||(e.key?.toLowerCase()==='l'&&!typing)){
@@ -1046,7 +1049,11 @@ function frame(t){
    }
    const autopilot=autoDriver.controls(vehicleState,traffic,walkers,dt,{cruiseKmh:fuelSystem.getState().target});
    const racingId=currentRaceVehicleId();
-   const tune={...garage.getTuning(),...getVehicleDynamicsV19(racingId)};
+   const tune={...(borrowedVehicle?{
+    topSpeed:racingId==='motorbike'?44:racingId==='sport'?49:37,
+    engineScale:racingId==='motorbike'?1.17:1,brakeScale:1,
+    steerScale:racingId==='motorbike'?1.16:1,gripScale:1
+   }:garage.getTuning()),...getVehicleDynamicsV19(racingId)};
    // V33: quicker steering all over Cairo, extra turning authority at the
    // dedicated track. Existing garage steering upgrades still stack.
    const racingNow=raceSystem?.isRunning();
@@ -1075,7 +1082,7 @@ function frame(t){
    v9Live=drivingRealism.update(dt,{
       driving:true,speed:vehicleState.speed,throttle:demandedThrottle,brake:braking,
       steer:vehicleState.steer,yaw:vehicleState.yaw,fuel:fuelSystem.getState().fuel,
-      parking:parkingBrake,skid:vehicleState.skid,vehicleId:garage.getVehicle().id
+      parking:parkingBrake,skid:vehicleState.skid,vehicleId:currentRaceVehicleId()
    });
    const throttle=demandedThrottle*v9Live.throttleScale*
       (raceSystem?.getRace()?.phase==='countdown'?0:1);
@@ -1271,6 +1278,12 @@ function frame(t){
  if(active&&!paused){
   if(activeVehicle!==taxi&&!driving){activeVehicle.position.copy(taxi.position);activeVehicle.rotation.y=taxi.rotation.y;}
   if(!driving)updateCrashBodyVisual(activeVehicle,fuelSystem.getState().condition);
+  if(!driving&&t-lastRideHintV151>=260){
+   lastRideHintV151=t;
+   const ready=nearbyRideV151();
+   $('enter').textContent=ready?(rideKindV151(ready)==='motorbike'?'🏍️ اركب':'🚗 اركب'):'اركب';
+   $('enter').title=ready?'اركب المركبة القريبة':'اقترب من أي عربية واضغط اركب';
+  }
   saveClockV55+=dt;
   if(saveClockV55>=2.5){saveClockV55=0;saveWorld(true)}
  }
@@ -1281,7 +1294,7 @@ function frame(t){
   engineOn:v56Engine,weather:cityLife.getState().weather});
  roadFeedbackV60.update({dt,vehicle:activeVehicle,active,paused,driving,speed,
   skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather,
-  motorbike:garage.getVehicle().id==='motorbike'});
+  motorbike:currentRaceVehicleId()==='motorbike'});
  const v56Fuel=fuelSystem.getState();
  mobileInstrumentsV56.update(t,{speed,rpm:v9Live.rpm,gear:driving?v9Live.gear:'N',
   fuel:v56Fuel.fuel,capacity:v56Fuel.capacity,braking:v56Brake});
