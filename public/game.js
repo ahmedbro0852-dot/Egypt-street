@@ -34,6 +34,7 @@ import { createCareerSystem } from './street-careers.js';
 import { createFuelSystem, PETROL_STATIONS } from './realistic-fuel.js';
 import { createCityLife } from './city-life-v5.js';
 import { createWorldSave, GAME_KEYS_V55 } from './game-save-v55.js';
+import { nearestRideV151, rideKindV151 } from './vehicle-entry-v151.js?v=151.0';
 import { createAutoDriver } from './auto-drive-v6.js';
 import { createGpsV6 } from './gps-v6.js';
 import { createGarageV8 } from './garage-v8.js';
@@ -166,7 +167,7 @@ function motorcycle(color){
 }
 const traffic=[];for(let i=0;i<22;i++){if(isMobileOptimized&&i%3===0)continue;let c=i%4===3?motorcycle(['#b94536','#32657e','#b9ad82'][i%3]):car(['#d5d7d4','#466878','#742e2e','#b8b2a4','#34393e','#e0d2ad','#47745e'][i%7]);if(i%4!==3){if(i%3===0)c.scale.set(1.08,1.15,1.12);else if(i%3===1)c.scale.set(.94,.96,.90)}const direction=i%2?1:-1;c.userData.direction=direction;c.userData.axis=i<12?'z':'x';c.userData.cruise=i%4===3?10.2+(i%3)*.8:7.7+(i%4)*1.25;c.userData.actualCruise=c.userData.cruise;
  c.userData.massV19=i%4===3?215:i%3===0?1590:i%3===1?1125:1310;
- const lane=roads[i%5]+direction*2.6;const along=-76+(i%11)*14;if(c.userData.axis==='z')c.position.set(lane,0,along);else c.position.set(along,0,lane);c.rotation.y=(c.userData.axis==='x'?Math.PI/2:0)+(direction<0?Math.PI:0);traffic.push(c)}
+ const lane=roads[i%5]+direction*2.6;const along=-76+(i%11)*14;if(c.userData.axis==='z')c.position.set(lane,0,along);else c.position.set(along,0,lane);c.rotation.y=(c.userData.axis==='x'?Math.PI/2:0)+(direction<0?Math.PI:0);c.userData.trafficSpawnIndex=i;c.userData.streetRideKind=i%4===3?'motorbike':i%3===1?'sport':'sedan';traffic.push(c)}
 // Articulated lightweight protagonist, based on the approved character reference.
 function makeHero(){
  const root=new T.Group(),rig=new T.Group();root.add(rig);
@@ -357,6 +358,52 @@ const gps=createGpsV6({
 // Shared taxi anchor keeps existing GPS, camera, collisions and autosave intact.
 const garageModels={taxi};
 let activeVehicle=taxi;
+// V151: captured street cars retain their exact 3D models and original paint.
+const parkedStreetVehicles=[];
+let borrowedVehicle=null,parkedTaxi=null,parkedOwnedVehicle=null,lastRideHintV151=-Infinity;
+function ensureParkedTaxiV151(){
+ if(!parkedTaxi){
+  parkedTaxi=car('#d7a52f');parkedTaxi.userData.streetRideKind='taxi';
+  box(0,1.72,0,.52,.20,.32,'#fff1c8',parkedTaxi.userData.chassis);
+  parkedTaxi.visible=false;
+ }
+ return parkedTaxi;
+}
+function nearbyRideV151(){
+ const choices=[activeVehicle,...traffic,...parkedStreetVehicles];
+ if(parkedTaxi?.visible)choices.push(parkedTaxi);
+ if(parkedOwnedVehicle?.visible)choices.push(parkedOwnedVehicle);
+ return nearestRideV151({player:player.position,vehicles:choices});
+}
+function chooseRideV151(target){
+ if(!target)return false;
+ if(target===activeVehicle)return true;
+ // The original car remains parked when a different model is driven.
+ if(activeVehicle===taxi&&target!==taxi){
+  const oldTaxi=ensureParkedTaxiV151();
+  oldTaxi.position.copy(taxi.position);oldTaxi.rotation.y=taxi.rotation.y;oldTaxi.visible=true;
+ }else if(Object.values(garageModels).includes(activeVehicle)){
+  parkedOwnedVehicle=activeVehicle;
+ }
+ const index=traffic.indexOf(target);
+ if(index>=0){
+  traffic.splice(index,1);
+  if(!parkedStreetVehicles.includes(target))parkedStreetVehicles.push(target);
+  target.userData.actualCruise=0;
+ }
+ if(target===parkedTaxi){activeVehicle=taxi;parkedTaxi.visible=false;}
+ else activeVehicle=target;
+ if(activeVehicle===parkedOwnedVehicle)parkedOwnedVehicle=null;
+ borrowedVehicle=Object.values(garageModels).includes(activeVehicle)?null:activeVehicle;
+ // taxi remains a physics/GPS anchor; borrowed 3D meshes are the visible vehicle.
+ taxi.position.copy(activeVehicle.position);taxi.rotation.y=activeVehicle.rotation.y;
+ for(const model of Object.values(garageModels))
+  model.visible=model===activeVehicle||model===parkedOwnedVehicle;
+ taxi.visible=activeVehicle===taxi;
+ const d=getVehicleDynamicsV19(borrowedVehicle?rideKindV151(borrowedVehicle):garage.getVehicle().id);
+ $('vehicleMassV19').textContent='⚖️ الوزن '+d.mass+' كجم • قاعدة العجل '+d.wheelbase.toFixed(2)+' م';
+ return true;
+}
 function updateCrashBodyVisual(model,condition){
  const panels=model?.userData?.damagePanels;
  if(!panels)return;
@@ -370,6 +417,8 @@ function updateCrashBodyVisual(model,condition){
  panels.paint.metalness=.65-wear*.24;
 }
 function activateGarageVehicle(id){
+ borrowedVehicle=null;parkedOwnedVehicle=null;
+ if(parkedTaxi)parkedTaxi.visible=false;
  if(id!=='taxi'&&!garageModels[id]){
   const model=id==='motorbike'?motorcycle('#c74337'):
      car(id==='sport'?'#c52642':'#2b667a');
@@ -399,7 +448,7 @@ let raceModeV32=false,raceReturnPointV32=null;
 const RACE_RETURN_KEY_V32='egypt-street-race-return-v32';
 const currentRaceVehicleId=()=>{
  const race=raceSystem?.getRace();
- return race?.id==='formula'?'sport':race?.id==='moto'?'motorbike':garage.getVehicle().id;
+ return race?.id==='formula'?'sport':race?.id==='moto'?'motorbike':borrowedVehicle?rideKindV151(borrowedVehicle):garage.getVehicle().id;
 };
 const garage=createGarageV8({
  ui:{
