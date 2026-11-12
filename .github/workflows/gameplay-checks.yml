@@ -16,5 +16,10 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
+      - name: Check browser JavaScript syntax
+        run: |
+          node --experimental-default-type=module --check public/game.js
+          node --experimental-default-type=module --check public/vehicle-entry-v151.js
+          node --experimental-default-type=module --check public/game-save-v55.js
       - name: Run offline gameplay regressions
         run: node --experimental-default-type=module --test tests/*.test.mjs
