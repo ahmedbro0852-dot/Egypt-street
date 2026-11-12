@@ -40,3 +40,27 @@
 }
 @media(max-height:510px){#v100Navigation{top:10px;left:10px;max-width:36vw}}
 @media(prefers-reduced-motion:reduce){#v31RaceResult:not([hidden]){animation:none}.v100Track i,.v100LiveTrack i{transition:none}}
+
+/* V150 mobile race HUD refinement: safe-area aware, compact and touch-friendly. */
+@media (pointer:coarse) {
+ #v100NavClose,#v100NavAction,#v31RacePanel article.worldRace .v100RaceNavigate{touch-action:manipulation;min-height:44px}
+ #v100NavClose{min-width:44px}
+ #v100Navigation{overscroll-behavior:contain}
+}
+@media (max-width:600px) {
+ #v100Navigation{top:calc(env(safe-area-inset-top,0px) + 70px);left:calc(env(safe-area-inset-left,0px) + 6px);width:min(185px,46vw);padding:8px 9px;border-radius:12px;box-shadow:0 5px 18px #0008;backdrop-filter:none}
+ .v100NavCourse{font-size:12px;line-height:1.35}
+ #v100NavArrow{font-size:26px}
+ #v100NavDistance{gap:6px;margin:4px 0}
+ #v100LiveTelemetry{padding:4px 6px}
+}
+@media (max-width:380px) {
+ #v100Navigation{width:min(165px,45vw);font-size:10px}
+ .v100NavTop{font-size:9px}
+}
+@media (max-height:510px) and (orientation:landscape) {
+ #v100Navigation{top:calc(env(safe-area-inset-top,0px) + 5px);left:calc(env(safe-area-inset-left,0px) + 5px);width:min(175px,32vw);max-height:calc(100dvh - 12px);overflow-y:auto}
+}
+@media (prefers-reduced-motion:reduce) {
+ #v100Navigation,#v100NavArrow{animation:none!important;transition:none!important}
+}
