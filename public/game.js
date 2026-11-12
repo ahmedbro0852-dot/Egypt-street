@@ -845,7 +845,11 @@ function enter(){
    brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;resetPad();
    document.body.classList.add('driving');parkingBrake=false;updateParkingUi();
    fuelSystem.enter();drivingRealism.enter(fuelSystem.getState().fuel);updateV9Dashboard(Infinity);
-   autoDriver.start(vehicleState.x,vehicleState.z);updateAutoPilotLabel();
+   // A borrowed street car starts in manual control. Taxi's existing
+   // automatic driving remains optional and unchanged for its owner.
+   if(borrowedVehicle)autoDriver.stop();
+   else autoDriver.start(vehicleState.x,vehicleState.z);
+   updateAutoPilotLabel();
    $('modeLabel').textContent='وضع القيادة';$('enter').disabled=false;$('enter').textContent='انزل';$('run').textContent='فرامل';
    $('controlsHint').textContent='🧭 GPS للمهمات • العصاية للتحكم اليدوي';
    toast('🚗 ركبت '+(borrowedVehicle?(rideKindV151(borrowedVehicle)==='motorbike'?'موتوسيكل الشارع':'عربية من الشارع'):'عربيتك')+'! حرّك العصاية للسواقة أو شغّل القيادة الذاتية.');
