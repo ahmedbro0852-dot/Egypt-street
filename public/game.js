@@ -7,6 +7,7 @@ import { installTravelLightingV44 } from './travel-lighting-v44.js';
 import { installCairoGraphicsV45 } from './cairo-graphics-v45.js?v=48.1';
 import { prepareDetailedCar } from './detailed-car-v42.js';
 import { createKenneyCarVisualsV157 } from './kenney-car-visuals-v157.js?v=161.0';
+import { createHeroMixerV161 } from './character-mixer-v161.js?v=161.1';
 import { createStreetRigidBodiesV157 } from './external-physics-v157.js?v=161.0';
 import { installDesktopWorldV43 } from './desktop-world-v43.js?v=48.1';
 import { createMobileExperienceV40, tuneStickV40 } from './mobile-experience-v40.js';
@@ -235,6 +236,9 @@ function makeHero(){
  return root;
 }
 const player=makeHero();dressReferenceHeroV47({T,player,renderer});scene.add(player);player.position.set(0,0,12);
+const characterMixerV161=createHeroMixerV161({T,hero:player,
+ enabled:!!renderer.isWebGLRenderer&&(!isMobileOptimized||
+  (Number(navigator.deviceMemory)||4)>=4)});
 const crowd=createEgyptianCrowd(T,scene,(x,z)=>blocked(x,z,.38),{mobileLite:isMobileOptimized});
 const walkers=crowd.people; // Forty unique residents
 
@@ -1308,6 +1312,10 @@ function frame(t){
   }
   gait+=dt*Math.abs(speed)*2.8;
   animateHeroV31(player,gait,driving?0:Math.min(1,Math.abs(speed)/4.3),{dt,speed:driving?0:speed,grounded:driving||onFoot.grounded,vertical:onFoot.vy});
+  // Real Three.js AnimationMixer crossfades between idle, walk and run.
+  // The door/cockpit sequence and airborne jump still own their own poses.
+  characterMixerV161.update(dt,{speed,grounded:onFoot.grounded,
+   driving,boarding:rideCinemaV153.isActive(),paused});
   rideCinemaV153.update(dt);
   crowdClockV51+=dt;
   if(!mobileLiteV51.enabled||crowdClockV51>=.08){crowd.update(Math.min(.12,crowdClockV51),t,p,traffic,taxi,driving?vehicleState.speed:0);crowdClockV51=0;}
