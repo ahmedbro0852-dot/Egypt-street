@@ -70,7 +70,8 @@ export function createRaceLeagueV100({
  const live=document.createElement('section');live.id='v100LiveTelemetry';live.hidden=true;
  live.setAttribute('aria-label','معلومات السباق المباشرة');
  live.innerHTML='<div class="v100LiveTop"><span id="v100RaceStage">RACE LIVE</span><b id="v100Turn">⬆</b><span id="v100Gap">0 م</span></div>'+
-  '<div class="v100LiveTrack"><i id="v100LiveProgress"></i></div>';
+  '<div class="v100LiveTrack"><i id="v100LiveProgress"></i></div>'+ 
+  '<div class="v150RaceExtras"><span id="v150RaceLap">لفة 1/1</span><span id="v150RaceClock">⏱ 0:00.0</span></div>';
  raceHud?.insertBefore(live,document.getElementById('v31RaceHint'));
  const nav=document.createElement('aside');nav.id='v100Navigation';nav.hidden=true;
  nav.setAttribute('aria-label','الملاحة إلى سباق القاهرة');
@@ -164,6 +165,9 @@ export function createRaceLeagueV100({
     const total=Math.max(1,Number(race.totalSteps)||1);
     const progress=Math.min(100,Math.max(0,Math.round((Number(race.steps)||0)/total*100)));
     $('v100LiveProgress').style.width=progress+'%';
+     const laps=Math.max(1,Math.trunc(finite(race.laps,1)));
+     $('v150RaceLap').textContent='🔁 اللفة '+Math.min(laps,Math.max(1,Math.trunc(finite(race.lap))+1))+'/'+laps;
+     $('v150RaceClock').textContent='⏱ '+formatTime(Math.max(0,finite(race.elapsed)));
     $('v100RaceStage').textContent=race.phase==='countdown'?'🚦 استعد':
       '🏁 '+progress+'% • المركز '+race.rank+'/4';
     if(race.waypoint){
