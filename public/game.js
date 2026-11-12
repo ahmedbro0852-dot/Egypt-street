@@ -31,7 +31,7 @@ import { createFootstepFXV112 } from './footstep-fx-v112.js?v=153.0';
 import { createHeroPresenceV112 } from './hero-presence-v112.js?v=153.0';
 import * as T from './three.js';
 import { installCairo } from './cairo-city.js?v=54.0';
-import { createEgyptianCrowd } from './egyptian-crowd.js?v=153.0';
+import { createEgyptianCrowd } from './egyptian-crowd.js?v=153.1';
 import { createStreetEvents } from './street-events.js';
 import { createCareerSystem } from './street-careers.js';
 import { createFuelSystem, PETROL_STATIONS } from './realistic-fuel.js';
