@@ -140,9 +140,17 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  let active=null,lastUiAt=0,lastCountdown=0;
  const style=document.createElement('style');
  style.textContent=`
- #v31RaceOpen{position:fixed;z-index:57;left:16px;bottom:245px;min-height:42px;
- padding:7px 13px;border-radius:13px;background:linear-gradient(120deg,#ba6431,#f6bc63);
- color:#211a18;border:1px solid #ffdf99;font:bold 12px Tahoma,Arial;box-shadow:0 5px 22px #0008}
+ /* V150.2: dedicated mobile race launcher, safely separated from jobs and GPS. */
+ #v31RaceOpen{position:fixed;z-index:60;left:max(14px,env(safe-area-inset-left,0px));
+ bottom:260px;min-height:48px;min-width:124px;padding:10px 16px;
+ border-radius:16px;background:linear-gradient(135deg,#ffdf96,#ed9e43);
+ color:#162a30;border:2px solid #fff1bd;font:900 14px Tahoma,Arial;
+ box-shadow:0 9px 28px #000a,inset 0 1px #fff9;
+ touch-action:manipulation;-webkit-tap-highlight-color:transparent;cursor:pointer}
+ #v31RaceOpen[hidden]{display:none!important}
+ #v31RaceOpen:focus-visible{outline:3px solid #93efd5;outline-offset:3px}
+ #v31RaceOpen:active{transform:scale(.97)}
+ #v31RaceOpen[aria-expanded="true"]{border-color:#83efcd;box-shadow:0 0 0 2px #3da987,0 6px 24px #0008}
  #v31RacePanel{position:fixed;z-index:210;left:50%;top:7vh;transform:translateX(-50%);
  width:min(440px,94vw);max-height:86vh;overflow:auto;overscroll-behavior:contain;
  touch-action:pan-y;direction:rtl;border:1px solid #e9b869;border-radius:22px;padding:19px;
@@ -176,10 +184,18 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  z-index:58;color:#ffe2a0;font:bold 66px Tahoma,Arial;text-shadow:0 4px 14px #111,
  0 0 35px #c87440;pointer-events:none}
  #v31RaceCountdown[hidden]{display:none}
- @media(max-width:760px){#v31RaceOpen{bottom:242px;left:9px;font-size:11px;min-height:38px}
+ @media(max-width:760px){#v31RaceOpen{bottom:calc(410px + env(safe-area-inset-bottom,0px));
+ left:max(10px,env(safe-area-inset-left,0px));min-height:44px;min-width:103px;
+ width:103px;padding:7px 8px;font-size:12px}
  #v31RaceHud{top:70px;width:min(310px,90vw);font-size:11px;padding:7px}
  #v31RaceCountdown{font-size:52px}}
- @media(max-height:510px){#v31RaceOpen{bottom:93px;left:8px}
+ /* Short portrait phones: race button fits beside garage rather than over the minimap. */
+ @media(max-width:760px) and (max-height:610px) and (orientation:portrait){
+ #v31RaceOpen{bottom:calc(366px + env(safe-area-inset-bottom,0px));
+ left:calc(120px + env(safe-area-inset-left,0px));width:109px}}
+ @media(max-height:510px) and (orientation:landscape){
+ #v31RaceOpen{bottom:calc(114px + env(safe-area-inset-bottom,0px));
+ left:max(8px,env(safe-area-inset-left,0px));width:105px;min-height:44px}
  #v31RacePanel{top:2vh;max-height:96vh}#v31RaceHud{top:8px;left:auto;right:12px;
  transform:none;width:250px}}
  #v31RacePanel article.worldRace{border-color:#55c6b48a;background:linear-gradient(120deg,#1c4448,#213641)}
@@ -191,7 +207,10 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  document.head.append(style);
  const make=(tag,id,parent)=>{const el=document.createElement(tag);el.id=id;parent.append(el);return el};
  const open=make('button','v31RaceOpen',document.body);
- open.type='button';open.textContent='🏁 سباقات V100';
+ open.type='button';open.textContent='🏁 السباقات';
+ open.setAttribute('aria-label','افتح قائمة سباقات وبطولات القاهرة');
+ open.setAttribute('aria-controls','v31RacePanel');
+ open.setAttribute('aria-expanded','false');
  const panel=make('section','v31RacePanel',document.body);
  panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','بطولات سباقات القاهرة');
  const hud=make('section','v31RaceHud',document.body);hud.hidden=true;
@@ -270,10 +289,10 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   }
  }
  function openPanel(){if(!getActive()){notify('ابدأ اللعب الأول');return}
-  renderPanel();panel.hidden=false}
+  renderPanel();panel.hidden=false;open.setAttribute('aria-expanded','true')}
  open.onclick=openPanel;
- close.onclick=()=>{panel.hidden=true};
- panel.addEventListener('keydown',e=>{if(e.key==='Escape')panel.hidden=true});
+ close.onclick=()=>{panel.hidden=true;open.setAttribute('aria-expanded','false');open.focus?.()};
+ panel.addEventListener('keydown',e=>{if(e.key==='Escape'){panel.hidden=true;open.setAttribute('aria-expanded','false');open.focus?.()}});
  const models=[null,null,null]; // 3 rivals created only when the race starts.
  let configuredRivalKind=null,rivalModelBuilds=0;
  const formulaPlayer=createRacerModel(T,'formula',0xd52e3e);
@@ -360,7 +379,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    driftChallenge:driftMode?createTimedDriftV35({points:pts,duration:course.duration}):null,
    timeAttack:timeMode?timeAttackV37:null,
    driftScore:0,driftMedal:'none'};
-  panel.hidden=true;podium.hidden=true;hud.hidden=false;
+  panel.hidden=true;open.setAttribute('aria-expanded','false');podium.hidden=true;hud.hidden=false;
   document.body.classList.add('racingActive');
   if(startingLine){
    startingLine.position.set(first.x,.11,first.z);startingLine.rotation.y=yaw;
@@ -532,7 +551,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   }
  }
  function update(dt,t=0){
-  open.hidden=!getActive();
+  open.hidden=!getActive()||!!active;
   // Show 3D event pins only within visual range; hide them during races.
   for(const b of worldBeacons){
    const near=!!getActive()&&!active&&!document.hidden&&dist(getVehicle(),b)<125;
