@@ -1,5 +1,6 @@
 // Egypt Streets V32 — Cairo championships now take place at an empty dedicated racetrack.
 import { createRaceArenaV32, RACE_CIRCUIT_V32 } from './race-arena-v32.js';
+import { targetOpponentSpeedV150, evolveOpponentSpeedV150 } from './race-opponents-v150.js';
 import { createTimedDriftV35, DRIFT_CHALLENGE_V35 } from './drift-challenge-v35.js';
 import { createTimeAttackV37, TIME_ATTACK_V37 } from './time-attack-v37.js';
 // Sequential checkpoints prohibit shortcut victories; NPCs race on actual road-grid segments.
@@ -345,7 +346,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    model.rotation.y=yaw;
    return {model,name:['الأزرق','الأحمر','الذهبي'][i],steps:0,
     segment:0,seconds:0,finished:false,finishTime:Infinity,
-    speed:course.speed*[1.03,.94,1.10][i],lane:[-1.35,1.35,0][i],
+    speed:course.speed*[1.03,.94,1.10][i],pace:course.speed*.48,lane:[-1.35,1.35,0][i],
     progress:0};
   });
   active={id,course,points:pts,steps:0,lap:0,elapsed:0,lapStart:0,bestLap:Infinity,
@@ -477,16 +478,18 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   const n=a.points.length;
   for(const enemy of a.enemies){
    if(enemy.finished)continue;
-   let remaining=enemy.speed*dt;
-   // Slow slightly while cornering, but follow road vertices exactly.
-   const i=enemy.steps%n,from=a.points[i],to=a.points[(i+1)%n];
-   let len=dist(from,to);
-   const turnFactor=enemy.segment>len-7?.65:enemy.segment<5?.74:1;
-   // A collision reduces pace for a moment; the opponent rejoins gradually.
+   // V150: AI anticipates corners and gives the player's car space.
+   // Velocity changes are acceleration-limited, never instant multipliers.
    const u=enemy.model.userData;
-   const collisionHold=u.crashHold>t?0.12:1;
-   remaining*=turnFactor*collisionHold;
-   u.actualCruise=enemy.speed*turnFactor*collisionHold;
+   const targetPace=targetOpponentSpeedV150({
+    baseSpeed:enemy.speed,points:a.points,steps:enemy.steps,
+    segment:enemy.segment,player:getVehicle(),
+    position:enemy.model.position,lane:enemy.lane,crashHold:u.crashHold>t
+   });
+   enemy.pace=evolveOpponentSpeedV150(enemy.pace,targetPace,dt);
+   let remaining=enemy.pace*dt;
+   u.actualCruise=enemy.pace;
+   let len=0;
    for(let guard=0;guard<3&&remaining>0;guard++){
     const index=enemy.steps%n,pointA=a.points[index],pointB=a.points[(index+1)%n];
     len=Math.max(.01,dist(pointA,pointB));
@@ -514,7 +517,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
       (Math.sin(face)>=0?1:-1):(Math.cos(face)>=0?1:-1);
    enemy.progress=enemy.steps+fraction;
    for(const wheel of enemy.model.userData.wheels||[])
-    wheel.userData.rolling.rotation.x+=enemy.speed*dt/(wheel.userData.radius||.4);
+    wheel.userData.rolling.rotation.x+=enemy.pace*dt/(wheel.userData.radius||.4);
   }
  }
  function update(dt,t=0){
