@@ -22,6 +22,14 @@ export function animateCitizenStrideV112(person,{dt=0,phase=0,near=true,walking=
  previous.brake+=(Number(stopping)-previous.brake)*decay(dt,8);
  previous.lean+=(Math.sin(phase)*previous.weight*.028-previous.lean)*decay(dt,6);
  u.gaitV112=previous;
+ // Fall and impact poses belong exclusively to the collision system.
+ if(stumbling||frightened){
+  if(u.legs[0]?.rotation){u.legs[0].rotation.y=0;u.legs[0].rotation.z=0;}
+  if(u.legs[1]?.rotation){u.legs[1].rotation.y=0;u.legs[1].rotation.z=0;}
+  if(u.knees[0]?.rotation)u.knees[0].rotation.z=0;
+  if(u.knees[1]?.rotation)u.knees[1].rotation.z=0;
+  return {enabled:true,lod:near?'near':'far',priority:'collision'};
+ }
  if(!near){
   if(u.proxy){
    // Far pedestrians retain readable weight shift without full joint updates.
