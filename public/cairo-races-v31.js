@@ -124,7 +124,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  getDriving=()=>false,getVehicle=()=>({x:0,z:0,speed:0}),
  getDriftInput=()=>({holding:false}),
  requestDrive=()=>false,prepareCar=()=>{},restoreCar=()=>{},
- onReward=()=>{},onFinish=()=>{},onNavigate=()=>{},notify=()=>{},storage=null,fresh=false}={}){
+ onReward=()=>{},onFinish=()=>{},onNavigate=()=>{},notify=()=>{},storage=null,fresh=false,mobileLite=false}={}){
  const KEY='egypt-streets-races-v31';
  if(fresh){try{storage?.removeItem(KEY)}catch(e){}}
  let history={wins:0,races:0,earned:0,best:{},bestLap:{},bestDrift:0,driftChallenges:0};
@@ -229,7 +229,9 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    worldBeacons.push({node,ring,pin,x,z});
   }
  }
- const raceArena=createRaceArenaV32({T,scene});
+ // V150.1: open-world sessions defer the full isolated track's GPU batches.
+ let raceArena=null;
+ const ensureRaceArena=()=>raceArena||(raceArena=createRaceArenaV32({T,scene}));
  const timeAttackV37=createTimeAttackV37({storage});
  function renderPanel(){
   summary.textContent='🏅 انتصارات: '+history.wins+' • سباقات: '+history.races+
@@ -272,11 +274,9 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  open.onclick=openPanel;
  close.onclick=()=>{panel.hidden=true};
  panel.addEventListener('keydown',e=>{if(e.key==='Escape')panel.hidden=true});
- const models=[];
- for(let i=0;i<3;i++){
-  const m=createRacerModel(T,'formula',[0x387ca6,0xd44440,0xeec864][i]);
-  scene.add(m);models.push(m);
- }
+ // Only build rivals when their class is actually selected; reuse for street events.
+ const models=[null,null,null];
+ let configuredRivalKind=null,rivalModelBuilds=0;
  const formulaPlayer=createRacerModel(T,'formula',0xd52e3e);
  const motoPlayer=createRacerModel(T,'moto',0xc83b3b);
  const timeGhostV37=createRacerModel(T,'street',0x63eee1);
@@ -306,18 +306,25 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   marker.visible=beam.visible=true;
  }
  function resetModels(){
-  for(const m of models)m.visible=false;
+  for(const m of models)if(m)m.visible=false;
   if(marker)marker.visible=beam.visible=startingLine.visible=false;
   formulaPlayer.visible=false;motoPlayer.visible=false;
   timeGhostV37.visible=false;
  }
  function configureModels(kind){
-  for(let i=0;i<3;i++){
-   const old=models[i];scene.remove(old);
-   old.traverse?.(obj=>{obj.geometry?.dispose?.();obj.material?.dispose?.()});
-   models[i]=createRacerModel(T,kind,[0x3c89ad,0xd34143,0xe8be58][i]);
-   scene.add(models[i]);models[i].visible=true;
+  if(configuredRivalKind===kind&&models.every(Boolean)){
+   for(const m of models)m.visible=true;
+   return;
   }
+  for(let i=0;i<3;i++){
+   const old=models[i];
+   if(old){scene.remove(old);old.traverse?.(obj=>{
+    obj.geometry?.dispose?.();obj.material?.dispose?.();
+   })}
+   models[i]=createRacerModel(T,kind,[0x3c89ad,0xd34143,0xe8be58][i]);
+   scene.add(models[i]);models[i].visible=true;rivalModelBuilds++;
+  }
+  configuredRivalKind=kind;
  }
  function start(id){
   if(active){notify('خلّص السباق الحالي الأول');return false}
@@ -333,21 +340,22 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   if(!getDriving()&&!requestDrive()){notify('🚗 اركب العربية الأول، وبعدها ابدأ السباق');return false}
   const yaw=Math.atan2(second.x-first.x,second.z-first.z);
   if(prepareCar(course,{x:first.x,z:first.z,yaw})===false)return false;
-  if(!course.world)raceArena.show();
+  if(!course.world)ensureRaceArena().show();
+  for(const b of worldBeacons)b.node.visible=false;
   const driftMode=course.kind==='drift',timeMode=course.kind==='timeattack';
   if(driftMode||timeMode)resetModels();
   else configureModels(course.kind);
   const enemies=driftMode||timeMode?[]:models.map((model,i)=>{
    // Real starting grid: competitors are staged ahead on the actual asphalt,
    // not in the unpaved infield or outside the circuit.
-   const gap=(i+1)*5.8,side=[-1.8,1.8,0][i];
+   const gap=Math.min((i+1)*5.8,Math.max(0,dist(first,second)-2)),side=[-1.8,1.8,0][i];
    model.position.set(first.x+Math.sin(yaw)*gap+Math.cos(yaw)*side,0,
     first.z+Math.cos(yaw)*gap-Math.sin(yaw)*side);
    model.rotation.y=yaw;
    return {model,name:['الأزرق','الأحمر','الذهبي'][i],steps:0,
-    segment:0,seconds:0,finished:false,finishTime:Infinity,
+    segment:gap,seconds:0,finished:false,finishTime:Infinity,
     speed:course.speed*[1.03,.94,1.10][i],pace:course.speed*.48,lane:[-1.35,1.35,0][i],
-    progress:0};
+    progress:gap/Math.max(1,dist(first,second))};
   });
   active={id,course,points:pts,steps:0,lap:0,elapsed:0,lapStart:0,bestLap:Infinity,
    count:3.35,phase:'countdown',enemies,lastPosition:null,rank:4,startingHealth:100,
@@ -467,7 +475,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
      ' • أسرع لفة '+fmt(a.bestLap)+' • المكافأة +'+amount+' جنيه';
    notify('🏆 خلصت '+course.name+' • المركز '+rank+'/4 • +'+amount+' جنيه');
   }else{podium.hidden=true;notify('⛔ خرجت من سباق '+course.name)}
-  active=null;resetModels();if(!course.world)raceArena.hide();restoreCar(course);
+  active=null;resetModels();if(!course.world)raceArena?.hide();restoreCar(course);
   hud.hidden=true;countdown.hidden=true;document.body.classList.remove('racingActive');
   onFinish(course,completed,rank,{elapsed:a.elapsed,bestLap:a.bestLap,driftScore:a.driftScore});
   renderPanel();
@@ -475,15 +483,16 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  }
  quit.onclick=()=>finish(false,true);
  function updateOpponents(a,dt,t){
-  const n=a.points.length;
+  const n=a.points.length,playerCar=getVehicle();
+  const maxDistance=mobileLite?85:145,maxDistanceSquared=maxDistance*maxDistance;
   for(const enemy of a.enemies){
-   if(enemy.finished)continue;
+   if(enemy.finished){enemy.model.visible=false;continue}
    // V150: AI anticipates corners and gives the player's car space.
    // Velocity changes are acceleration-limited, never instant multipliers.
    const u=enemy.model.userData;
    const targetPace=targetOpponentSpeedV150({
     baseSpeed:enemy.speed,points:a.points,steps:enemy.steps,
-    segment:enemy.segment,player:getVehicle(),
+    segment:enemy.segment,player:playerCar,
     position:enemy.model.position,lane:enemy.lane,crashHold:u.crashHold>t
    });
    enemy.pace=evolveOpponentSpeedV150(enemy.pace,targetPace,dt);
@@ -507,8 +516,16 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
     segmentLength=Math.max(1,dist(p0,p1)),fraction=clamp(enemy.segment/segmentLength,0,1);
    const face=Math.atan2(p1.x-p0.x,p1.z-p0.z);
    const sideX=Math.cos(face)*enemy.lane,sideZ=-Math.sin(face)*enemy.lane;
-   enemy.model.position.set(p0.x+(p1.x-p0.x)*fraction+sideX,0,
-    p0.z+(p1.z-p0.z)*fraction+sideZ);
+   const renderX=p0.x+(p1.x-p0.x)*fraction+sideX;
+   const renderZ=p0.z+(p1.z-p0.z)*fraction+sideZ;
+   enemy.model.position.set(renderX,0,renderZ);
+   // Preserve V150's physical opponent pace even when outside visible range.
+   const visible=(renderX-playerCar.x)**2+(renderZ-playerCar.z)**2<maxDistanceSquared;
+   enemy.model.visible=visible;
+   if(!visible){
+    enemy.progress=enemy.steps+fraction;
+    continue;
+   }
    // Continuous steering animation; avoid instant 90-degree yaw snaps.
    const turn=Math.atan2(Math.sin(face-enemy.model.rotation.y),Math.cos(face-enemy.model.rotation.y));
    enemy.model.rotation.y+=turn*clamp(dt*6.5,0,1);
@@ -520,14 +537,22 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
     wheel.userData.rolling.rotation.x+=enemy.pace*dt/(wheel.userData.radius||.4);
   }
  }
+ let lastBeaconAt=-Infinity;
  function update(dt,t=0){
   open.hidden=!getActive();
-  // Show 3D event pins only within visual range; hide them during races.
-  for(const b of worldBeacons){
-   const near=!!getActive()&&!active&&!document.hidden&&dist(getVehicle(),b)<125;
-   b.node.visible=near;
-   if(near){b.ring.rotation.z+=Math.min(.04,dt*.65);
-    b.pin.position.y=4.6+Math.sin(t*.002)*.18}
+  // Skip expensive 3D beacon updates between mobile HUD frames.
+  if(!mobileLite||t-lastBeaconAt>=135){
+   lastBeaconAt=t;
+   const show=!!getActive()&&!active&&!document.hidden;
+   const car=show?getVehicle():null;
+   for(const b of worldBeacons){
+    const near=show&&dist(car,b)<(mobileLite?85:125);
+    b.node.visible=near;
+    if(near){
+     b.ring.rotation.z+=Math.min(.09,Math.max(0,dt)*.65);
+     b.pin.position.y=4.6+Math.sin(t*.002)*.18;
+    }
+   }
   }
   if(!active||!getActive()||getPaused()||document.hidden)return;
   const a=active,car=getVehicle();
@@ -535,14 +560,18 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   if(a.phase==='countdown'){
    a.count-=clamp(dt,0,.05);
    const num=a.count>0?Math.ceil(a.count):0;
-   countdown.hidden=false;countdown.textContent=num?String(num):'GO!';
-   countdown.classList.toggle('go',num===0);
-   if(num!==lastCountdown)lastCountdown=num;
+   countdown.hidden=false;
+   if(num!==lastCountdown){
+    countdown.textContent=num?String(num):'GO!';
+    countdown.classList.toggle('go',num===0);
+    lastCountdown=num;
+   }
    if(a.count<=-.65){
     a.phase='racing';countdown.hidden=true;a.elapsed=0;a.lapStart=0;
     if(a.timeAttack)a.timeAttack.begin(car);
    }
-   updateHud();return;
+   if(t-lastUiAt>185){updateHud();lastUiAt=t}
+   return;
   }
   const delta=clamp(dt,0,.05);
   if(a.driftChallenge){
@@ -601,7 +630,9 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
       active.points[(active.steps+1)%active.points.length],
    driftScore:active.driftScore,driftMedal:active.driftMedal
   }:null,
-  getArena:()=>raceArena,
+  getArena:()=>ensureRaceArena(),
+  getPerformance:()=>({arenaCreated:!!raceArena,rivalModelBuilds,
+   rivalType:configuredRivalKind,rivalsReady:models.filter(Boolean).length}),
   isFormula:()=>active?.id==='formula',
   getPlayerRaceModel:kind=>kind==='moto'?motoPlayer:formulaPlayer,
   getPlayerFormula:()=>formulaPlayer,
