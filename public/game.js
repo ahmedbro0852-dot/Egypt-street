@@ -6,6 +6,8 @@ import { installFacadeDepthV46 } from './facade-depth-v46.js';
 import { installTravelLightingV44 } from './travel-lighting-v44.js';
 import { installCairoGraphicsV45 } from './cairo-graphics-v45.js?v=48.1';
 import { prepareDetailedCar } from './detailed-car-v42.js';
+import { createKenneyCarVisualsV157 } from './kenney-car-visuals-v157.js?v=161.0';
+import { createStreetRigidBodiesV157 } from './external-physics-v157.js?v=161.0';
 import { installDesktopWorldV43 } from './desktop-world-v43.js?v=48.1';
 import { createMobileExperienceV40, tuneStickV40 } from './mobile-experience-v40.js';
 import { installAdaptiveMobileV50 } from './mobile-performance-v50.js?v=53.0';
@@ -174,6 +176,17 @@ function motorcycle(color){
 const traffic=[];for(let i=0;i<22;i++){if(isMobileOptimized&&i%3===0)continue;let c=i%4===3?motorcycle(['#b94536','#32657e','#b9ad82'][i%3]):car(['#d5d7d4','#466878','#742e2e','#b8b2a4','#34393e','#e0d2ad','#47745e'][i%7]);if(i%4!==3){if(i%3===0)c.scale.set(1.08,1.15,1.12);else if(i%3===1)c.scale.set(.94,.96,.90)}const direction=i%2?1:-1;c.userData.direction=direction;c.userData.axis=i<12?'z':'x';c.userData.cruise=i%4===3?10.2+(i%3)*.8:7.7+(i%4)*1.25;c.userData.actualCruise=c.userData.cruise;
  c.userData.massV19=i%4===3?215:i%3===0?1590:i%3===1?1125:1310;
  const lane=roads[i%5]+direction*2.6;const along=-76+(i%11)*14;if(c.userData.axis==='z')c.position.set(lane,0,along);else c.position.set(along,0,lane);c.rotation.y=(c.userData.axis==='x'?Math.PI/2:0)+(direction<0?Math.PI:0);c.userData.trafficSpawnIndex=i;c.userData.streetRideKind=i%4===3?'motorbike':i%3===1?'sport':'sedan';traffic.push(c)}
+// V161: load CC0 vehicle assets on demand; keep the procedural cars as a
+// fail-safe and cap visible model upgrades on mobile.
+const vehicleVisualsV161=createKenneyCarVisualsV157({
+ enabled:!!renderer.isWebGLRenderer&&(!isMobileOptimized||
+  (Number(navigator.deviceMemory)||4)>=4),
+ maxCars:isMobileOptimized?3:8
+});
+const worldPhysicsV161=createStreetRigidBodiesV157({
+ T,scene,mobile:isMobileOptimized,maxProps:isMobileOptimized?4:10
+});
+let lastVisualRequestV161=-Infinity;
 // Articulated lightweight protagonist, based on the approved character reference.
 function makeHero(){
  const root=new T.Group(),rig=new T.Group();root.add(rig);
@@ -1096,6 +1109,21 @@ function frame(t){
  mobilePerformanceV50.sample(t);
  mobileLiteV51.update(t);
  const p=driving?taxi.position:player.position;
+ // Only upgrade nearby visual models, never all 22 traffic cars at once.
+ if(active&&!paused&&t-lastVisualRequestV161>1900){
+  lastVisualRequestV161=t;
+  if(activeVehicle.userData?.chassis)
+   vehicleVisualsV161.attach(activeVehicle,activeVehicle===taxi?'taxi':
+    activeVehicle.userData.streetRideKind==='sport'?'sport':'sedan');
+  let selected=0;
+  for(const c of traffic){
+   if(selected>=3)break;
+   if(c.userData.chassis&&Math.hypot(c.position.x-p.x,c.position.z-p.z)<38){
+    vehicleVisualsV161.attach(c,c.userData.streetRideKind==='sport'?'sport':'sedan');
+    selected++;
+   }
+  }
+ }
  if(active&&!paused){
   cityLife.update(dt,t,p);
   realisticRoads.update(cityLife.getState().weather,dt);
@@ -1192,6 +1220,7 @@ function frame(t){
    else activeVehicle.rotation.z=Math.min(.16,Math.max(-.16,vehicleState.roll*.75));
    player.position.copy(taxi.position);
    updateCarWheels(activeVehicle,vehicleState,dt);
+   vehicleVisualsV161.updateWheels(activeVehicle,vehicleState.wheelSpin,vehicleState.steer);
    updateCrashBodyVisual(activeVehicle,fuelSystem.getState().condition);
    if(result.collision){
     // V19 reports every touched body in one frame, including chain collisions.
@@ -1270,6 +1299,8 @@ function frame(t){
    // Swept traffic collision prevents NPC cars and bikes passing through each other.
    const safeStep=collisionWorld.trafficStep(c,step,t,taxi,driving);
    spinTrafficWheels(c,safeStep);
+   c.userData.kenneySpinV161=(c.userData.kenneySpinV161||0)+safeStep/.405;
+   vehicleVisualsV161.updateWheels(c,c.userData.kenneySpinV161,0);
    c.position[axis]+=safeStep;
    collisionWorld.animateTraffic(c,dt);
    if(c.position[axis]>82)c.position[axis]=-82;
@@ -1402,6 +1433,10 @@ function frame(t){
  skid:driving?vehicleState.skid:0,braking:v56Brake,interior,
  weather:cityLife.getState().weather,daylight:cityLife.illumination()});
  groundedCityV160.update();
+ // MIT cannon-es physics: kinematic player + real gravity-driven movable props;
+ // physics import is asynchronous and never blocks control or mission startup.
+ worldPhysicsV161.update(dt,{active,paused,driving,position:taxi.position,
+  speed:vehicleState.speed,yaw:vehicleState.yaw});
  renderer.render(scene,camera);
  royalHudV49?.recordFrame?.(t);
 }
