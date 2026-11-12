@@ -18,7 +18,19 @@ export const CAIRO_RACES_V31=[
   points:RACE_CIRCUIT_V32},
  {id:'timeattack',name:'تحدّي الرقم القياسي',icon:'⏱️',laps:1,reward:850,
   kind:'timeattack',difficulty:'ضد نفسك',duration:150,color:0x67dbf3,speed:0,
-  points:RACE_CIRCUIT_V32}
+  points:RACE_CIRCUIT_V32},
+ // V61: actual navigable Cairo streets; all vertices lie on paved existing roads.
+ // No separate scene, loading screen, or teleport from outside the city.
+ {id:'world-downtown',name:'سبرنت وسط البلد',icon:'🌆',laps:1,reward:580,
+  kind:'street',world:true,difficulty:'مبتدئ',color:0x68f0c6,speed:12.4,
+  points:[[0,0],[0,30],[30,30],[30,60],[60,60],[60,30],[60,0],[30,0]]},
+ {id:'world-giza',name:'جائزة الجيزة',icon:'🏙️',laps:2,reward:800,
+  kind:'street',world:true,difficulty:'متوسط',color:0xfbb96b,speed:13.8,
+  points:[[-60,-60],[-30,-60],[0,-60],[0,-30],[-30,-30],[-60,-30]]},
+ {id:'world-nile',name:'تحدّي كوبري النيل',icon:'🌉',laps:1,reward:1050,
+  kind:'street',world:true,difficulty:'محترفين',color:0x79c9ff,speed:15.2,
+  points:[[60,60],[94,60],[130,60],[170,60],[170,0],[170,-60],
+          [130,-60],[94,-60],[60,-60],[60,0]]}
 ];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -157,6 +169,11 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  @media(max-height:510px){#v31RaceOpen{bottom:93px;left:8px}
  #v31RacePanel{top:2vh;max-height:96vh}#v31RaceHud{top:8px;left:auto;right:12px;
  transform:none;width:250px}}
+ #v31RacePanel article.worldRace{border-color:#55c6b48a;background:linear-gradient(120deg,#1c4448,#213641)}
+ #v31RacePanel article.worldRace small{color:#c0f6ec}
+ #v31RaceCountdown.go{color:#8affc5;text-shadow:0 0 35px #23d3a6;animation:v61RaceGo .42s ease-out}
+ @keyframes v61RaceGo{from{opacity:.45;transform:translate(-50%,-50%) scale(1.6)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+ @media(prefers-reduced-motion:reduce){#v31RaceCountdown.go{animation:none}}
  `;
  document.head.append(style);
  const make=(tag,id,parent)=>{const el=document.createElement(tag);el.id=id;parent.append(el);return el};
@@ -181,18 +198,41 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   const s=Math.max(0,seconds);return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0')+'.'+String(Math.floor(s%1*10));
  };
  const pointsById=Object.fromEntries(CAIRO_RACES_V31.map(r=>[r.id,toPoints(r)]));
+ // Mobile-friendly start beacons: shared geometry, no shadows, only visible nearby.
+ const worldBeacons=[];
+ if(T.TorusGeometry&&T.CylinderGeometry){
+  const ringGeo=new T.TorusGeometry(3.2,.22,6,28);
+  const beamGeo=new T.CylinderGeometry(.11,.11,4.4,6);
+  const pinGeo=new T.SphereGeometry(.43,10,7);
+  for(const course of CAIRO_RACES_V31.filter(c=>c.world)){
+   const [x,z]=course.points[0],node=new T.Group();
+   node.position.set(x,0,z);
+   const mat=new T.MeshBasicMaterial({color:course.color,transparent:true,opacity:.88,depthWrite:false});
+   const soft=new T.MeshBasicMaterial({color:course.color,transparent:true,opacity:.28,depthWrite:false});
+   const ring=new T.Mesh(ringGeo,mat);ring.rotation.x=Math.PI/2;ring.position.y=.25;
+   const beam=new T.Mesh(beamGeo,soft);beam.position.y=2.3;
+   const pin=new T.Mesh(pinGeo,mat);pin.position.y=4.6;
+   node.add(ring,beam,pin);node.visible=false;scene.add(node);
+   worldBeacons.push({node,ring,pin,x,z});
+  }
+ }
  const raceArena=createRaceArenaV32({T,scene});
  const timeAttackV37=createTimeAttackV37({storage});
  function renderPanel(){
   summary.textContent='🏅 انتصارات: '+history.wins+' • سباقات: '+history.races+
-    ' • أرباح مسابقات: '+history.earned+' ج.م';
+    ' • أرباح مسابقات: '+history.earned+' ج.م • 🌆 3 بطولات في العالم المفتوح';
   list.replaceChildren();
   for(const course of CAIRO_RACES_V31){
    const c=make('article','',list);
+   if(course.world)c.className='worldRace';
    const b=make('strong','',c);b.textContent=course.icon+' '+course.name;
    const small=make('small','',c);
    const best=history.best[course.id];
-   small.textContent=course.kind==='drift'?
+   small.textContent=course.world?
+    '🌆 سباق مباشر في شوارع المدينة بدون انتقال للحلبة • 🏁 البداية '+Math.round(dist(getVehicle(),pointsById[course.id][0]))+
+    'م من عربيتك • 🔁 '+course.laps+' لفة • 🚘 3 منافسين • ⭐ '+course.difficulty+
+    ' • 🏆 المركز الأول +'+course.reward+' جنيه • أفضل زمن '+fmt(best)+
+    ' • اقرب للعلامة المضيئة على الخريطة ووقف العربية عند البداية':course.kind==='drift'?
     '🏟️ الحلبة الفاضية • ⏱️ 90 ثانية • 🔥 درفت بالنقاط على الأسفلت • 🏅 برونز 200 / فضة 480 / ذهب 850 / أسطوري 1350 • 🏆 حتى 950 جنيه • أفضل رقم: '+history.bestDrift:
     course.kind==='timeattack'?
     '⏱️ لفة واحدة ضد الساعة • 👻 عربية شبح من أسرع محاولة سابقة • 🥇 أقل من 48ث / 🥈 72ث / 🥉 110ث • أفضل زمن: '+fmt(timeAttackV37.getHistory().bestTime):
@@ -200,7 +240,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
      ' • 🏆 الأول +'+course.reward+' جنيه • أفضل زمن: '+fmt(best);
    const btn=make('button','',c);
    btn.type='button';btn.className='start';
-   btn.textContent=course.kind==='drift'?'🔥 ابدأ تحدّي الدرفت':
+   btn.textContent=course.world?'🚦 ابدأ سباق الشوارع':course.kind==='drift'?'🔥 ابدأ تحدّي الدرفت':
     course.kind==='timeattack'?'⏱️ اكسر رقمك القياسي':'🏁 ابدأ السباق';
    btn.disabled=!!active;
    btn.onclick=()=>start(course.id);
@@ -261,13 +301,18 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  function start(id){
   if(active){notify('خلّص السباق الحالي الأول');return false}
   if(!getActive()||getPaused()){notify('شغّل اللعبة وافتحها قبل السباق');return false}
-  if(!getDriving()&&!requestDrive()){notify('🚗 اركب العربية الأول، وبعدها ابدأ السباق');return false}
   const course=CAIRO_RACES_V31.find(c=>c.id===id);
   if(!course)return false;
   const pts=pointsById[id],first=pts[0],second=pts[1];
+  if(course.world){
+   const away=dist(getVehicle(),first);
+   if(away>18){notify('📍 روح لنقطة بداية '+course.name+' — لسه '+Math.round(away)+' متر');return false}
+   if(Math.abs(Number(getVehicle().speed)||0)>3){notify('🛑 هدي سرعتك تحت 11 كم/س عند خط البداية');return false}
+  }
+  if(!getDriving()&&!requestDrive()){notify('🚗 اركب العربية الأول، وبعدها ابدأ السباق');return false}
   const yaw=Math.atan2(second.x-first.x,second.z-first.z);
   if(prepareCar(course,{x:first.x,z:first.z,yaw})===false)return false;
-  raceArena.show();
+  if(!course.world)raceArena.show();
   const driftMode=course.kind==='drift',timeMode=course.kind==='timeattack';
   if(driftMode||timeMode)resetModels();
   else configureModels(course.kind);
@@ -304,7 +349,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    timeGhostV37.rotation.y=p.yaw;timeGhostV37.visible=true;
   }
   lastCountdown=0;
-  notify(driftMode?'🔥 تحدّي الدرفت 90 ثانية: لف واضغط زر درفت على الأسفلت!':
+  notify(course.world?'🚦 '+course.name+' — اتبع النقاط على الخريطة ونافس 3 عربيات من غير ما تخرج من القاهرة!':driftMode?'🔥 تحدّي الدرفت 90 ثانية: لف واضغط زر درفت على الأسفلت!':
     timeMode?'⏱️ لفة واحدة: اكسر رقمك القياسي! عربيتك الشبح من أسرع لفة سابقة 👻':
     '🏁 وصلت حلبة السباق الفاضية! '+course.name+' — '+course.laps+' لفة');
   updateHud(true);return true;
@@ -401,7 +446,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
      ' • أسرع لفة '+fmt(a.bestLap)+' • المكافأة +'+amount+' جنيه';
    notify('🏆 خلصت '+course.name+' • المركز '+rank+'/4 • +'+amount+' جنيه');
   }else{podium.hidden=true;notify('⛔ خرجت من سباق '+course.name)}
-  active=null;resetModels();raceArena.hide();restoreCar(course);
+  active=null;resetModels();if(!course.world)raceArena.hide();restoreCar(course);
   hud.hidden=true;countdown.hidden=true;document.body.classList.remove('racingActive');
   onFinish(course,completed,rank);
   renderPanel();
@@ -452,6 +497,13 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  }
  function update(dt,t=0){
   open.hidden=!getActive();
+  // Show 3D event pins only within visual range; hide them during races.
+  for(const b of worldBeacons){
+   const near=!!getActive()&&!active&&!document.hidden&&dist(getVehicle(),b)<125;
+   b.node.visible=near;
+   if(near){b.ring.rotation.z+=Math.min(.04,dt*.65);
+    b.pin.position.y=4.6+Math.sin(t*.002)*.18}
+  }
   if(!active||!getActive()||getPaused()||document.hidden)return;
   const a=active,car=getVehicle();
   if(!getDriving()){finish(false,true);return}
@@ -459,6 +511,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    a.count-=clamp(dt,0,.05);
    const num=a.count>0?Math.ceil(a.count):0;
    countdown.hidden=false;countdown.textContent=num?String(num):'GO!';
+   countdown.classList.toggle('go',num===0);
    if(num!==lastCountdown)lastCountdown=num;
    if(a.count<=-.65){
     a.phase='racing';countdown.hidden=true;a.elapsed=0;a.lapStart=0;

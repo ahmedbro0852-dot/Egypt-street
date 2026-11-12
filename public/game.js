@@ -13,7 +13,7 @@ import { installMobileStaticBatchingV52 } from './mobile-static-batching-v52.js'
 import { createCityQuestsV50 } from './city-quests-v50.js';
 import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
-import { createCairoRacesV31 } from './cairo-races-v31.js';
+import { createCairoRacesV31 } from './cairo-races-v31.js?v=61.0';
 import { createDriftV34 } from './drift-system-v34.js';
 import { createStreetLaptopV41 } from './street-laptop-v41.js';
 import { isRaceArenaV32, RACE_ARENA_BOUNDS_V32 } from './race-arena-v32.js';
@@ -21,6 +21,8 @@ import { installRealismRender } from './realism-render-v16.js';
 import { createStreetAudio } from './street-audio.js?v=56.0';
 import { createDrivingEffectsV56 } from './driving-effects-v56.js';
 import { createRoadFeedbackV60 } from './road-feedback-v60.js?v=60.0';
+import { installCitySculptV60 } from './city-sculpt-v60.js?v=60.2';
+import { installMobilePalmsV60 } from './mobile-palms-v60.js?v=60.2';
 import { installCinematicGraphicsV60 } from './cinematic-graphics-v60.js?v=60.1';
 import { installMobileInstrumentsV56 } from './mobile-instruments-v56.js';
 import * as T from './three.js';
@@ -65,7 +67,9 @@ for(const n of roads){
 // V17 batches all asphalt overlays, lane strips and sidewalks instead of hundreds of meshes.
 function sign(text,x,y,z,w=5){const c=document.createElement('canvas');c.width=512;c.height=128;let q=c.getContext('2d');q.fillStyle='#174747';q.fillRect(0,0,512,128);q.fillStyle='#ffe3a9';q.font='bold 54px Arial';q.textAlign='center';q.fillText(text,256,84);let m=new T.Mesh(new T.PlaneGeometry(w,w/4),new T.MeshBasicMaterial({map:new T.CanvasTexture(c),side:T.DoubleSide}));m.position.set(x,y,z);scene.add(m)}
 let seed=7;function rand(){seed=(seed*16807)%2147483647;return seed/2147483647}const colors=['#beaa8c','#d4bd99','#b7977d','#d2c2a8','#aaa58c'];for(let a=-2;a<2;a++)for(let b=-2;b<2;b++){const cx=a*30+15,cz=b*30+15;for(let j=0;j<2;j++){let x=cx+(j?5.4:-5.4),h=10+Math.floor(rand()*5)*3;box(x,.2,cz,10,.35,21,'#cfc4ac');box(x,h/2,cz,9.5,h,18,colors[Math.floor(rand()*5)]);solids.push({x,z:cz,w:5.3,d:9.6});box(x,h+.3,cz,10,.5,18.5,'#e4d2b2');for(let y=3;y<h-1;y+=3)for(let wx=-2.8;wx<=3;wx+=2.8){box(x+wx,y,cz+9.03,1.25,1.65,.08,'#42595c');box(x+wx,y-.8,cz+9.3,1.8,.15,.6,'#e1cba5');box(x+wx,y,cz-9.03,1.2,1.6,.08,'#536466')}box(x,1.2,cz+9.08,7,2,.1,j?'#376e70':'#877047');sign(['قهوة البلد','سوبر ماركت النيل','كشري عم سيد','عصير قصب'][((a+2)*4+b+2)%4],x,2.8,cz+9.2,7);box(x,h+1,cz,2,1.8,2,'#8e9a9a')}}
-function palm(x,z){if(renderer.isWebGLRenderer&&!isMobileOptimized){createDetailedPalmV48(scene,x,z,6.3+Math.abs(z%9)*.14);return;}box(x,3,z,.35,6,.35,'#8e7956');for(let i=0;i<7;i++){let leaf=box(x,6,z,4,.15,.6,'#4d7954');leaf.rotation.y=i*Math.PI/3.5;leaf.rotation.z=.18}}for(let z=-75;z<80;z+=15){palm(7,z);palm(-67,z)}
+const mobilePalmPositionsV60=[];
+function palm(x,z){if(renderer.isWebGLRenderer&&!isMobileOptimized){createDetailedPalmV48(scene,x,z,6.3+Math.abs(z%9)*.14);return;}if(renderer.isWebGLRenderer&&isMobileOptimized){mobilePalmPositionsV60.push([x,z]);return;}box(x,3,z,.35,6,.35,'#8e7956');for(let i=0;i<7;i++){let leaf=box(x,6,z,4,.15,.6,'#4d7954');leaf.rotation.y=i*Math.PI/3.5;leaf.rotation.z=.18}}for(let z=-75;z<80;z+=15){palm(7,z);palm(-67,z)}
+const mobilePalmsV60=installMobilePalmsV60({T,scene,renderer,positions:mobilePalmPositionsV60,mobile:isMobileOptimized});
 const cairo = installCairo(T,scene,box,sign,solids,{detailedTrees:!!renderer.isWebGLRenderer&&!isMobileOptimized,mobileLite:isMobileOptimized});
 const realisticRoads=createRealisticRoads({T,scene,mobileLite:isMobileOptimized,highEndMobile:mobileMsaaV54});
 const streetDetails=installStreetDetailsV15({T,scene,box,sign,blocked});
@@ -471,12 +475,16 @@ raceSystem=createCairoRacesV31({
  requestDrive:()=>{if(!driving)enter();return driving},
  prepareCar:(course,spawn)=>{
   if(!driving)return false;
-  raceReturnPointV32={
-   x:vehicleState.x,z:vehicleState.z,yaw:vehicleState.yaw,
-   cameraYaw,cameraMode
-  };
-  try{walletStorage?.setItem(RACE_RETURN_KEY_V32,JSON.stringify(raceReturnPointV32))}catch(e){}
-  raceModeV32=true;
+  if(course.world){
+   raceReturnPointV32=null;raceModeV32=false;
+  }else{
+   raceReturnPointV32={
+    x:vehicleState.x,z:vehicleState.z,yaw:vehicleState.yaw,
+    cameraYaw,cameraMode
+   };
+   try{walletStorage?.setItem(RACE_RETURN_KEY_V32,JSON.stringify(raceReturnPointV32))}catch(e){}
+   raceModeV32=true;
+  }
   autoDriver.stop();updateAutoPilotLabel();
   parkingBrake=false;updateParkingUi();
   Object.assign(vehicleState,createVehiclePhysics(spawn.x,spawn.z,spawn.yaw));
@@ -500,7 +508,14 @@ raceSystem=createCairoRacesV31({
   $('controlsHint').textContent='🏁 اتبع الدواير الذهبية، لف بالدريكسيون، والفرامل بإيدك';
   saveWorld(true);return true;
  },
- restoreCar:()=>{
+ restoreCar:course=>{
+  if(course?.world){
+   // Finish where the player drove; never teleport out of the persistent city.
+   raceModeV32=false;raceReturnPointV32=null;
+   activateGarageVehicle(garage.getVehicle().id);
+   $('controlsHint').textContent='🌆 سباقات الشوارع متاحة عند العلامات على الخريطة';
+   saveWorld(true);return;
+  }
   const back=raceReturnPointV32||{x:2,z:8,yaw:0,cameraYaw:0,cameraMode:'wide'};
   raceModeV32=false;
   activeVehicle.visible=false;
@@ -874,9 +889,18 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
   map.strokeStyle='#67e6eb';map.lineWidth=2;
   map.beginPath();map.arc(mx(eventWaypoint.x),mz(eventWaypoint.z),7,0,Math.PI*2);map.stroke();
  }
- const racePoint=raceSystem?.getRace()?.waypoint;
+ const worldRaceState=raceSystem?.getRace();
+ if(!worldRaceState){
+  for(const race of raceSystem.getCourses().filter(c=>c.world)){
+   const [sx,sz]=race.points[0],d=Math.hypot(sx-p.x,sz-p.z);
+   if(d>135)continue;
+   map.fillStyle='#62ebbe';map.beginPath();map.arc(mx(sx),mz(sz),5.2,0,Math.PI*2);map.fill();
+   map.fillStyle='#0b3239';map.font='bold 10px Arial';map.fillText('S',mx(sx)-3.5,mz(sz)+3.4);
+  }
+ }
+ const racePoint=worldRaceState?.waypoint;
  if(racePoint){
-  const circuit=raceSystem.getCourses()[0].points;
+  const circuit=raceSystem.getCourses().find(c=>c.id===worldRaceState.id)?.points||raceSystem.getCourses()[0].points;
   map.strokeStyle='#f0bd69';map.lineWidth=5;
   map.beginPath();map.moveTo(mx(circuit[0][0]),mz(circuit[0][1]));
   for(const [rx,rz] of circuit.slice(1))map.lineTo(mx(rx),mz(rz));
@@ -1192,7 +1216,8 @@ function frame(t){
  rpm:v9Live.rpm,engineOn:v56Engine,gear:v9Live.gear,turn:v9Live.turn,hazards:v9Live.hazards,braking:v56Brake,
  throttle:driving?Math.max(0,v9Live.throttleScale):0,
  skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather
-});v30.update(dt);cityQuestsV50.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});desktopWorldV43.update(dt);travelLightingV44.update(dt);cairoGraphicsV45.update(dt);if(!mobileLiteV51.enabled||t-lastLandscapeV51>=110){updateLandscapeV48(dt,cityLife.getState().weather==='مطر');lastLandscapeV51=t;}cinematicV60.update({dt,time:t*.001,active,paused,driving,speed,
+});v30.update(dt);cityQuestsV50.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});desktopWorldV43.update(dt);travelLightingV44.update(dt);cairoGraphicsV45.update(dt);if(!mobileLiteV51.enabled||t-lastLandscapeV51>=110){updateLandscapeV48(dt,cityLife.getState().weather==='مطر');lastLandscapeV51=t;}mobilePalmsV60.update(t*.001,cityLife.getState().weather==='مطر');
+ cinematicV60.update({dt,time:t*.001,active,paused,driving,speed,
  steer:driving?vehicleState.steer:0,yawRate:driving?vehicleState.yawRate:0,
  skid:driving?vehicleState.skid:0,braking:v56Brake,interior,
  weather:cityLife.getState().weather,daylight:cityLife.illumination()});
@@ -1209,7 +1234,9 @@ const mobileV40=createMobileExperienceV40({getActive:()=>active,getPaused:()=>pa
 const desktopWorldV43=installDesktopWorldV43({T,scene,renderer,sun,getVehicle:()=>activeVehicle,getState:()=>({driving,illumination:cityLife.illumination(),weather:cityLife.getState().weather,yaw:vehicleState.yaw,speed:vehicleState.speed,skid:vehicleState.skid}),notify:toast});
 const travelLightingV44=installTravelLightingV44({T,scene,renderer,sun,getPosition:()=>driving?taxi.position:player.position,getDaylight:()=>cityLife.illumination()});
 const cairoGraphicsV45=installCairoGraphicsV45({T,scene,renderer,camera,sun,getFocus:()=>driving?taxi.position:player.position,getState:()=>({illumination:cityLife.illumination(),weather:cityLife.getState().weather})});
-installFacadeDepthV46({T,scene,renderer});
+const facadeDepthV60=installFacadeDepthV46({T,scene,renderer});
+const citySculptV60=installCitySculptV60({T,scene,renderer,mobile:isMobileOptimized,
+ lowEnd:isMobileOptimized&&((Number(navigator.deviceMemory)||4)<=3||(Number(navigator.hardwareConcurrency)||4)<=4)});
 installReferenceHudV47();
 const royalHudV49=installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive:()=>active,getCompleted:()=>completed,getDriving:()=>driving});
 const mobileLiteV51=installMobileLiteV51({getActive:()=>active,getDriving:()=>driving,getSpeed:()=>speed,getFpsSetting:()=>royalHudV49?.getSettings?.()?.fpsTarget||'auto',getFps:()=>royalHudV49?.getFps?.()||0,getShowFps:()=>!!royalHudV49?.getSettings?.()?.showFpsMobile});
