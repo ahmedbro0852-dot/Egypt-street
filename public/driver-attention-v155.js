@@ -22,8 +22,8 @@ export function mirrorGlanceV155({age=99,signal=0,steer=0}={}){
  // Look toward the chosen side mirror briefly, then back onto the road.
  const up=ramp((t-.14)/.30),down=1-ramp((t-1.02)/.31);
  const strength=clamp(up*down,0,1);
- return {strength,side,headYaw:side*.24*strength,
-  pupilX:side*.013*strength};
+ return {strength,side,headYaw:strength?side*.24*strength:0,
+  pupilX:strength?side*.013*strength:0};
 }
 export function createDriverAttentionV155(){
  let elapsed=0,previousSignal=0,age=99,glance=0;
