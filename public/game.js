@@ -1,3 +1,4 @@
+import { mergeGeometries } from './BufferGeometryUtils.js';
 import { installGroundedCityV160 } from './grounded-city-v160.js?v=160.0';
 import { installStreetDesignV162 } from './ui-skin-v162.js?v=162.0';
 import { createDetailedPalmV48, updateLandscapeV48 } from './palm-landscape-v48.js';
@@ -141,6 +142,36 @@ function car(color){
  for(let j=0;j<5;j++){const a=j*Math.PI*2/5;const spoke=cub(sx*.159,Math.cos(a)*.13,Math.sin(a)*.13,.025,.25,.045,chrome,rolling);spoke.rotation.x=a}
  const hub=part(new T.CylinderGeometry(.075,.075,.035,16),chrome,sx*.17,0,0,rolling);hub.rotation.z=Math.PI/2;
  }
+ // V163: shared, batched coachwork. Only two additional draw calls per car.
+ // Cached geometry keeps parked cars and traffic from allocating duplicate trim.
+ if(!car.trimV163){
+  const dark=[],bright=[];
+  const detail=(list,x,y,z,w,h,d,rx=0)=>{
+   const geo=new T.BoxGeometry(w,h,d);geo.rotateX(rx);geo.translate(x,y,z);list.push(geo);
+  };
+  for(const side of [-1,1]){
+   // Wheel arch lips lie in the side plane and stay clear of wheel pivots.
+   for(const z of [-1.35,1.32]){
+    const arch=new T.TorusGeometry(.438,.027,4,16,Math.PI);
+    arch.rotateY(Math.PI/2);arch.translate(side*.974,.43,z);dark.push(arch);
+   }
+   detail(dark,side*.958,.43,0,.085,.085,1.72);
+   detail(bright,side*.85,1.035,-.06,.018,.022,2.26);
+   // Lower door crease and slim upper window trim.
+   detail(bright,side*.974,.64,-.06,.012,.016,2.28);
+   detail(dark,side*.36,1.073,1.08,.025,.018,.39,-.78);
+  }
+  detail(dark,0,.46,2.13,1.39,.065,.13);
+  detail(dark,0,.43,-2.12,1.39,.085,.12);
+  detail(bright,0,.91,-2.12,1.24,.024,.025);
+  detail(dark,0,.96,-1.79,1.38,.022,.045);
+  detail(bright,0,.81,2.176,.085,.09,.018);
+  detail(dark,0,1.055,1.31,1.16,.014,.10);
+  for(let i=-3;i<=3;i++)detail(bright,i*.12,.79,2.178,.012,.14,.014);
+  car.trimV163=[mergeGeometries(dark),mergeGeometries(bright)];
+  [...dark,...bright].forEach(geo=>geo.dispose());
+ }
+ part(car.trimV163[0],black);part(car.trimV163[1],chrome);
  // Soft contact shadow, no expensive shadow maps on mobile.
  const cv=document.createElement('canvas');cv.width=cv.height=64;const ctx=cv.getContext('2d'),grad=ctx.createRadialGradient(32,32,8,32,32,32);grad.addColorStop(0,'rgba(0,0,0,.5)');grad.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=grad;ctx.fillRect(0,0,64,64);let shadow=part(new T.PlaneGeometry(3.5,5.8),new T.MeshBasicMaterial({map:new T.CanvasTexture(cv),transparent:true,depthWrite:false}),0,.105,0);shadow.rotation.x=-Math.PI/2;shadow.userData.skipFallback=true;
  // Chassis moves on its springs while the tyres stay planted on the asphalt.
