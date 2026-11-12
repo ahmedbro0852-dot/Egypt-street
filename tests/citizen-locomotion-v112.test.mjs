@@ -9,6 +9,7 @@ function makeCitizen(){
  const data={
   id:5,motion:1,body:{position:{y:0},rotation:rotation()},
   legs:[joint(),joint()],knees:[joint(),joint()],
+  feet:[{rotation:rotation(),position:{y:-.31}},{rotation:rotation(),position:{y:-.31}}],
   proxy:{position:{y:0},rotation:rotation()}
  };
  return {userData:data};
@@ -27,6 +28,12 @@ test('natural steps blend weight and preserve existing near/far LOD',()=>{
  }
  assert.ok(u.gaitV112.weight>.5);
  assert.ok(Number.isFinite(u.body.rotation.x));
+ assert.ok(Number.isFinite(u.feet[0].rotation.x));
+ assert.ok(Number.isFinite(u.feet[1].rotation.x));
+ assert.ok(u.feet[0].position.y>=-.31 && u.feet[1].position.y>=-.31);
+ for(let j=0;j<20;j++)animateCitizenStrideV112(citizen,{dt:.05,phase:7,walking:false,near:true});
+ assert.ok(Math.abs(u.feet[0].rotation.x)<.01,'left shoe settles after stopping');
+ assert.ok(Math.abs(u.feet[1].rotation.x)<.01,'right shoe settles after stopping');
  u.proxy.position.y=0;
  const far=animateCitizenStrideV112(citizen,{dt:.04,phase:1,walking:true,near:false});
  assert.equal(far.lod,'far');
@@ -40,6 +47,10 @@ test('impact and fall animations have priority over natural gait',()=>{
  assert.equal(result.priority,'collision');
  assert.equal(u.body.rotation.x,.52);
  assert.equal(u.legs[0].rotation.z,0);
+ assert.equal(u.feet[0].position.y,-.31);
+ assert.equal(u.feet[1].position.y,-.31);
+ assert.equal(u.feet[0].rotation.x,0);
+ assert.equal(u.feet[1].rotation.x,0);
 });
 test('missing character rig degrades safely',()=>{
  assert.equal(animateCitizenStrideV112({},{}).enabled,false);
