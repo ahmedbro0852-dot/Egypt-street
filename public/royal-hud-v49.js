@@ -1,6 +1,6 @@
 // V49 HUD / settings skin uses the existing running game, not a screenshot.
 const V49_KEY='egypt-street-gold-ui-v49';
-const defaults=()=>({quality:window.matchMedia?.('(pointer: coarse)')?.matches?'auto':'high',sharpness:1,fpsTarget:'auto',showFpsMobile:false,showMap:true,showTasks:true,showActions:true,showFps:true,sensitivity:1,deadzone:.06,compact:true,steady:false});
+const defaults=()=>({quality:window.matchMedia?.('(pointer: coarse)')?.matches?'auto':'high',sharpness:1,fpsTarget:'auto',cinematic:true,showFpsMobile:false,showMap:true,showTasks:true,showActions:true,showFps:true,sensitivity:1,deadzone:.06,compact:true,steady:false});
 const bound=(v,a,b)=>Math.max(a,Math.min(b,Number(v)||a));
 export function installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive=()=>false,getCompleted=()=>0,getDriving=()=>false}={}){
  const $=id=>document.getElementById(id);
@@ -42,7 +42,8 @@ export function installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive
    choices('جودة الرسومات',[['auto','تلقائية ✦'],['balanced','متوازنة'],['high','عالية'],['ultra','فائقة ✦']],draft.quality,id=>{draft.quality=id;draft.v50QualityChosen=true});
    if(window.matchMedia?.('(pointer: coarse)')?.matches)choices('حدة ووضوح الصورة',[['0.85','أسرع'],['1','HD واضح'],['1.15','أوضح'],['1.3','فائق']],String(draft.sharpness??1),id=>draft.sharpness=Number(id));
    if(window.matchMedia?.('(pointer: coarse)')?.matches)choices('سلاسة اللعب',[['auto','ذكي'],['30','30 ثابت'],['60','60 سلس']],String(draft.fpsTarget??'auto'),id=>draft.fpsTarget=id);
-   note('V54: تنعيم الحواف للأجهزة القوية وتحسين وضوح الطريق. وضع ذكي يختار 30 أو 60 حسب الجهاز؛ 60 إطار ليست مضمونة. لو الأداء بطّأ جرّب 30 ثابت أو «أسرع».');
+   flip('جرافيك وحركة سينمائية','cinematic');
+    note('V60: سماء متدرجة للموبايل، لمعة الشمس وحركة كاميرا ناعمة مع المنعطفات. التأثيرات بتخف على الأجهزة الضعيفة، والكاميرا الثابتة تلغي اهتزاز الحركة. لو الأداء بطيء استخدم «متوازنة» و30 إطار.');
    flip('إظهار عدّاد الأداء',window.matchMedia?.('(pointer: coarse)')?.matches?'showFpsMobile':'showFps');
    action('التصوير بدون واجهة','📷 F9',()=>{const b=$('v43Panel')?.querySelectorAll('button')?.[1];$('v40Resume')?.click();b?.click()});
   }else if(currentTab==='audio'){
