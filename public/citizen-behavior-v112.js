@@ -51,18 +51,31 @@ export function createCitizenBehaviorV112({mobile=false}={}){
    if(u.scarfTail)u.scarfTail.rotation.z=smooth(u.scarfTail.rotation.z,0,6,dt);
    return;
   }
+  // Restore the idle head axis before applying expressive movement. The impact
+  // system retains full control if the citizen is stumbling.
+  if(engaged)u.head.rotation.x=0;
   animated++;
-  // The crowd base pose doesn't reset head X; set it explicitly to avoid a held nod.
-  u.head.rotation.x=0;
   if(talkingNow)talking++;
   const gesture=e.gesture;
   if(talkingNow){
-   const emphasis=Math.sin(time*.008+u.id*2);
-   // Speaker is recognizable by small elbow and palm movements, not large flailing.
-   u.arms[1].rotation.x-=gesture*(.20+.16*Math.max(0,emphasis));
-   u.elbows[1].rotation.x-=gesture*(.24+.09*Math.abs(emphasis));
-   u.head.rotation.x=.032+emphasis*.035*gesture;
-   u.body.rotation.y=.035*emphasis*gesture;
+   // Dialogue has three understated poses (greet, explain, emphasize), blended
+   // by smooth waves rather than jumping between keyframes.
+   const beat=time*.0025+u.id*.79;
+   const explain=.5+.5*Math.sin(beat);
+   const emphasize=.5+.5*Math.sin(beat*.7+1.2);
+   const greet=.5+.5*Math.sin(beat*.55-.4);
+   const waveInProgress=(u.waveUntil||0)>time;
+   u.arms[0].rotation.x-=gesture*(.10+.27*explain);
+   u.elbows[0].rotation.x-=gesture*(.18+.25*explain);
+   u.arms[0].rotation.z-=gesture*(.05+.12*greet);
+   if(!waveInProgress){
+    u.arms[1].rotation.x-=gesture*(.14+.20*emphasize);
+    u.elbows[1].rotation.x-=gesture*(.20+.18*emphasize);
+    u.arms[1].rotation.z+=gesture*.08*emphasize;
+   }
+   // Restrained posture: no instant ninety-degree torso turns in dialogue.
+   u.head.rotation.x=.02+Math.sin(beat*1.7)*.028*gesture;
+   u.body.rotation.y=Math.sin(beat*.7)*.028*gesture;
   }else if(idleMoment){
    // Distinct personalities: check watch, adjust scarf, stretch, ponder, wave.
    const pulse=Math.sin(Math.PI*clamp(cycle/2200,0,1));
