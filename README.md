@@ -89,3 +89,13 @@ V45 is a **visual improvement, not photorealism**. Its effects require desktop W
 - Restores the missing V111 city 3D modules and retains V61 races, GPS, garage and existing saves; the update is visual-only and uses no new network assets.
 - Bumps the HTML entrypoint to `game.js?v=112.0` and refreshes the PWA offline cache with both V112 modules.
 - Automated checks include `tests/v112-motion.test.mjs` and the updated `tests/v111-entry-smoke.test.mjs`. Browser/device visual QA is still required before production.
+
+#### V112 Living Characters — expressive Cairo residents and player
+- Adds subtle **close-range facial anatomy** to residents (sculpted cheeks and under-eye forms) and distinctive outfit folds and cloth extensions without new downloads or textures.
+- Existing mission NPCs now make short **conversational hand gestures and mouth movements** when spoken to; nearby residents track the player with natural head and eye gaze. Small personality-specific idle behaviors include checking a wristwatch, adjusting clothes and glancing around.
+- **Weather-aware reactions:** non-walking residents can shield their face from rain; headscarves have low-cost secondary sway. Collision/stumble animations take priority over social gestures.
+- The **playable hero** blinks, subtly smiles and looks toward nearby people when on foot. A guarded gaze offset prevents compounding yaw with the original V31 character rig.
+- All new animation uses existing limbs and facial transforms, respects NPC near/far LOD, adds at most a few static sculpt meshes to close-view characters and uses no independent frame loop, extra shadow maps or game-save changes.
+- New regression tests: `node --test tests/character-life-v112.test.mjs tests/v112-motion.test.mjs tests/v111-entry-smoke.test.mjs`.
+- HTML now requests `game.js?v=112.1`, and the offline cache includes `citizen-behavior-v112.js` and `hero-presence-v112.js`. V61 racing and V111 city visuals are preserved within the feature branch.
+- **Limitations:** these are handcrafted low-poly procedural character improvements, not photorealistic scanned characters or motion-captured skeletal animations. Preview gameplay and measured mobile FPS must still be verified.
