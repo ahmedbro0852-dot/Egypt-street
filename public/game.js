@@ -21,6 +21,7 @@ import { installRealismRender } from './realism-render-v16.js';
 import { createStreetAudio } from './street-audio.js?v=56.0';
 import { createDrivingEffectsV56 } from './driving-effects-v56.js';
 import { createRoadFeedbackV60 } from './road-feedback-v60.js?v=60.0';
+import { installCinematicGraphicsV60 } from './cinematic-graphics-v60.js?v=60.1';
 import { installMobileInstrumentsV56 } from './mobile-instruments-v56.js';
 import * as T from './three.js';
 import { installCairo } from './cairo-city.js?v=54.0';
@@ -1191,7 +1192,11 @@ function frame(t){
  rpm:v9Live.rpm,engineOn:v56Engine,gear:v9Live.gear,turn:v9Live.turn,hazards:v9Live.hazards,braking:v56Brake,
  throttle:driving?Math.max(0,v9Live.throttleScale):0,
  skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather
-});v30.update(dt);cityQuestsV50.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});desktopWorldV43.update(dt);travelLightingV44.update(dt);cairoGraphicsV45.update(dt);if(!mobileLiteV51.enabled||t-lastLandscapeV51>=110){updateLandscapeV48(dt,cityLife.getState().weather==='مطر');lastLandscapeV51=t;}renderer.render(scene,camera);
+});v30.update(dt);cityQuestsV50.update(dt);mobileV40.update();streetLaptopV41.update(t);visualPolishV31.update({driving,vehicle:activeVehicle,night:cityLife.illumination()<.22,grounded:onFoot.grounded,dt});desktopWorldV43.update(dt);travelLightingV44.update(dt);cairoGraphicsV45.update(dt);if(!mobileLiteV51.enabled||t-lastLandscapeV51>=110){updateLandscapeV48(dt,cityLife.getState().weather==='مطر');lastLandscapeV51=t;}cinematicV60.update({dt,time:t*.001,active,paused,driving,speed,
+ steer:driving?vehicleState.steer:0,yawRate:driving?vehicleState.yawRate:0,
+ skid:driving?vehicleState.skid:0,braking:v56Brake,interior,
+ weather:cityLife.getState().weather,daylight:cityLife.illumination()});
+ renderer.render(scene,camera);
  royalHudV49?.recordFrame?.(t);
 }
 try { installRealismRender({T,scene,renderer,sun}); } catch(error) { console.warn('Material quality pass unavailable',error); }
@@ -1210,6 +1215,10 @@ const royalHudV49=installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActi
 const mobileLiteV51=installMobileLiteV51({getActive:()=>active,getDriving:()=>driving,getSpeed:()=>speed,getFpsSetting:()=>royalHudV49?.getSettings?.()?.fpsTarget||'auto',getFps:()=>royalHudV49?.getFps?.()||0,getShowFps:()=>!!royalHudV49?.getSettings?.()?.showFpsMobile});
 const mobileInstrumentsV56=installMobileInstrumentsV56({getActive:()=>active,getDriving:()=>driving});
 const mobilePerformanceV50=installAdaptiveMobileV50({renderer,getActive:()=>active,getPaused:()=>paused,getQuality:()=>royalHudV49?.getSettings?.()?.quality||'auto',getTargetFps:()=>mobileLiteV51.targetFps(),getSharpness:()=>royalHudV49?.getSettings?.()?.sharpness||1});
+const cinematicV60=installCinematicGraphicsV60({T,scene,renderer,camera,sun,mobile:isMobileOptimized,
+ getEnabled:()=>royalHudV49?.getSettings?.()?.cinematic!==false,
+ getSteady:()=>!!mobileV40.getSettings().steady,
+ getQuality:()=>royalHudV49?.getSettings?.()?.quality||'auto'});
 if(!renderer.isWebGLRenderer){
  const notice=document.createElement('div');notice.id='graphicsFallbackV48';notice.setAttribute('role','status');
  notice.textContent='عرض رسومي مبسّط — WebGL غير متاح. فعّل تسريع الرسومات لظهور التفاصيل.';
