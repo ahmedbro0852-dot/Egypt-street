@@ -87,27 +87,32 @@ export function createVehicleEntryCinemaV153({T,hero,lowEnd=false}={}){
   const entering=a.mode==='enter';
   const doorProgress=entering?smoothEntryV153(p/.69):smoothEntryV153((p-.18)/.48);
   const leaveProgress=entering?smoothEntryV153((p-.64)/.30):smoothEntryV153((p-.57)/.40);
-  const intermediate=entering?{
-   x:a.doorway.x,y:0,z:a.doorway.z
-  }:{
-   x:a.doorway.x,y:0,z:a.doorway.z
-  };
+  // V156: no intermediate objects allocated each frame.
   const start=a.from,end=a.to;
   const first=entering?doorProgress:smoothEntryV153(p/.54);
-  const second=entering?leaveProgress:leaveProgress;
-  const x=start.x+(intermediate.x-start.x)*first+
-   (end.x-intermediate.x)*second;
-  const z=start.z+(intermediate.z-start.z)*first+
-   (end.z-intermediate.z)*second;
-  const y=start.y+(intermediate.y-start.y)*first+
-   (end.y-intermediate.y)*second;
+  const second=leaveProgress;
+  const x=start.x+(a.doorway.x-start.x)*first+
+   (end.x-a.doorway.x)*second;
+  const z=start.z+(a.doorway.z-start.z)*first+
+   (end.z-a.doorway.z)*second;
+  const y=start.y-start.y*first+end.y*second;
   hero.position.set(x,y,z);
   const yaw=a.vehicle.rotation?.y||0;
   hero.rotation.y=yaw+(a.side===-1?Math.PI/2:-Math.PI/2);
   const rig=hero.userData?.rig;
   if(rig){
-   rig.rotation.x=(entering?1:-1)*smoothEntryV153((p-.54)/.23)*.26;
-   // Do not scale root transform: existing foot IK / avatar clothing stays intact.
+   const sit=smoothEntryV153((p-(entering?.47:.16))/.33);
+   const finish=1-smoothEntryV153((p-.82)/.17);
+   const bend=(entering?sit:(1-sit))*finish;
+   rig.rotation.x=(entering?1:-1)*sit*.26;
+   // Reach for the wheel, tuck knees at the door and straighten on the pavement.
+   const joints=hero.userData;
+   if(joints?.leftArm)joints.leftArm.rotation.x=-.28*bend;
+   if(joints?.rightArm)joints.rightArm.rotation.x=-.46*bend;
+   if(joints?.leftLeg)joints.leftLeg.rotation.x=-.64*bend;
+   if(joints?.rightLeg)joints.rightLeg.rotation.x=.38*bend;
+   if(joints?.leftKnee)joints.leftKnee.rotation.x=-.54*bend;
+   if(joints?.rightKnee)joints.rightKnee.rotation.x=-.43*bend;
   }
   if(p>=1){
    current=null;resetDoor(a);if(rig)rig.rotation.x=0;
