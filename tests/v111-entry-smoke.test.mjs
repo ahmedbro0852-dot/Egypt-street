@@ -23,9 +23,9 @@ test('V112 game entrypoint contains no broken static import paths',()=>{
 test('V112 HTML and offline cache reference the new visuals',()=>{
  const html=readFileSync(resolve(root,'public/index.html'),'utf8');
  const serviceWorker=readFileSync(resolve(root,'public/sw-v50.js'),'utf8');
- assert.match(html,/game\.js\?v=112\.0/);
- assert.match(html,/V112 CHARACTER MOTION/);
- for(const name of ['city-sculpt-v60.js','mobile-palms-v60.js','vehicle-details-v111.js','character-dynamics-v112.js','footstep-fx-v112.js']){
+ assert.match(html,/game\.js\?v=112\.1/);
+ assert.match(html,/V112 LIVING CHARACTERS/);
+ for(const name of ['city-sculpt-v60.js','mobile-palms-v60.js','vehicle-details-v111.js','character-dynamics-v112.js','footstep-fx-v112.js','hero-presence-v112.js','citizen-behavior-v112.js']){
   assert.ok(existsSync(resolve(root,'public',name)),name+' missing');
   assert.ok(serviceWorker.includes(name),name+' absent from offline cache');
  }
