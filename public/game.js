@@ -35,6 +35,7 @@ import { createFuelSystem, PETROL_STATIONS } from './realistic-fuel.js';
 import { createCityLife } from './city-life-v5.js';
 import { createWorldSave, GAME_KEYS_V55 } from './game-save-v55.js';
 import { nearestRideV151, rideKindV151 } from './vehicle-entry-v151.js?v=151.0';
+import { createVehicleEntryCinemaV153 } from './vehicle-entry-cinema-v153.js?v=153.0';
 import { createAutoDriver } from './auto-drive-v6.js';
 import { createGpsV6 } from './gps-v6.js';
 import { createGarageV8 } from './garage-v8.js';
@@ -361,6 +362,8 @@ let activeVehicle=taxi;
 // V151: captured street cars retain their exact 3D models and original paint.
 const parkedStreetVehicles=[];
 let borrowedVehicle=null,parkedTaxi=null,parkedOwnedVehicle=null,lastRideHintV151=-Infinity;
+const rideCinemaV153=createVehicleEntryCinemaV153({T,hero:player,
+ lowEnd:isMobileOptimized&&(Number(navigator.deviceMemory)||4)<=2});
 function ensureParkedTaxiV151(){
  if(!parkedTaxi){
   parkedTaxi=car('#d7a52f');parkedTaxi.userData.streetRideKind='taxi';
@@ -391,8 +394,10 @@ function chooseRideV151(target){
   if(!parkedStreetVehicles.includes(target))parkedStreetVehicles.push(target);
   target.userData.actualCruise=0;
  }
- if(target===parkedTaxi){activeVehicle=taxi;parkedTaxi.visible=false;}
- else activeVehicle=target;
+ if(target===parkedTaxi){
+  taxi.position.copy(parkedTaxi.position);taxi.rotation.y=parkedTaxi.rotation.y;
+  activeVehicle=taxi;parkedTaxi.visible=false;
+ }else activeVehicle=target;
  if(activeVehicle===parkedOwnedVehicle)parkedOwnedVehicle=null;
  borrowedVehicle=Object.values(garageModels).includes(activeVehicle)?null:activeVehicle;
  // taxi remains a physics/GPS anchor; borrowed 3D meshes are the visible vehicle.
@@ -797,33 +802,48 @@ if(previousWorld&&!freshStartV55){
 if(freshStartV55)beginV55(false);
 function enter(){
  if(streetLaptopV41.isOpen()){streetLaptopV41.close();return}
+ if(!active||paused||rideCinemaV153.isActive())return;
  if(driving){
   if(Math.abs(vehicleState.speed)>1.1){toast('وقف العربية الأول عشان تنزل بأمان');return}
-  const side=3.4, sin=Math.sin(vehicleState.yaw),cos=Math.cos(vehicleState.yaw);
+  const side=3.4,sin=Math.sin(vehicleState.yaw),cos=Math.cos(vehicleState.yaw);
   const exits=[[taxi.position.x+cos*side,taxi.position.z-sin*side],
    [taxi.position.x-cos*side,taxi.position.z+sin*side],
    [taxi.position.x-sin*side,taxi.position.z-cos*side]];
   const safe=exits.find(([x,z])=>!blocked(x,z,.55));
   if(!safe){toast('حرّك العربية شوية عشان تلاقي مكان تنزل فيه');return}
-  driving=false;player.visible=true;player.position.set(safe[0],0,safe[1]);
+  driving=false;player.visible=true;
   speed=0;onFoot.vx=onFoot.vz=0;onFoot.vy=onFoot.y=0;onFoot.grounded=true;jumpRequested=false;vehicleState.speed=0;vehicleState.lateralSpeed=0;vehicleState.yawRate=0;
   if(cameraMode==='cockpit'){cameraMode='wide';cameraNear=false;cockpitLook=0;}
   autoDriver.stop();drivingRealism.exit();
   v9Live={...v9Live,left:false,right:false,engineOn:false,rpm:0};updateV9Lamps();
-  parkingBrake=false;updateParkingUi();fuelSystem.exit();document.body.classList.remove('driving');pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;resetPad();$('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';$('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
+  parkingBrake=false;updateParkingUi();fuelSystem.exit();document.body.classList.remove('driving');
+  pedal=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;resetPad();keys={};
+  $('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';
+  $('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
+  const out={x:safe[0],z:safe[1]};
+  if(!rideCinemaV153.startExit(activeVehicle,out,()=>saveWorld(true))){
+   player.position.set(out.x,0,out.z);saveWorld(true);
+  }
  }else{
   const candidate=nearbyRideV151();
   if(!candidate){toast('🚗 قرب من أي عربية في الشارع واضغط اركب — مش لازم الصفرا!');return}
   chooseRideV151(candidate);
-  driving=true;player.visible=false;
-  Object.assign(vehicleState,createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y));
-  yaw=taxi.rotation.y;cameraYaw=yaw;cameraFreeUntil=0;speed=0;brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;resetPad();
-  document.body.classList.add('driving');parkingBrake=false;updateParkingUi();fuelSystem.enter();drivingRealism.enter(fuelSystem.getState().fuel);updateV9Dashboard(Infinity);
-  autoDriver.start(vehicleState.x,vehicleState.z);
-  updateAutoPilotLabel();$('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
-  $('controlsHint').textContent='🧭 GPS للمهمات • العصاية للتحكم اليدوي';
-  toast('🚗 ركبت '+(borrowedVehicle?(rideKindV151(borrowedVehicle)==='motorbike'?'موتوسيكل الشارع':'عربية من الشارع'):'عربيتك')+'! حرّك العصاية للسواقة أو شغّل القيادة الذاتية.');
-  saveWorld(true);
+  onFoot.vx=onFoot.vz=onFoot.vy=0;onFoot.y=0;onFoot.grounded=true;
+  jumpRequested=false;resetPad();keys={};
+  const finishEntry=()=>{
+   driving=true;player.visible=false;
+   Object.assign(vehicleState,createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.y));
+   yaw=taxi.rotation.y;cameraYaw=yaw;cameraFreeUntil=0;speed=0;
+   brakePedal=false;reverseKeyHeld=false;reversePressed=false;jumpRequested=false;resetPad();
+   document.body.classList.add('driving');parkingBrake=false;updateParkingUi();
+   fuelSystem.enter();drivingRealism.enter(fuelSystem.getState().fuel);updateV9Dashboard(Infinity);
+   autoDriver.start(vehicleState.x,vehicleState.z);updateAutoPilotLabel();
+   $('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
+   $('controlsHint').textContent='🧭 GPS للمهمات • العصاية للتحكم اليدوي';
+   toast('🚗 ركبت '+(borrowedVehicle?(rideKindV151(borrowedVehicle)==='motorbike'?'موتوسيكل الشارع':'عربية من الشارع'):'عربيتك')+'! حرّك العصاية للسواقة أو شغّل القيادة الذاتية.');
+   saveWorld(true);
+  };
+  if(!rideCinemaV153.startEnter(activeVehicle,finishEntry))finishEntry();
  }
 } $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{if(streetLaptopV41.isOpen()){
  const typing=['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName);
@@ -1051,6 +1071,9 @@ function frame(t){
   let f=-joy.y+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);
   let turn=joy.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
   f=Math.max(-1,Math.min(1,f));turn=Math.max(-1,Math.min(1,turn));
+  if(rideCinemaV153.isActive()){
+   f=0;turn=0;onFoot.vx=0;onFoot.vz=0;jumpRequested=false;
+  }
   if(driving){
    // Right on screen means right turn; the camera is an independent gesture.
    const reverseDemand=reversePressed||Boolean(keys.s||keys.arrowdown);
@@ -1222,6 +1245,7 @@ function frame(t){
   }
   gait+=dt*Math.abs(speed)*2.8;
   animateHeroV31(player,gait,driving?0:Math.min(1,Math.abs(speed)/4.3),{dt,speed:driving?0:speed,grounded:driving||onFoot.grounded,vertical:onFoot.vy});
+  rideCinemaV153.update(dt);
   crowdClockV51+=dt;
   if(!mobileLiteV51.enabled||crowdClockV51>=.08){crowd.update(Math.min(.12,crowdClockV51),t,p,traffic,taxi,driving?vehicleState.speed:0);crowdClockV51=0;}
   streetEvents.update(dt,t);
