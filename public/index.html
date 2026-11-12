@@ -646,7 +646,7 @@ body.cockpitActive #camera{background:#e1a85e!important;color:#182c36!important}
  #driftV34Hud{right:10px;bottom:172px;width:145px}
 }
 @media(hover:hover) and (pointer:fine){#joy,#stickHint,#controlsHint,.pedals,#jump,#run,#enter,#horn,#camera{display:none!important}.bottom{min-width:110px;justify-content:center}#pcControlsV40{display:block!important;position:fixed;left:20px;bottom:20px;z-index:65;background:#0d202ce8;border:1px solid #ffffff25;border-radius:14px;padding:12px 17px;max-width:600px;color:#d2e2e9;font:12px/1.9 Tahoma;pointer-events:none}#pcControlsV40 b{color:#f2cd90}#v40Panel label:has(#v40Deadzone){display:none}#v40Menu{top:18px}body{cursor:default}#world{cursor:grab}#world:active{cursor:grabbing}} </style><link rel="stylesheet" href="design-pc-v41.css"><link rel="stylesheet" href="reference-hud-v47.css?v=47.2"><link rel="stylesheet" href="royal-hud-v49.css?v=49.0"><link rel="stylesheet" href="race-league-v100.css?v=150.0">
-<aside id="pcControlsV40" style="display:none" aria-label="اختصارات الكمبيوتر"><b>WASD / الأسهم</b> حركة وسواقة · <b>الماوس + سحب</b> كاميرا<br><b>E</b> ركوب/نزول · <b>Space</b> قفز/فرامل · <b>Shift</b> جري/فرامل · <b>X</b> درفت<br><b>C</b> كاميرا · <b>H</b> بوق · <b>P</b> فرامل يد · <b>F</b> تفاعل<br><b>B</b> جراج · <b>G</b> GPS · <b>J</b> وظائف · <b>L</b> لابتوب · <b>M</b> القائمة · <b>Esc</b> إيقاف</aside><canvas id="world"></canvas><div class="hud"><div class="tag">CAIRO • V156 CINEMATIC BOARDING</div><div class="brand"><span class="designWordmark">شوارع مصر<small>EGYPT STREETS</small></span></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><div class="missionHeading"><span class="missionDot" aria-hidden="true"></span><small>المهمة الحالية</small><span class="missionChip">LIVE</span></div><p id="task">اركب أي عربية قريبة ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
+<aside id="pcControlsV40" style="display:none" aria-label="اختصارات الكمبيوتر"><b>WASD / الأسهم</b> حركة وسواقة · <b>الماوس + سحب</b> كاميرا<br><b>E</b> ركوب/نزول · <b>Space</b> قفز/فرامل · <b>Shift</b> جري/فرامل · <b>X</b> درفت<br><b>C</b> كاميرا · <b>H</b> بوق · <b>P</b> فرامل يد · <b>F</b> تفاعل<br><b>B</b> جراج · <b>G</b> GPS · <b>J</b> وظائف · <b>L</b> لابتوب · <b>M</b> القائمة · <b>Esc</b> إيقاف</aside><canvas id="world"></canvas><div class="hud"><div class="tag">CAIRO • V160 CINEMATIC BOARDING</div><div class="brand"><span class="designWordmark">شوارع مصر<small>EGYPT STREETS</small></span></div><div id="modeLabel">وضع المشي</div><div class="money" id="money">ج.م ٢٥٠</div></div><div class="mission"><div class="missionHeading"><span class="missionDot" aria-hidden="true"></span><small>المهمة الحالية</small><span class="missionChip">LIVE</span></div><p id="task">اركب أي عربية قريبة ووصّل الطلب عند العلامة الدهبية.</p></div><canvas id="map" width="180" height="180"></canvas><section id="lifeV5" aria-label="حياة المدينة">
  <strong id="cityTime">🕒 07:30</strong>
  <span id="cityWeather">☀️ صحو</span>
  <span id="cityLaw">🚦 إشارات مرور ومخالفات</span>
@@ -724,7 +724,7 @@ body.cockpitActive #camera{background:#e1a85e!important;color:#182c36!important}
  <strong id="v15RideTitle">🚕 مشوار تاكسي</strong>
  <p id="v15RideText">اركب وسوق للراكب</p>
  <button id="v15RideCancel" type="button">إلغاء المشوار</button>
- </section><div id="versionBadge">شوارع مصر · V150 RACING</div><button id="jobsBtn" type="button">💼 تقديم شغل</button><section id="jobsPanel" role="dialog" aria-label="وظايف شوارع مصر">
+ </section><div id="versionBadge">شوارع مصر · V160 GROUNDED CITY</div><button id="jobsBtn" type="button">💼 تقديم شغل</button><section id="jobsPanel" role="dialog" aria-label="وظايف شوارع مصر">
  <button id="jobsClose" aria-label="اقفل الوظائف">✕</button>
  <h2>💼 مكتب تشغيل شوارع مصر</h2><p>قدّم على الشغل، اتقبل في الوظيفة، وبعدها ابدأ وردية وخد مرتبك!</p>
  <div id="jobsList">
@@ -738,7 +738,7 @@ body.cockpitActive #camera{background:#e1a85e!important;color:#182c36!important}
  <button id="workAction" type="button">نفّذ المهمة</button><div id="toast">حي النيل • القاهرة</div><div id="npcDialogue" role="status" aria-live="polite"></div><div id="intro" class="overlay v55-intro" role="dialog" aria-label="شاشة بداية شوارع مصر">
  <div class="v55-glow" aria-hidden="true"></div><div class="cairoCaption" aria-hidden="true"><i></i><strong>CAIRO</strong><span>EVERY STREET HAS A STORY</span></div>
  <section class="v55-box">
-  <span class="v55-eyebrow"><span class="v55-liveDot"></span> EGYPT STREETS / MOBILE + TABLET + PC / V156</span>
+  <span class="v55-eyebrow"><span class="v55-liveDot"></span> EGYPT STREETS / MOBILE + TABLET + PC / V160</span>
   <img class="logoHero" src="egypt-streets-logo.svg" alt="شوارع مصر"><h1 class="designGameTitle">شوارع مصر<span style="color:#7eb8bc">.</span></h1>
   <div class="v55-line" aria-hidden="true"></div><div class="introRoadBadge">✦ القاهرة · بين النيل والشوارع والناس ✦</div>
   <p class="v55-subtitle">المدينة قدّامك، والحكاية بإيدك.<br>اكتشف شوارع القاهرة، اختار شغلك، وابدأ مشوارك بين النيل وحياة الحي.</p>
@@ -753,4 +753,4 @@ body.cockpitActive #camera{background:#e1a85e!important;color:#182c36!important}
   <p><a href="ASSET-CREDITS.md" target="_blank" rel="noopener" style="color:#9bb7bc;font-size:11px">3D vehicle: Eric Chadwick / DGG · CC BY 4.0 · Credits</a></p>
   <p class="v55-tip">التقدم بيتحفظ تلقائيًا على نفس الجهاز والمتصفح حتى بعد الـRefresh. لو مسحت بيانات المتصفح، الحفظ المحلي بيروح.</p>
  </section>
- </div><script type="module" src="install-v50.js?v=50.0"></script><script type="module" src="game.js?v=156.0"></script></html>
+ </div><script type="module" src="install-v50.js?v=50.0"></script><script type="module" src="game.js?v=160.0"></script></html>

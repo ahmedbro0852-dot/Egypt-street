@@ -1,3 +1,4 @@
+import { installGroundedCityV160 } from './grounded-city-v160.js?v=160.0';
 import { createDetailedPalmV48, updateLandscapeV48 } from './palm-landscape-v48.js';
 import { dressReferenceHeroV47, installReferenceHudV47 } from './reference-look-v47.js?v=47.2';
 import { installRoyalHudV49 } from './royal-hud-v49.js?v=151.0';
@@ -78,6 +79,7 @@ const mobilePalmsV60=installMobilePalmsV60({T,scene,renderer,positions:mobilePal
 const cairo = installCairo(T,scene,box,sign,solids,{detailedTrees:!!renderer.isWebGLRenderer&&!isMobileOptimized,mobileLite:isMobileOptimized});
 const realisticRoads=createRealisticRoads({T,scene,mobileLite:isMobileOptimized,highEndMobile:mobileMsaaV54});
 const streetDetails=installStreetDetailsV15({T,scene,box,sign,blocked});
+const groundedCityV160=installGroundedCityV160({T,scene,renderer,mobile:isMobileOptimized,getActors:()=>[activeVehicle,...traffic,...parkedStreetVehicles, {object:player,pedestrian:true},...walkers.map(p=>({object:p.mesh||p.group||p,pedestrian:true}))]});
 const mobileStaticV52=installMobileStaticBatchingV52({T,scene,renderer,mobileLite:isMobileOptimized});
 const cockpit=createCockpitV15({T,scene,camera,lowEnd:isMobileOptimized&&((Number(navigator.deviceMemory)||4)<=3)});
 function car(color){
@@ -1399,6 +1401,7 @@ function frame(t){
  steer:driving?vehicleState.steer:0,yawRate:driving?vehicleState.yawRate:0,
  skid:driving?vehicleState.skid:0,braking:v56Brake,interior,
  weather:cityLife.getState().weather,daylight:cityLife.illumination()});
+ groundedCityV160.update();
  renderer.render(scene,camera);
  royalHudV49?.recordFrame?.(t);
 }

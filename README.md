@@ -71,3 +71,9 @@ V45 is a **visual improvement, not photorealism**. Its effects require desktop W
 - Added **جرافيك وحركة سينمائية** toggle in Graphics Settings; balanced mode scales the effects down. The on-screen vignette is CSS-only.
 - The mobile adaptive renderer continues controlling pixel density to prioritize frame pacing; no promise of a fixed FPS on all devices.
 - Regression checks: `node --test tests/cinematic-graphics-v60.test.mjs tests/road-feedback-v60.test.mjs`. Full-device visual QA remains necessary before production release.
+
+### V160 — grounded Cairo city
+
+Masonry now has locally generated worn plaster textures on mobile while retaining static batching. Touch devices gain a bounded architectural pass (18 facades, three floors) with window sills, balconies and air conditioners. Pavement benches and bollards use three instanced batches. A fourth batch provides soft, pooled contact shadows under moving vehicles and residents (32 slots on mobile, 64 on desktop). No remote downloads, new shadow maps or postprocessing passes are introduced. Gameplay, street vehicle access, races and local progress remain intact.
+
+Validation: `node --test tests/*.test.mjs`. Desktop/mobile browser visual and real-device frame-time checks remain pending; the local Chromium process cannot start in this execution environment. This is a city-detail upgrade, not a replacement with photorealistic scanned assets.

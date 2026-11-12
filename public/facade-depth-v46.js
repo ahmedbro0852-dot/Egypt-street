@@ -1,7 +1,8 @@
 // Physical architectural depth over the existing Cairo wall atlas.
 // Shared instanced geometry keeps thousands of fixtures within five draw calls.
 export function installFacadeDepthV46({T,scene,renderer}){
- if(!renderer?.isWebGLRenderer||window.matchMedia?.('(pointer: coarse)')?.matches)return {enabled:false,stats:()=>({facades:0,fixtures:0})};
+ const mobile=!!window.matchMedia?.('(pointer: coarse)')?.matches;
+ if(!renderer?.isWebGLRenderer)return {enabled:false,stats:()=>({facades:0,fixtures:0})};
  const facades=[];
  scene.traverse(o=>{
   const g=o.geometry?.parameters,image=o.material?.map?.image;
@@ -11,8 +12,9 @@ export function installFacadeDepthV46({T,scene,renderer}){
  });
  const batches={stone:[],metal:[],ac:[],vents:[],shade:[]};
  const piece=(key,x,y,z,w,h,d)=>batches[key].push([x,y,z,w,h,d]);
- facades.forEach((f,index)=>{
-  for(let floor=0;floor<5;floor++)for(let col=0;col<3;col++){
+ const selected=mobile?facades.filter((_,i)=>i%3===0).slice(0,18):facades;
+ selected.forEach((f,index)=>{
+  for(let floor=0;floor<(mobile?3:5);floor++)for(let col=0;col<3;col++){
    const x=f.x+((40+84*col)/256-.5)*f.w;
    const y=f.y+(.5-(44+100*floor)/512)*f.h;
    const w=f.w*52/256,h=f.h*60/512,z=f.z+.10;
@@ -52,7 +54,7 @@ export function installFacadeDepthV46({T,scene,renderer}){
   mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();
   mesh.receiveShadow=true;
   // Main architectural edges cast shadows; tiny vent grilles only receive them.
-  mesh.castShadow=key==='stone'||key==='metal';mesh.userData.skipFallback=true;scene.add(mesh);meshes.push(mesh);fixtures+=parts.length;
+  mesh.castShadow=!mobile&&(key==='stone'||key==='metal');mesh.userData.skipFallback=true;scene.add(mesh);meshes.push(mesh);fixtures+=parts.length;
  }
  return {enabled:true,stats:()=>({facades:facades.length,fixtures,drawCalls:meshes.length}),dispose(){for(const mesh of meshes){scene.remove(mesh);mesh.material.dispose()}geometry.dispose()}};
 }
