@@ -33,7 +33,11 @@ export function createHeroPresenceV112({hero,people=[]}={}){
   }else if(!driving&&!walking)target=Math.sin(clock*.49)*.11;
   look=damp(look,target,nearby?4.1:2.5,dt);
   // Existing V31 animation owns base head movement; only apply small fresh offsets.
-  // V31 blends the previous frame's rotation at rate 5; subtract its retained\n  // facial offset before applying this frame's gaze to avoid accumulated yaw.\n  u.head.rotation.y-=lastLook*Math.exp(-5*dt);\n  u.head.rotation.y=clamp(u.head.rotation.y+look,-.58,.58);\n  lastLook=look;
+  // V31 blends the previous frame's rotation at rate 5; compensate for
+  // the previously applied gaze offset so rotations never accumulate.
+  u.head.rotation.y-=lastLook*Math.exp(-5*dt);
+  u.head.rotation.y=clamp(u.head.rotation.y+look,-.58,.58);
+  lastLook=look;
   if(!driving){
    u.head.rotation.x+=Math.sin(clock*1.47)*.008*(walking?.5:1);
    u.head.rotation.z+=Math.sin(clock*.87)*.008;
