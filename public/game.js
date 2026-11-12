@@ -19,7 +19,7 @@ import { createDriftV34 } from './drift-system-v34.js';
 import { createStreetLaptopV41 } from './street-laptop-v41.js';
 import { isRaceArenaV32, RACE_ARENA_BOUNDS_V32 } from './race-arena-v32.js';
 import { installRealismRender } from './realism-render-v16.js';
-import { createStreetAudio } from './street-audio.js?v=150.0';
+import { createStreetAudio } from './street-audio.js?v=153.0';
 import { createDrivingEffectsV56 } from './driving-effects-v56.js';
 import { createRoadFeedbackV60 } from './road-feedback-v60.js?v=60.0';
 import { installCitySculptV60 } from './city-sculpt-v60.js?v=60.2';
@@ -470,7 +470,7 @@ const garage=createGarageV8({
   cash=Math.max(0,Math.round((cash-cost)*10)/10);
   $('money').textContent='ج.م '+Math.round(cash);saveWallet();return true;
  },
- isDriving:()=>driving,notify:message=>toast(message),
+ isDriving:()=>driving||rideCinemaV153.isActive(),notify:message=>toast(message),
  onSelect:id=>{if(raceSystem?.isRunning())raceSystem.finish(false,true);activateGarageVehicle(id)},
  onChanged:()=>saveWorld(true)
 });
@@ -821,8 +821,16 @@ function enter(){
   $('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';
   $('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
   const out={x:safe[0],z:safe[1]};
-  if(!rideCinemaV153.startExit(activeVehicle,out,()=>saveWorld(true))){
-   player.position.set(out.x,0,out.z);saveWorld(true);
+  const doorSound=activeVehicle.userData?.wheels?.length!==2;
+  if(doorSound)sound.door(true);
+  $('enter').disabled=true;$('enter').textContent='🚪 جارٍ النزول';
+  const finishExit=()=>{
+   $('enter').disabled=false;$('enter').textContent='اركب';
+   if(doorSound)sound.door(false);
+   saveWorld(true);
+  };
+  if(!rideCinemaV153.startExit(activeVehicle,out,finishExit)){
+   player.position.set(out.x,0,out.z);finishExit();
   }
  }else{
   const candidate=nearbyRideV151();
@@ -838,12 +846,16 @@ function enter(){
    document.body.classList.add('driving');parkingBrake=false;updateParkingUi();
    fuelSystem.enter();drivingRealism.enter(fuelSystem.getState().fuel);updateV9Dashboard(Infinity);
    autoDriver.start(vehicleState.x,vehicleState.z);updateAutoPilotLabel();
-   $('modeLabel').textContent='وضع القيادة';$('enter').textContent='انزل';$('run').textContent='فرامل';
+   $('modeLabel').textContent='وضع القيادة';$('enter').disabled=false;$('enter').textContent='انزل';$('run').textContent='فرامل';
    $('controlsHint').textContent='🧭 GPS للمهمات • العصاية للتحكم اليدوي';
    toast('🚗 ركبت '+(borrowedVehicle?(rideKindV151(borrowedVehicle)==='motorbike'?'موتوسيكل الشارع':'عربية من الشارع'):'عربيتك')+'! حرّك العصاية للسواقة أو شغّل القيادة الذاتية.');
    saveWorld(true);
   };
-  if(!rideCinemaV153.startEnter(activeVehicle,finishEntry))finishEntry();
+  const doorSound=activeVehicle.userData?.wheels?.length!==2;
+  if(doorSound)sound.door(true);
+  $('enter').disabled=true;$('enter').textContent='🚪 جارٍ الركوب';
+  const done=()=>{if(doorSound)sound.door(false);finishEntry()};
+  if(!rideCinemaV153.startEnter(activeVehicle,done))done();
  }
 } $('enter').onclick=enter;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';toast(paused?'اللعبة متوقفة مؤقتًا':'يلا نكمل')};$('horn').onclick=()=>{sound.horn();streetEvents.horn()};$('run').onpointerdown=e=>{sprint=true;e.currentTarget.setPointerCapture(e.pointerId)};$('run').onpointerup=$('run').onpointercancel=()=>sprint=false;window.onkeydown=e=>{if(streetLaptopV41.isOpen()){
  const typing=['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName);
@@ -1326,7 +1338,7 @@ function frame(t){
  if(active&&!paused){
   if(activeVehicle!==taxi&&!driving){activeVehicle.position.copy(taxi.position);activeVehicle.rotation.y=taxi.rotation.y;}
   if(!driving)updateCrashBodyVisual(activeVehicle,fuelSystem.getState().condition);
-  if(!driving&&t-lastRideHintV151>=260){
+  if(!driving&&!rideCinemaV153.isActive()&&t-lastRideHintV151>=260){
    lastRideHintV151=t;
    const ready=nearbyRideV151();
    $('enter').textContent=ready?(rideKindV151(ready)==='motorbike'?'🏍️ اركب':'🚗 اركب'):'اركب';
