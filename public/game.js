@@ -563,7 +563,7 @@ raceSystem=createCairoRacesV31({
   if(course?.world){
    // Finish where the player drove; never teleport out of the persistent city.
    raceModeV32=false;raceReturnPointV32=null;
-   activateGarageVehicle(garage.getVehicle().id);
+   if(!borrowedVehicle)activateGarageVehicle(garage.getVehicle().id);
    $('controlsHint').textContent='🌆 سباقات الشوارع متاحة عند العلامات على الخريطة';
    saveWorld(true);return;
   }
@@ -578,7 +578,11 @@ raceSystem=createCairoRacesV31({
   cameraNear=cameraMode==='near';
   raceReturnPointV32=null;
   try{walletStorage?.removeItem(RACE_RETURN_KEY_V32)}catch(e){}
-  activateGarageVehicle(garage.getVehicle().id);
+  if(borrowedVehicle){
+   activeVehicle=borrowedVehicle;
+   activeVehicle.position.copy(taxi.position);activeVehicle.rotation.y=taxi.rotation.y;
+   activeVehicle.visible=true;taxi.visible=false;
+  }else activateGarageVehicle(garage.getVehicle().id);
   $('controlsHint').textContent='🧭 GPS للمهمات • العصاية للتحكم اليدوي';
   saveWorld(true);
  },
@@ -673,6 +677,8 @@ function worldSnapshot(){
   taxi:{x:taxi.position.x,z:taxi.position.z,yaw:taxi.rotation.y},
   driving,parkingBrake,cameraYaw,cameraPitch,cameraMode,money:cash,
   mission:{completed,target:{x:target.x,z:target.z}},
+  streetRide:borrowedVehicle?{index:borrowedVehicle.userData.trafficSpawnIndex,kind:rideKindV151(borrowedVehicle)}:null,
+  taxiPark:parkedTaxi?.visible?{x:parkedTaxi.position.x,z:parkedTaxi.position.z,yaw:parkedTaxi.rotation.y}:null,
   fuel:fuelSystem.getState(),career:career.getStats(),
   sideEvent:streetEvents.snapshot(),autopilot:autoDriver.getState(),gps:gps.getState(),garage:garage.getState(),drivingRealism:drivingRealism.getState(),rideDispatch:rideDispatch.getState()
  };
@@ -706,6 +712,24 @@ function restoreWorld(state){
  taxi.position.set(state.taxi.x,0,state.taxi.z);
  taxi.rotation.y=state.taxi.yaw;
  Object.assign(vehicleState,createVehiclePhysics(taxi.position.x,taxi.position.z,taxi.rotation.yaw));
+ // Deterministic traffic spawn IDs preserve the selected car/motorbike after refresh.
+ if(state.streetRide?.index!==undefined&&state.streetRide?.index!==null){
+  const index=traffic.findIndex(c=>c.userData.trafficSpawnIndex===state.streetRide.index);
+  const c=index>=0?traffic.splice(index,1)[0]:
+    state.streetRide.kind==='motorbike'?motorcycle('#32657e'):car('#466878');
+  if(index<0)c.userData.trafficSpawnIndex=state.streetRide.index;
+  c.userData.streetRideKind=state.streetRide.kind;
+  c.userData.actualCruise=0;c.position.copy(taxi.position);c.rotation.y=taxi.rotation.y;
+  if(!parkedStreetVehicles.includes(c))parkedStreetVehicles.push(c);
+  borrowedVehicle=c;activeVehicle=c;
+  for(const model of Object.values(garageModels))model.visible=false;
+  taxi.visible=false;
+ }
+ if(state.taxiPark){
+  const oldTaxi=ensureParkedTaxiV151();
+  oldTaxi.position.set(state.taxiPark.x,0,state.taxiPark.z);
+  oldTaxi.rotation.y=state.taxiPark.yaw;oldTaxi.visible=true;
+ }
  completed=state.mission.completed;
  target.set(state.mission.target.x,0,state.mission.target.z);
  $('task').textContent=completed?
