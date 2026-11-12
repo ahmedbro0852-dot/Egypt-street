@@ -54,3 +54,11 @@ V45 is a **visual improvement, not photorealism**. Its effects require desktop W
 - Atmospheric sky now includes smooth multi-octave clouds, a sun disc, sunset tint and sparse night stars, with renderer tone mapping and output color conversion.
 - Software-rendered sessions now display an honest graphics fallback notice. Original lightweight trees remain available in that path.
 - Validation: finite geometry/color attributes, shared resources, synchronized wind/shadow uniforms, JavaScript syntax and headless OpenGL compilation of the custom sky fragment shader. Full game WebGL visual QA remains limited by the browser environment.
+
+### V60 — lightweight 3D tyre feedback and mobile frame polish
+
+- Adds pooled, procedural **skid marks** behind driven wheels during substantial slip, fading over time (shorter lifetime when raining).
+- Adds **rain wheel spray** when driving in wet weather, using a single instanced mesh. Across both effects there are only two additional WebGL draw calls when active, bounded to 28 trail slots + 10 droplets on touch devices (64 + 22 on desktop). The software fallback creates neither mesh.
+- Reuses the chase/cockpit camera vectors instead of allocating them every rendered frame and reduces redundant on-screen speed/HUD writes on mobile, without altering steering or vehicle physics.
+- Refreshes the offline service-worker cache for V60 and includes the new module; existing mission, money and garage saves are untouched.
+- Validation: `node --test tests/road-feedback-v60.test.mjs` (Node 22+) plus static module parsing and integration checks. Browser GPU/frame-rate QA is still required before a production release.
