@@ -53,6 +53,7 @@ test('hero gaze never accumulates yaw and eye blink restores rig state',()=>{
   assert.ok(Math.abs(hero.userData.head.rotation.y)<=.581);
  }
  assert.equal(presence.stats().trackedEyes,2);
+ assert.ok(Math.abs(hero.userData.head.rotation.y)>.08,'hero must actually turn to face nearby people');
  presence.dispose();
  assert.equal(hero.userData.heroPupils[0].scale.y,.013);
  assert.equal(hero.userData.heroPupils[0].position.x,-.063);
