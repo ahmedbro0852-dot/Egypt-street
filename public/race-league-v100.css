@@ -1,0 +1,42 @@
+/* Egypt Streets V100 Race League: polished HUD, readable on mobile. */
+#v100LeagueBoard{background:linear-gradient(125deg,#132934,#173d43 60%,#26393a);border:1px solid #59d9b385;border-radius:16px;padding:13px;margin:11px 0 14px;color:#e6f9f2;box-shadow:inset 0 0 20px #4bcbad0d}
+#v100LeagueBoard header{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap}
+#v100LeagueBoard header span{font:800 9px/1.5 Tahoma,Arial;letter-spacing:1.2px;direction:ltr;color:#77dfc9}
+#v100Tier{font:900 14px Tahoma,Arial;color:#ffdfa3}
+.v100XpRow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px}
+#v100XP{font-size:17px;color:#fff3d4}
+#v100Next{color:#aecfc9;font:10px Tahoma,Arial}
+.v100Track,.v100LiveTrack{height:7px;overflow:hidden;border-radius:20px;background:#081e26;border:1px solid #69948b55;margin:8px 0}
+.v100Track i,.v100LiveTrack i{height:100%;width:0;display:block;border-radius:20px;background:linear-gradient(90deg,#33e7b1,#a5ffe1);transition:width .2s ease}
+.v100Stats{display:flex;justify-content:space-between;gap:5px;flex-wrap:wrap;color:#d9e8da;font:bold 10px/1.8 Tahoma,Arial}
+#v100Hint{font-size:11px!important;color:#c3e9e1!important;margin:7px 0 0!important}
+#v31RacePanel article.worldRace .v100RaceNavigate{width:100%;margin:6px 0 0;background:#224c4b;border:1px solid #76e5c2;color:#b9ffea;min-height:38px}
+#v31RacePanel article.worldRace .start{background:linear-gradient(135deg,#f5c66e,#e99e40);font-weight:900}
+#v31RaceResult:not([hidden]){box-shadow:0 0 0 1px #f7d28e82,0 0 25px #ffc77442;animation:v100Podium .6s ease-out}
+@keyframes v100Podium{from{opacity:.3;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+#v100LiveTelemetry{border:1px solid #80dfbb65;border-radius:9px;padding:5px 9px;margin:5px 0;color:#eafbea;background:#071f28bb}
+#v100LiveTelemetry[hidden],#v100Navigation[hidden]{display:none!important}
+.v100LiveTop{display:flex;align-items:center;justify-content:space-between;gap:8px;font:bold 10px Tahoma,Arial}
+#v100Turn{font-size:20px;color:#c7ffe5;text-shadow:0 0 7px #48eeb988}
+#v100Gap{color:#ffe5a4}
+.v100LiveTrack{height:4px;margin:4px 0 0}
+#v100Navigation{position:fixed;z-index:82;left:max(13px,env(safe-area-inset-left));top:132px;direction:rtl;width:min(250px,52vw);padding:11px 12px;border:1px solid #71dec3a5;border-radius:16px;color:#ebfff7;background:linear-gradient(143deg,#0b2833f4,#17434cf2);box-shadow:0 10px 35px #0009;font:11px/1.5 Tahoma,Arial}
+.v100NavTop{display:flex;justify-content:space-between;align-items:center;gap:5px;color:#74ebc6}
+#v100NavClose{width:25px;height:25px;min-width:25px;border-radius:8px;border:1px solid #ffffff33;background:#102b36;color:#fff;font-size:13px}
+.v100NavCourse{font-size:13px;font-weight:900;margin:6px 0;color:#ffe2a3}
+.v100NavDistance{display:flex;align-items:center;gap:13px;margin:7px 0;color:#f4f9f5}
+#v100NavArrow{display:block;font-size:32px;color:#70f4bf;text-shadow:0 0 14px #65eabb82;line-height:1}
+#v100NavAction{width:100%;min-height:37px;border-radius:10px;background:#44d7a9;border:1px solid #8cf4d7;color:#072934;font-weight:900}
+#v100NavAction:disabled{opacity:.58;cursor:default;background:#355860;color:#c0d8d3;border-color:#668984}
+#v100Navigation.ready{border-color:#f8d082;box-shadow:0 5px 30px #47e5af33}
+@media(max-width:760px){
+ #v100Navigation{top:137px;left:8px;width:min(210px,51vw);padding:8px}
+ #v100LeagueBoard{padding:10px}
+ #v100Tier{font-size:12px}
+ .v100XpRow{align-items:flex-start}
+ #v100XP{font-size:14px}
+ #v100Next{font-size:9px}
+ .v100Stats{font-size:9px}
+}
+@media(max-height:510px){#v100Navigation{top:10px;left:10px;max-width:36vw}}
+@media(prefers-reduced-motion:reduce){#v31RaceResult:not([hidden]){animation:none}.v100Track i,.v100LiveTrack i{transition:none}}

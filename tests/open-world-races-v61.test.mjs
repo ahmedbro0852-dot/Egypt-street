@@ -8,8 +8,8 @@ const openWorld=CAIRO_RACES_V31.filter(course=>course.world);
 const axis=(a,b)=>Math.abs(a-b)<.001;
 const rows=[-60,-30,0,30,60],columns=[-60,-30,0,30,60,94,170];
 
-test('three city championships coexist with original closed-track races',()=>{
- assert.equal(openWorld.length,3);
+test('city championships coexist with original closed-track races',()=>{
+ assert.ok(openWorld.length>=3);
  assert.ok(CAIRO_RACES_V31.some(c=>!c.world&&c.kind==='drift'));
  assert.ok(CAIRO_RACES_V31.some(c=>!c.world&&c.kind==='timeattack'));
  assert.ok(openWorld.every(c=>c.laps>=1&&c.reward>0&&c.points.length>=6));

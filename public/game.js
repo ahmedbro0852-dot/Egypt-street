@@ -13,7 +13,8 @@ import { installMobileStaticBatchingV52 } from './mobile-static-batching-v52.js'
 import { createCityQuestsV50 } from './city-quests-v50.js';
 import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
-import { createCairoRacesV31 } from './cairo-races-v31.js?v=61.0';
+import { createCairoRacesV31 } from './cairo-races-v31.js?v=100.0';
+import { createRaceLeagueV100 } from './race-league-v100.js?v=100.0';
 import { createDriftV34 } from './drift-system-v34.js';
 import { createStreetLaptopV41 } from './street-laptop-v41.js';
 import { isRaceArenaV32, RACE_ARENA_BOUNDS_V32 } from './race-arena-v32.js';
@@ -393,6 +394,7 @@ function activateGarageVehicle(id){
  }
 }
 let raceSystem=null;
+let raceLeagueV100=null;
 let raceModeV32=false,raceReturnPointV32=null;
 const RACE_RETURN_KEY_V32='egypt-street-race-return-v32';
 const currentRaceVehicleId=()=>{
@@ -536,8 +538,20 @@ raceSystem=createCairoRacesV31({
   $('money').textContent='ج.م '+Math.round(cash);
   saveWallet();saveWorld(true);
  },
- onFinish:()=>saveWorld(true),
+ onFinish:(course,completed,rank,details)=>{
+  raceLeagueV100?.complete(course,completed,rank,details);
+  saveWorld(true);
+ },
+ onNavigate:(course,point)=>raceLeagueV100?.navigate(course,point),
  notify:message=>toast(message)
+});
+raceLeagueV100=createRaceLeagueV100({
+ storage:walletStorage,fresh:freshStartV55,
+ getCourses:()=>raceSystem.getCourses(),
+ getRace:()=>raceSystem.getRace(),
+ getVehicle:()=>vehicleState,getActive:()=>active,getPaused:()=>paused,
+ startRace:id=>raceSystem.start(id),
+ openRaces:()=>raceSystem.openPanel(),notify:message=>toast(message)
 });
 const driftV34=createDriftV34({
  T,scene,storage:walletStorage,fresh:freshStartV55,
@@ -890,6 +904,14 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
   map.beginPath();map.arc(mx(eventWaypoint.x),mz(eventWaypoint.z),7,0,Math.PI*2);map.stroke();
  }
  const worldRaceState=raceSystem?.getRace();
+ const v100NavigationPoint=raceLeagueV100?.getWaypoint();
+ if(v100NavigationPoint&&!worldRaceState){
+  map.beginPath();map.arc(mx(v100NavigationPoint.x),mz(v100NavigationPoint.z),8,0,Math.PI*2);
+  map.fillStyle='#55f0b9';map.fill();
+  map.strokeStyle='#102e31';map.lineWidth=2;map.stroke();
+  map.fillStyle='#153b31';map.font='bold 11px Arial';
+  map.fillText('🏁',mx(v100NavigationPoint.x)-6,mz(v100NavigationPoint.z)-11);
+ }
  if(!worldRaceState){
   for(const race of raceSystem.getCourses().filter(c=>c.world)){
    const [sx,sz]=race.points[0],d=Math.hypot(sx-p.x,sz-p.z);
@@ -1126,6 +1148,7 @@ function frame(t){
   rideDispatch.update(dt);
   gps.update(dt);
   raceSystem.update(dt,t);
+  raceLeagueV100?.update(t);
   driftV34.update({vehicle:vehicleState,dt,t,
    holding:driftHeldV34||!!keys.x,driving,paused,
    racing:raceSystem.isRunning(),vehicleType:currentRaceVehicleId()});

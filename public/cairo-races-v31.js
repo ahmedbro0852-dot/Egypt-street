@@ -30,7 +30,19 @@ export const CAIRO_RACES_V31=[
  {id:'world-nile',name:'تحدّي كوبري النيل',icon:'🌉',laps:1,reward:1050,
   kind:'street',world:true,difficulty:'محترفين',color:0x79c9ff,speed:15.2,
   points:[[60,60],[94,60],[130,60],[170,60],[170,0],[170,-60],
-          [130,-60],[94,-60],[60,-60],[60,0]]}
+          [130,-60],[94,-60],[60,-60],[60,0]]},
+ // V100: three more long-form championships on existing paved Cairo grid.
+ {id:'world-south',name:'جولة جنوب القاهرة',icon:'🌴',laps:2,reward:850,
+  kind:'street',world:true,difficulty:'متوسط',color:0x7cf5cf,speed:13.6,
+  points:[[-60,60],[-30,60],[-30,30],[0,30],[0,0],[-30,0],[-60,0],[-60,30]]},
+ {id:'world-night',name:'سباق ليل القاهرة',icon:'🌙',laps:2,reward:980,
+  kind:'street',world:true,difficulty:'محترفين',color:0xd69dff,speed:14.5,
+  points:[[-30,-30],[0,-30],[30,-30],[30,0],[0,0],[0,30],[-30,30],[-30,0]]},
+ {id:'world-marathon',name:'ماراثون شوارع مصر',icon:'🏆',laps:3,reward:1600,
+  kind:'street',world:true,difficulty:'أسطوري',color:0xf4c463,speed:16.4,
+  points:[[-60,-60],[-30,-60],[0,-60],[30,-60],[60,-60],[60,-30],
+          [60,0],[60,30],[60,60],[30,60],[0,60],[-30,60],
+          [-60,60],[-60,30],[-60,0],[-60,-30]]}
 ];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -111,7 +123,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  getDriving=()=>false,getVehicle=()=>({x:0,z:0,speed:0}),
  getDriftInput=()=>({holding:false}),
  requestDrive=()=>false,prepareCar=()=>{},restoreCar=()=>{},
- onReward=()=>{},onFinish=()=>{},notify=()=>{},storage=null,fresh=false}={}){
+ onReward=()=>{},onFinish=()=>{},onNavigate=()=>{},notify=()=>{},storage=null,fresh=false}={}){
  const KEY='egypt-streets-races-v31';
  if(fresh){try{storage?.removeItem(KEY)}catch(e){}}
  let history={wins:0,races:0,earned:0,best:{},bestLap:{},bestDrift:0,driftChallenges:0};
@@ -178,7 +190,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  document.head.append(style);
  const make=(tag,id,parent)=>{const el=document.createElement(tag);el.id=id;parent.append(el);return el};
  const open=make('button','v31RaceOpen',document.body);
- open.type='button';open.textContent='🏁 سباقات القاهرة';
+ open.type='button';open.textContent='🏁 سباقات V100';
  const panel=make('section','v31RacePanel',document.body);
  panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','بطولات سباقات القاهرة');
  const hud=make('section','v31RaceHud',document.body);hud.hidden=true;
@@ -220,7 +232,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  const timeAttackV37=createTimeAttackV37({storage});
  function renderPanel(){
   summary.textContent='🏅 انتصارات: '+history.wins+' • سباقات: '+history.races+
-    ' • أرباح مسابقات: '+history.earned+' ج.م • 🌆 3 بطولات في العالم المفتوح';
+    ' • أرباح مسابقات: '+history.earned+' ج.م • 🌆 6 بطولات في العالم المفتوح';
   list.replaceChildren();
   for(const course of CAIRO_RACES_V31){
    const c=make('article','',list);
@@ -244,6 +256,14 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
     course.kind==='timeattack'?'⏱️ اكسر رقمك القياسي':'🏁 ابدأ السباق';
    btn.disabled=!!active;
    btn.onclick=()=>start(course.id);
+   if(course.world){
+    const navButton=make('button','',c);
+    navButton.type='button';
+    navButton.className='v100RaceNavigate';
+    navButton.textContent='🧭 اتجه إلى خط بداية السباق';
+    navButton.disabled=!!active;
+    navButton.onclick=()=>onNavigate(course,pointsById[course.id][0]);
+   }
   }
  }
  function openPanel(){if(!getActive()){notify('ابدأ اللعب الأول');return}
@@ -448,7 +468,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
   }else{podium.hidden=true;notify('⛔ خرجت من سباق '+course.name)}
   active=null;resetModels();if(!course.world)raceArena.hide();restoreCar(course);
   hud.hidden=true;countdown.hidden=true;document.body.classList.remove('racingActive');
-  onFinish(course,completed,rank);
+  onFinish(course,completed,rank,{elapsed:a.elapsed,bestLap:a.bestLap,driftScore:a.driftScore});
   renderPanel();
   if(completed)panel.hidden=false;
  }
@@ -486,7 +506,9 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    const sideX=Math.cos(face)*enemy.lane,sideZ=-Math.sin(face)*enemy.lane;
    enemy.model.position.set(p0.x+(p1.x-p0.x)*fraction+sideX,0,
     p0.z+(p1.z-p0.z)*fraction+sideZ);
-   enemy.model.rotation.y=face;
+   // Continuous steering animation; avoid instant 90-degree yaw snaps.
+   const turn=Math.atan2(Math.sin(face-enemy.model.rotation.y),Math.cos(face-enemy.model.rotation.y));
+   enemy.model.rotation.y+=turn*clamp(dt*6.5,0,1);
    enemy.model.userData.axis=Math.abs(Math.sin(face))>.5?'x':'z';
    enemy.model.userData.direction=enemy.model.userData.axis==='x'?
       (Math.sin(face)>=0?1:-1):(Math.cos(face)>=0?1:-1);
@@ -570,7 +592,8 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  window.addEventListener('pagehide',persist);
  renderPanel();
  return {start,update,finish,openPanel,getRace:()=>active?{
-   id:active.id,phase:active.phase,steps:active.steps,lap:active.lap,rank:active.rank,
+   id:active.id,kind:active.course.kind,phase:active.phase,steps:active.steps,
+   totalSteps:active.course.laps*active.points.length,lap:active.lap,rank:active.rank,
    elapsed:active.elapsed,waypoint:active.driftChallenge?null:
       active.points[(active.steps+1)%active.points.length],
    driftScore:active.driftScore,driftMedal:active.driftMedal
