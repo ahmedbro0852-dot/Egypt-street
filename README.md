@@ -71,3 +71,11 @@ V45 is a **visual improvement, not photorealism**. Its effects require desktop W
 - Added **جرافيك وحركة سينمائية** toggle in Graphics Settings; balanced mode scales the effects down. The on-screen vignette is CSS-only.
 - The mobile adaptive renderer continues controlling pixel density to prioritize frame pacing; no promise of a fixed FPS on all devices.
 - Regression checks: `node --test tests/cinematic-graphics-v60.test.mjs tests/road-feedback-v60.test.mjs`. Full-device visual QA remains necessary before production release.
+
+#### V60 sculpted Cairo 3D pass
+
+- Real **raised window frames, projecting sills, balcony rails, AC units and shaded overhangs** now render on touch WebGL, not just desktop; low-memory devices receive reduced fixture density with no shadow-casting meshes.
+- New **3D shop awnings, overhead shop signage, rooftops with air-conditioning boxes and street planters** use shared geometry and instanced draws (at most six meshes, up to 16 shops on low-end touch).
+- Replaces the earlier cross-shaped mobile palms with **proper instanced cylindrical trunks and segmented swept 3D fronds** (two additional draw calls for the whole grove). Gentle foliage movement is limited to stronger phones and capped at roughly eight updates per second; low-end phones use static fronds.
+- All decoration is visual-only, with unchanged car collision, mission, saved game and physics systems. Desktop keeps its detailed V48 palms and its original rich atmosphere.
+- Regression checks: `node --test tests/city-3d-v60.test.mjs`, alongside other V60 tests. Preview rendering on real phones still needs visual and frame-rate QA before production.
