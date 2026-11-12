@@ -1,6 +1,6 @@
 // Egypt Streets V15: low-cost first-person dashboard for a car or motorcycle.
 // The cockpit follows the game's perspective camera; no textures or network resources.
-export function createCockpitV15({T,scene,camera}){
+export function createCockpitV15({T,scene,camera,lowEnd=false}){
  const root=new T.Group();root.visible=false;
  const dark=new T.MeshStandardMaterial({color:0x17232b,roughness:.88}),
        trim=new T.MeshStandardMaterial({color:0x374b54,metalness:.25,roughness:.56}),
@@ -60,6 +60,21 @@ export function createCockpitV15({T,scene,camera}){
  mesh(new T.BoxGeometry(.3,.10,.035),glass,.52,-.47,-.64);
  mesh(new T.BoxGeometry(.42,.055,.08),leather,0,.27,-.66);
  mesh(new T.BoxGeometry(.53,.17,.045),glass,0,.30,-.69);
+ // V155: rear-view mirror and understated interior trim.
+ // These are mirror surfaces only; no second scene camera or expensive reflection.
+ const rearMirrorCase=mesh(new T.BoxGeometry(.56,.17,.065),dark,0,.225,-.74);
+ const rearMirrorGlass=mesh(new T.BoxGeometry(.49,.104,.012),glass,0,.225,-.697);
+ const mirrorDetailCount=lowEnd?1:3;
+ if(!lowEnd){
+  for(const side of [-1,1]){
+   const frame=mesh(new T.BoxGeometry(.30,.14,.05),trim,side*.94,-.21,-.82);
+   const surface=mesh(new T.BoxGeometry(.25,.095,.012),glass,side*.94,-.21,-.782);
+   frame.rotation.y=side*.14;surface.rotation.y=side*.14;
+  }
+ }
+ const turnLeft=mesh(new T.SphereGeometry(.018,6,5),golden,-.19,-.515,-.57);
+ const turnRight=mesh(new T.SphereGeometry(.018,6,5),golden,-.04,-.515,-.57);
+ turnLeft.visible=turnRight.visible=false;
  // Windshield side bars stay mostly outside portrait-phone field of view.
  for(const side of [-1,1]){
   const pillar=mesh(new T.BoxGeometry(.07,1.1,.08),trim,side*.90,-.10,-.85);
@@ -67,7 +82,7 @@ export function createCockpitV15({T,scene,camera}){
  }
  scene.add(camera);camera.add(root);
  function setVisible(v){root.visible=!!v}
- function update(steer=0,speed=0,bike=false){
+ function update(steer=0,speed=0,bike=false,signals={}){
   steering.rotation.z=-Math.max(-1,Math.min(1,steer/.55))*.66;
   // Hand destinations rotate around the rim, with elbows bending naturally.
   const spin=steering.rotation.z,cs=Math.cos(spin),sn=Math.sin(spin);
@@ -87,6 +102,8 @@ export function createCockpitV15({T,scene,camera}){
   }
   speedNeedle.rotation.z=-Math.max(-.2,Math.min(1.1,Math.abs(speed)/40));
   root.scale.set(bike?.81:1,bike?.85:1,1);
+  turnLeft.visible=!!(signals?.left);
+  turnRight.visible=!!(signals?.right);
  }
- return {setVisible,update,getState:()=>({visible:root.visible,parts:parts.length,steering:steering.rotation.z,driverHands:cockpitArms.length})};
+ return {setVisible,update,getState:()=>({visible:root.visible,parts:parts.length,steering:steering.rotation.z,driverHands:cockpitArms.length,mirrorSurfaces:mirrorDetailCount,signals:{left:turnLeft.visible,right:turnRight.visible}})};
 }
