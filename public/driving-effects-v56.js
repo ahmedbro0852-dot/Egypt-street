@@ -4,7 +4,8 @@
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
 export function createDrivingEffectsV56({T,scene,renderer,mobile=false}={}){
  if(!renderer?.isWebGLRenderer||!T?.InstancedMesh)return {enabled:false,update(){},dispose(){}};
- const maxParticles=mobile?10:20;
+ // V150: cap GPU particle work on touch devices while preserving drift feedback.
+ const maxParticles=mobile?8:20;
  const geometry=new T.SphereGeometry(.12,6,4);
  const dustMat=new T.MeshBasicMaterial({color:0xbac0bb,transparent:true,opacity:.28,depthWrite:false,fog:true});
  const particles=new T.InstancedMesh(geometry,dustMat,maxParticles);
@@ -74,7 +75,7 @@ export function createDrivingEffectsV56({T,scene,renderer,mobile=false}={}){
    for(const lamp of brakes)lamp.scale.set(1.5*pulse,.8*pulse,.25);
    const slip=Number(skid)||0;
    const tyreSmoke=slip>.26&&Math.abs(speed)>4;
-   const interval=tyreSmoke?.065:engineOn?.30:1e9;
+   const interval=tyreSmoke?(mobile?.11:.065):engineOn?(mobile?.45:.30):1e9;
    emissionTimer+=dt;
    if(emissionTimer>=interval){
     emissionTimer=0;
@@ -94,7 +95,7 @@ export function createDrivingEffectsV56({T,scene,renderer,mobile=false}={}){
    dummy.updateMatrix();particles.setMatrixAt(i,dummy.matrix);
   }
   particles.visible=running;
-  particles.instanceMatrix.needsUpdate=true;
+  if(running||particles.visible)particles.instanceMatrix.needsUpdate=true;
  }
  function dispose(){
   if(lights.parent)lights.parent.remove(lights);
