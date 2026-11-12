@@ -124,7 +124,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  getDriving=()=>false,getVehicle=()=>({x:0,z:0,speed:0}),
  getDriftInput=()=>({holding:false}),
  requestDrive=()=>false,prepareCar=()=>{},restoreCar=()=>{},
- onReward=()=>{},onFinish=()=>{},onNavigate=()=>{},notify=()=>{},storage=null,fresh=false}={}){
+ onReward=()=>{},onFinish=()=>{},onNavigate=()=>{},onCountdown=()=>{},notify=()=>{},storage=null,fresh=false}={}){
  const KEY='egypt-streets-races-v31';
  if(fresh){try{storage?.removeItem(KEY)}catch(e){}}
  let history={wins:0,races:0,earned:0,best:{},bestLap:{},bestDrift:0,driftChallenges:0};
@@ -350,7 +350,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
     progress:gap/Math.max(1,dist(first,second))};
   });
   active={id,course,points:pts,steps:0,lap:0,elapsed:0,lapStart:0,bestLap:Infinity,
-   count:3.35,phase:'countdown',enemies,lastPosition:null,rank:4,startingHealth:100,
+   count:3.0,phase:'countdown',enemies,lastPosition:null,rank:4,startingHealth:100,
    driftChallenge:driftMode?createTimedDriftV35({points:pts,duration:course.duration}):null,
    timeAttack:timeMode?timeAttackV37:null,
    driftScore:0,driftMedal:'none'};
@@ -537,7 +537,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
    const num=a.count>0?Math.ceil(a.count):0;
    countdown.hidden=false;countdown.textContent=num?String(num):'GO!';
    countdown.classList.toggle('go',num===0);
-   if(num!==lastCountdown)lastCountdown=num;
+   if(num!==lastCountdown){lastCountdown=num;onCountdown(num)}
    if(a.count<=-.65){
     a.phase='racing';countdown.hidden=true;a.elapsed=0;a.lapStart=0;
     if(a.timeAttack)a.timeAttack.begin(car);
@@ -596,7 +596,7 @@ export function createCairoRacesV31({T,scene,getActive=()=>true,getPaused=()=>fa
  renderPanel();
  return {start,update,finish,openPanel,getRace:()=>active?{
    id:active.id,kind:active.course.kind,phase:active.phase,steps:active.steps,
-   totalSteps:active.course.laps*active.points.length,lap:active.lap,rank:active.rank,
+   totalSteps:active.course.laps*active.points.length,lap:active.lap,laps:active.course.laps,rank:active.rank,
    elapsed:active.elapsed,waypoint:active.driftChallenge?null:
       active.points[(active.steps+1)%active.points.length],
    driftScore:active.driftScore,driftMedal:active.driftMedal
