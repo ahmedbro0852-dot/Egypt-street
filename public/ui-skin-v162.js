@@ -23,9 +23,17 @@ export function installStreetDesignV162({doc=globalThis.document}={}){
  };
  setExpanded(false);
  button.addEventListener('click',()=>setExpanded(!fuel.classList.contains('v162-expanded')));
+ // Mobile Lite has its own "car dashboard" modal. Expand the real controls
+ // when that modal opens; otherwise opening it would only reveal a fuel bar.
+ const onMobilePanel=e=>{
+  if(e.target?.id==='v51CarToggle')setExpanded(true);
+  else if(e.target?.id==='v51CarClose')setExpanded(false);
+ };
+ body.addEventListener?.('click',onMobilePanel);
  const meter=fuel.querySelector('#fuelTrack');
  if(meter?.nextSibling)fuel.insertBefore(button,meter.nextSibling);
  else fuel.append(button);
  return {enabled:true,setExpanded,getExpanded:()=>fuel.classList.contains('v162-expanded'),
-  dispose:()=>{button.remove();overlay.remove();fuel.classList.remove('v162-expanded')}};
+  dispose:()=>{body.removeEventListener?.('click',onMobilePanel);
+   button.remove();overlay.remove();fuel.classList.remove('v162-expanded')}};
 }
