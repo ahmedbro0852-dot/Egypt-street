@@ -54,3 +54,28 @@ V45 is a **visual improvement, not photorealism**. Its effects require desktop W
 - Atmospheric sky now includes smooth multi-octave clouds, a sun disc, sunset tint and sparse night stars, with renderer tone mapping and output color conversion.
 - Software-rendered sessions now display an honest graphics fallback notice. Original lightweight trees remain available in that path.
 - Validation: finite geometry/color attributes, shared resources, synchronized wind/shadow uniforms, JavaScript syntax and headless OpenGL compilation of the custom sky fragment shader. Full game WebGL visual QA remains limited by the browser environment.
+
+### V60 — lightweight 3D tyre feedback and mobile frame polish
+
+- Adds pooled, procedural **skid marks** behind driven wheels during substantial slip, fading over time (shorter lifetime when raining).
+- Adds **rain wheel spray** when driving in wet weather, using a single instanced mesh. Across both effects there are only two additional WebGL draw calls when active, bounded to 28 trail slots + 10 droplets on touch devices (64 + 22 on desktop). The software fallback creates neither mesh.
+- Reuses the chase/cockpit camera vectors instead of allocating them every rendered frame and reduces redundant on-screen speed/HUD writes on mobile, without altering steering or vehicle physics.
+- Refreshes the offline service-worker cache for V60 and includes the new module; existing mission, money and garage saves are untouched.
+- Validation: `node --test tests/road-feedback-v60.test.mjs` (Node 22+) plus static module parsing and integration checks. Browser GPU/frame-rate QA is still required before a production release.
+
+#### V60 cinematic graphics + animation pass
+
+- Mobile WebGL gains a cheap animated sky gradient (day/night horizon, golden-hour sun glow, weather-sensitive clouds) instead of the flat fallback. The richer V45 desktop sky remains unchanged.
+- Devices with sufficient resources get a single procedural sun-halo sprite. No external asset downloads, additional WebGL postprocessing passes or shadow-casting lights.
+- Camera follows turns with spring-smoothed micro-roll and subtle heading anticipation, plus restrained speed-dependent road vibration. First-person movement is gentler than third-person; reduced-motion preferences and the existing steady-camera option disable those motions.
+- Added **جرافيك وحركة سينمائية** toggle in Graphics Settings; balanced mode scales the effects down. The on-screen vignette is CSS-only.
+- The mobile adaptive renderer continues controlling pixel density to prioritize frame pacing; no promise of a fixed FPS on all devices.
+- Regression checks: `node --test tests/cinematic-graphics-v60.test.mjs tests/road-feedback-v60.test.mjs`. Full-device visual QA remains necessary before production release.
+
+#### V60 sculpted Cairo 3D pass
+
+- Real **raised window frames, projecting sills, balcony rails, AC units and shaded overhangs** now render on touch WebGL, not just desktop; low-memory devices receive reduced fixture density with no shadow-casting meshes.
+- New **3D shop awnings, overhead shop signage, rooftops with air-conditioning boxes and street planters** use shared geometry and instanced draws (at most six meshes, up to 16 shops on low-end touch).
+- Replaces the earlier cross-shaped mobile palms with **proper instanced cylindrical trunks and segmented swept 3D fronds** (two additional draw calls for the whole grove). Gentle foliage movement is limited to stronger phones and capped at roughly eight updates per second; low-end phones use static fronds.
+- All decoration is visual-only, with unchanged car collision, mission, saved game and physics systems. Desktop keeps its detailed V48 palms and its original rich atmosphere.
+- Regression checks: `node --test tests/city-3d-v60.test.mjs`, alongside other V60 tests. Preview rendering on real phones still needs visual and frame-rate QA before production.
