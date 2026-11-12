@@ -1,4 +1,5 @@
 import { installGroundedCityV160 } from './grounded-city-v160.js?v=160.0';
+import { installStreetDesignV162 } from './ui-skin-v162.js?v=162.0';
 import { createDetailedPalmV48, updateLandscapeV48 } from './palm-landscape-v48.js';
 import { dressReferenceHeroV47, installReferenceHudV47 } from './reference-look-v47.js?v=47.2';
 import { installRoyalHudV49 } from './royal-hud-v49.js?v=151.0';
@@ -85,6 +86,8 @@ const streetDetails=installStreetDetailsV15({T,scene,box,sign,blocked});
 const groundedCityV160=installGroundedCityV160({T,scene,renderer,mobile:isMobileOptimized,getActors:()=>[activeVehicle,...traffic,...parkedStreetVehicles, {object:player,pedestrian:true},...walkers.map(p=>({object:p.mesh||p.group||p,pedestrian:true}))]});
 const mobileStaticV52=installMobileStaticBatchingV52({T,scene,renderer,mobileLite:isMobileOptimized});
 const cockpit=createCockpitV15({T,scene,camera,lowEnd:isMobileOptimized&&((Number(navigator.deviceMemory)||4)<=3)});
+// V162: clean visual shell preserves all existing gameplay controls.
+installStreetDesignV162();
 function car(color){
  const g=new T.Group(),wheels=[];
  const paint=new T.MeshStandardMaterial({color,metalness:.65,roughness:.29});
