@@ -69,3 +69,10 @@
 .v150RaceExtras{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:5px;font:700 10px/1.5 Tahoma,Arial;color:#d9f8e8;font-variant-numeric:tabular-nums;direction:rtl}
 #v150RaceClock{color:#ffdd99;direction:ltr;unicode-bidi:isolate}
 @media(max-width:600px){.v150RaceExtras{font-size:10px;margin-top:4px}}
+
+/* V151 race chooser sections */
+#v31RacePanel .v151RaceCategory{display:block;position:relative;padding:11px 12px;
+ margin:18px 0 8px;border-radius:12px;background:#16433d;
+ border:1px solid #75dbb67a;font:900 14px/1.5 Tahoma,Arial;color:#ffe4a6}
+#v31RacePanel article.worldRace .v100RaceNavigate{border-color:#68f1bc!important;color:#e0fff3!important}
+@media(max-width:600px){#v31RacePanel .v151RaceCategory{font-size:13px;padding:9px}}

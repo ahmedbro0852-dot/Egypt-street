@@ -1,6 +1,6 @@
 import { createDetailedPalmV48, updateLandscapeV48 } from './palm-landscape-v48.js';
 import { dressReferenceHeroV47, installReferenceHudV47 } from './reference-look-v47.js?v=47.2';
-import { installRoyalHudV49 } from './royal-hud-v49.js?v=55.0';
+import { installRoyalHudV49 } from './royal-hud-v49.js?v=151.0';
 import { installFacadeDepthV46 } from './facade-depth-v46.js';
 import { installTravelLightingV44 } from './travel-lighting-v44.js';
 import { installCairoGraphicsV45 } from './cairo-graphics-v45.js?v=48.1';
@@ -8,12 +8,12 @@ import { prepareDetailedCar } from './detailed-car-v42.js';
 import { installDesktopWorldV43 } from './desktop-world-v43.js?v=48.1';
 import { createMobileExperienceV40, tuneStickV40 } from './mobile-experience-v40.js';
 import { installAdaptiveMobileV50 } from './mobile-performance-v50.js?v=53.0';
-import { installMobileLiteV51 } from './mobile-lite-v51.js?v=55.0';
+import { installMobileLiteV51 } from './mobile-lite-v51.js?v=151.0';
 import { installMobileStaticBatchingV52 } from './mobile-static-batching-v52.js';
 import { createCityQuestsV50 } from './city-quests-v50.js';
 import { animateHeroV31, createVisualPolishV31 } from './animation-polish-v31.js';
 import { createV30 } from './v30-expedition.js';
-import { createCairoRacesV31 } from './cairo-races-v31.js?v=150.2';
+import { createCairoRacesV31 } from './cairo-races-v31.js?v=151.0';
 import { createRaceLeagueV100 } from './race-league-v100.js?v=150.0';
 import { createDriftV34 } from './drift-system-v34.js';
 import { createStreetLaptopV41 } from './street-laptop-v41.js';
@@ -1263,7 +1263,8 @@ const citySculptV60=installCitySculptV60({T,scene,renderer,mobile:isMobileOptimi
  lowEnd:isMobileOptimized&&((Number(navigator.deviceMemory)||4)<=3||(Number(navigator.hardwareConcurrency)||4)<=4)});
 installReferenceHudV47();
 const royalHudV49=installRoyalHudV49({desktopWorldV43,mobileV40,renderer,getActive:()=>active,getCompleted:()=>completed,getDriving:()=>driving});
-const mobileLiteV51=installMobileLiteV51({getActive:()=>active,getDriving:()=>driving,getSpeed:()=>speed,getFpsSetting:()=>royalHudV49?.getSettings?.()?.fpsTarget||'auto',getFps:()=>royalHudV49?.getFps?.()||0,getShowFps:()=>!!royalHudV49?.getSettings?.()?.showFpsMobile});
+const mobileLiteV51=installMobileLiteV51({getActive:()=>active,getDriving:()=>driving,getSpeed:()=>speed,getFpsSetting:()=>royalHudV49?.getSettings?.()?.fpsTarget||'auto',getFps:()=>royalHudV49?.getFps?.()||0,getShowFps:()=>!!royalHudV49?.getSettings?.()?.showFpsMobile,
+ getRacing:()=>!!raceSystem?.isRunning(),openRaces:()=>raceSystem?.openPanel()});
 const mobileInstrumentsV56=installMobileInstrumentsV56({getActive:()=>active,getDriving:()=>driving});
 const mobilePerformanceV50=installAdaptiveMobileV50({renderer,getActive:()=>active,getPaused:()=>paused,getQuality:()=>royalHudV49?.getSettings?.()?.quality||'auto',getTargetFps:()=>mobileLiteV51.targetFps(),getSharpness:()=>royalHudV49?.getSettings?.()?.sharpness||1});
 const cinematicV60=installCinematicGraphicsV60({T,scene,renderer,camera,sun,mobile:isMobileOptimized,
