@@ -64,3 +64,8 @@
 @media (prefers-reduced-motion:reduce) {
  #v100Navigation,#v100NavArrow{animation:none!important;transition:none!important}
 }
+
+/* V150 race lap and timer, designed to remain legible at 30 FPS on phones. */
+.v150RaceExtras{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:5px;font:700 10px/1.5 Tahoma,Arial;color:#d9f8e8;font-variant-numeric:tabular-nums;direction:rtl}
+#v150RaceClock{color:#ffdd99;direction:ltr;unicode-bidi:isolate}
+@media(max-width:600px){.v150RaceExtras{font-size:10px;margin-top:4px}}
