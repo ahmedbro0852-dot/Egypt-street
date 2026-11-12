@@ -72,6 +72,12 @@ export function createStreetAudio(){
   if(!go&&!(count>=1&&count<=3))return;
   tone(go?930:510,go?.30:.15,go?.042:.022,go?'sawtooth':'triangle',0,go?1120:435);
  }
+ // Low-cost synthesized hinge/latch sound, respects the existing mute setting.
+ function door(opening=true){
+  if(!ctx||muted||document.hidden)return;
+  tone(opening?235:175,opening?.13:.10,opening?.018:.024,
+    'triangle',0,opening?155:105);
+ }
  function impact(severity=4,kind='vehicle'){
   // Short mechanical impact, not music; respects mute and suspended audio.
   if(!ctx||muted)return;
@@ -83,5 +89,5 @@ export function createStreetAudio(){
  }
  function toggle(){start();muted=!muted;return muted}
  function suspend(){if(ctx)ctx.suspend().catch(()=>{})}
- return {start,tick,horn,impact,raceCountdown,toggle,suspend};
+ return {start,tick,horn,impact,door,raceCountdown,toggle,suspend};
 }
