@@ -127,14 +127,17 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
     box(details,'#927866',0,1.44,.163,.15,.025,.018);
   }
   // Hip pivots with proper knee hinges and long shoes.
-  const legs=[],knees=[];
+  const legs=[],knees=[],feet=[];
   for(const side of [-1,1]){
     const leg=group(rig,side*.135,.87,0);legs.push(leg);
     const upper=egg(leg,longRobe?outer:pants,0,-.20,0,.116,.232,.125);
     const knee=group(leg,0,-.39,0);knees.push(knee);
     egg(knee,longRobe?outer:pants,0,-.16,0,.098,.20,.112);
-    egg(knee,index%6===0?'#d6d0c3':'#34383b',0,-.31,.096,.128,.074,.217);
-    box(knee,index%6===0?'#b9b3a8':'#858582',0,-.357,.11,.22,.024,.30);
+    // V153: articulated ankle — turn the shoe from the heel, not from the knee.
+    // Same meshes/materials as before; just one additional parent per leg.
+    const foot=group(knee,0,-.31,0);feet.push(foot);
+    egg(foot,index%6===0?'#d6d0c3':'#34383b',0,0,.096,.128,.074,.217);
+    box(foot,index%6===0?'#b9b3a8':'#858582',0,-.047,.11,.22,.024,.30);
   }
   // Shoulder + elbow hierarchy, open hands with subtle sleeves.
   const arms=[],elbows=[];
@@ -247,7 +250,7 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
    proxyArms.push(arm);
   }
   const u={id:index+1,name,role,style,gender,accessory,
-    arms,elbows,legs,knees,head,body:rig,details,faceDetails,eyes,brows,mouth,scarfTail,proxy,proxyLegs,proxyArms,
+    arms,elbows,legs,knees,feet,head,body:rig,details,faceDetails,eyes,brows,mouth,scarfTail,proxy,proxyLegs,proxyArms,
     phase:index*1.07,speed:(elderly?.57:.72+(index%5)*.08),
     dir:index%2?1:-1,minX:-73,maxX:75,rest:index%11===0?.5:0,
     motion:0,blink:0,blinkTimer:1.4+(index%5)*.61};
