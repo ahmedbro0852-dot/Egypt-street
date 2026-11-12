@@ -71,3 +71,22 @@ V45 is a **visual improvement, not photorealism**. Its effects require desktop W
 - Added **جرافيك وحركة سينمائية** toggle in Graphics Settings; balanced mode scales the effects down. The on-screen vignette is CSS-only.
 - The mobile adaptive renderer continues controlling pixel density to prioritize frame pacing; no promise of a fixed FPS on all devices.
 - Regression checks: `node --test tests/cinematic-graphics-v60.test.mjs tests/road-feedback-v60.test.mjs`. Full-device visual QA remains necessary before production release.
+
+### V153 preview — Living Characters on the V152 engine
+
+This feature branch builds on **V152**, preserving championship race logic, the V151 any-nearby-car entry controls, gameplay saves and existing mobile performance scaling. It forward-ports the character improvements from the older V112 draft without merging outdated game code.
+
+- 3D Cairo residents retain their individual outfits, hairstyles, local job accessories and near/far LOD; nearby models gain subtle facial sculpting and garment details.
+- **Social behavior:** residents can look toward the player, move mouth/brows and hands during mission conversations, show different quiet idle gestures, and react to rain with small gestures and scarf motion.
+- **Natural movement:** pedestrians turn by the shortest angle, ease into stop/start steps and shift weight naturally. Distant LOD uses a tiny extra sway. Existing traffic avoidance, collision/stumble reactions and safety checks take priority.
+- **Hero animation:** more expressive gaze, blinks, subtle smiles, softer body and scarf inertia, plus a single bounded instanced draw for dry footsteps and rainy splashes. A real escaped-newline bug in the previous eye-contact code was corrected.
+- All changes are procedural and use the current rig; no additional online models/textures, independent render loops, gameplay hitboxes, physics, or saved keys.
+- Updated `game.js?v=153.1` and `egypt-streets-static-v153-living-characters-2` cache. Test sources: `tests/v153-character-entry.test.mjs`, `tests/character-life-v112.test.mjs`, `tests/citizen-locomotion-v112.test.mjs`, and `tests/v112-motion.test.mjs`.
+- **Release QA:** syntax/mocked transform tests are not a substitute for visual WebGL device testing. Keep the PR draft and verify Vercel preview before promotion.
+
+#### V153.1 — articulated footwear and conversation polish
+- Reuses the existing resident shoes/soles under independent heel/ankle pivots; adds a subtle toe-off and slight swing-foot clearance. **No new shoe mesh, textures or shader passes.** Near LOD only; distant pedestrians remain inexpensive.
+- Foot pose settles to a flat resting position when standing and resets to neutral during impact/fall animations, avoiding stuck toe rotations. This is procedural contact approximation, not a physics foot IK solver.
+- Dialogue gesture animation now blends three small phases (greeting, explanation and emphasis), using both arms and elbows while respecting the original explicit waving animation; no speech synthesis or microphone required.
+- Strengthens regression tests to cover ankle motion, ground clearance, neutral stops, collision priority and existing-wave precedence.
+- Entry version: `game.js?v=153.1`; cache version: `egypt-streets-static-v153-living-characters-2`. Preserves V152 races and V151 vehicle controls.

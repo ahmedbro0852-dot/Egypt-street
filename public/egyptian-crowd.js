@@ -1,4 +1,6 @@
 import { createPedestrianMotionV20, stepPedestrianMotionV20 } from './pedestrian-physics-v20.js';
+import { createCitizenBehaviorV112 } from './citizen-behavior-v112.js?v=153.1';
+import { citizenHeadingV112, animateCitizenStrideV112 } from './citizen-locomotion-v112.js?v=153.1';
 // Forty distinct Egyptian street residents for the existing mobile 3D game.
 // Shared geometry/materials keep models lightweight; nearby NPCs animate, distant ones sleep.
 export const EGYPTIAN_RESIDENTS = [
@@ -125,14 +127,17 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
     box(details,'#927866',0,1.44,.163,.15,.025,.018);
   }
   // Hip pivots with proper knee hinges and long shoes.
-  const legs=[],knees=[];
+  const legs=[],knees=[],feet=[];
   for(const side of [-1,1]){
     const leg=group(rig,side*.135,.87,0);legs.push(leg);
     const upper=egg(leg,longRobe?outer:pants,0,-.20,0,.116,.232,.125);
     const knee=group(leg,0,-.39,0);knees.push(knee);
     egg(knee,longRobe?outer:pants,0,-.16,0,.098,.20,.112);
-    egg(knee,index%6===0?'#d6d0c3':'#34383b',0,-.31,.096,.128,.074,.217);
-    box(knee,index%6===0?'#b9b3a8':'#858582',0,-.357,.11,.22,.024,.30);
+    // V153: articulated ankle — turn the shoe from the heel, not from the knee.
+    // Same meshes/materials as before; just one additional parent per leg.
+    const foot=group(knee,0,-.31,0);feet.push(foot);
+    egg(foot,index%6===0?'#d6d0c3':'#34383b',0,0,.096,.128,.074,.217);
+    box(foot,index%6===0?'#b9b3a8':'#858582',0,-.047,.11,.22,.024,.30);
   }
   // Shoulder + elbow hierarchy, open hands with subtle sleeves.
   const arms=[],elbows=[];
@@ -151,13 +156,16 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
   egg(head,skin,0,0,0,breadth,.204,.152);
   egg(head,skin,0,-.037,.15,.035,.056,.044);
   for(const side of [-1,1])egg(head,skin,side*breadth,-.014,-.004,.027,.054,.032);
-  const eyes=[];
+  const eyes=[],brows=[];
   for(const side of [-1,1]){
     egg(faceDetails,'#f3e8d7',side*.064,1.792,.144,.039,.022,.017);
     const pupil=egg(faceDetails,'#2b241e',side*.064,1.792,.158,.014,.019,.008);
     eyes.push(pupil);
     const brow=box(faceDetails,hair,side*.062,1.837,.141,.08,.012,.015);
-    brow.rotation.z=-side*.06;
+    brow.rotation.z=-side*.06;brows.push(brow);
+    // Under-eye anatomy gives near residents more sculpted faces.
+    egg(faceDetails,skin,side*.073,1.752,.145,.049,.011,.020);
+    egg(faceDetails,skin,side*.112,1.726,.115,.039,.030,.022);
   }
   const mouth=box(faceDetails,elderly?'#77574e':'#946258',0,1.688,.148,.069,.010,.012);
   mouth.rotation.x=-.08;
@@ -168,11 +176,14 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
     egg(faceDetails,hair,0,1.713,.161,.064,.018,.017);
   }
   const scarfColor=index%4===0?'#ded3b4':index%4===1?'#d0b0a5':index%4===2?cloth:'#9caeb5';
+  let scarfTail=null;
   if(headwear==='hijab'){
     egg(head,scarfColor,0,.105,-.077,.195,.145,.158);
     egg(head,scarfColor,-.155,-.075,-.05,.062,.175,.119);
     egg(head,scarfColor,.155,-.075,-.05,.062,.175,.119);
     egg(rig,scarfColor,0,1.485,-.063,.25,.175,.166);
+    // Separate side fold moves gently in the rain without additional cloth simulation.
+    scarfTail=egg(rig,scarfColor,-.18,1.40,-.15,.070,.23,.085);
   }else if(headwear==='white'){
     egg(head,'#b4b4ab',0,.117,-.027,.17,.115,.16);
     egg(head,'#b4b4ab',-.12,.065,-.05,.085,.1,.1);
@@ -193,6 +204,15 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
   if(accessory==='glasses'){
     for(const side of [-1,1])box(faceDetails,'#403e3b',side*.064,1.791,.176,.092,.056,.012);
     box(faceDetails,'#403e3b',0,1.792,.178,.04,.008,.014);
+  }
+  // Sparse garment stitching, cuffs and layered 3D silhouettes share existing mesh geometry.
+  if(style==='formal'||style==='coat'){
+    for(const side of [-1,1]){
+      box(details,'#b9ac98',side*.27,1.12,.155,.018,.24,.015);
+      box(details,'#aaa49a',side*.23,.97,.174,.070,.024,.016);
+    }
+  }else if(style==='sports'){
+    box(details,'#d6d1c7',0,1.51,-.02,.23,.028,.19);
   }
   // Profession accessories: no branding or skin-color stereotyping.
   if(accessory==='backpack'){
@@ -230,7 +250,7 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
    proxyArms.push(arm);
   }
   const u={id:index+1,name,role,style,gender,accessory,
-    arms,elbows,legs,knees,head,body:rig,details,faceDetails,eyes,proxy,proxyLegs,proxyArms,
+    arms,elbows,legs,knees,feet,head,body:rig,details,faceDetails,eyes,brows,mouth,scarfTail,proxy,proxyLegs,proxyArms,
     phase:index*1.07,speed:(elderly?.57:.72+(index%5)*.08),
     dir:index%2?1:-1,minX:-73,maxX:75,rest:index%11===0?.5:0,
     motion:0,blink:0,blinkTimer:1.4+(index%5)*.61};
@@ -238,6 +258,7 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
   return man;
  }
  const residents=[],paths=[-93,-60,-30,0,30,60,93,133],occupied=[];
+ const citizenBehaviorV112=createCitizenBehaviorV112({mobile:options.mobileLite===true});
  for(let i=0;i<EGYPTIAN_RESIDENTS.length;i++){
    if(options.mobileLite&&i%3===2)continue;
    const g=makeResident(EGYPTIAN_RESIDENTS[i],i);
@@ -283,7 +304,8 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
   return true;
  }
  // NPCs move only within the current districts; visual LOD has three tiers.
- function update(dt,t,focus,cars=[],controlledCar=null,playerCarSpeed=0){
+ function update(dt,t,focus,cars=[],controlledCar=null,playerCarSpeed=0,isPlayerDriving=false,weather='صحو'){
+  citizenBehaviorV112.beginFrame();
   dt=Math.min(Math.max(dt||0,0),.05);
   const f=focus||{x:0,z:0},mobile=typeof innerWidth==='number'&&innerWidth<760;
   const maxDraw=mobile?76:112;
@@ -365,7 +387,7 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
     }else p.position.x=nx;
    }
    if(u.rest>0&&u.rest<1e8)u.rest=Math.max(0,u.rest-dt);
-   p.rotation.y=setLerp(p.rotation.y,u.dir>0?Math.PI/2:-Math.PI/2,8,dt);
+   p.rotation.y=citizenHeadingV112(p.rotation.y,u.dir>0?Math.PI/2:-Math.PI/2,dt,8);
    const phase=u.phase+=dt*u.speed*7*u.motion,step=Math.sin(phase),lift=Math.max(0,Math.sin(phase+Math.PI/2));
    u.proxy.position.y=-stumbleAmount*.20+(impactPose?.height||0)-(impactPose?.fall||0)*.16;
    u.proxy.rotation.z=(u.stumbleSide||1)*(stumbleAmount*(style===0?.32:style===1?.18:.08)+
@@ -376,6 +398,8 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
      u.proxyLegs[1].rotation.x=-step*.31*u.motion;
      u.proxyArms[0].rotation.x=-step*.20*u.motion;
      u.proxyArms[1].rotation.x=step*.20*u.motion;
+     animateCitizenStrideV112(p,{dt,phase,near:false,walking,nearCar,frightened,stumbling,
+      raining:weather==='مطر'});
      continue;
    }
    u.legs[0].rotation.x=step*.50*u.motion;
@@ -436,7 +460,13 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
     u.arms[0].rotation.x-=fall*.72;
     u.arms[1].rotation.x-=fall*.48;
    }
+   animateCitizenStrideV112(p,{dt,phase,near:true,walking,nearCar,frightened,stumbling,
+    raining:weather==='مطر'});
+   citizenBehaviorV112.update(p,{dt,time:t,focus:f,driving:isPlayerDriving,
+    distanceSq:distSq,visible:p.visible,faceNear,walking,frightened,stumbling,
+    raining:weather==='مطر',nearCar});
   }
  }
- return {people:residents,update,reactCollision,profiles:EGYPTIAN_RESIDENTS};
+ return {people:residents,update,reactCollision,profiles:EGYPTIAN_RESIDENTS,
+  characterStats:()=>citizenBehaviorV112.stats()};
 }

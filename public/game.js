@@ -26,9 +26,12 @@ import { installCitySculptV60 } from './city-sculpt-v60.js?v=60.2';
 import { installMobilePalmsV60 } from './mobile-palms-v60.js?v=60.2';
 import { installCinematicGraphicsV60 } from './cinematic-graphics-v60.js?v=60.1';
 import { installMobileInstrumentsV56 } from './mobile-instruments-v56.js';
+import { createCharacterDynamicsV112 } from './character-dynamics-v112.js?v=153.0';
+import { createFootstepFXV112 } from './footstep-fx-v112.js?v=153.0';
+import { createHeroPresenceV112 } from './hero-presence-v112.js?v=153.0';
 import * as T from './three.js';
 import { installCairo } from './cairo-city.js?v=54.0';
-import { createEgyptianCrowd } from './egyptian-crowd.js';
+import { createEgyptianCrowd } from './egyptian-crowd.js?v=153.1';
 import { createStreetEvents } from './street-events.js';
 import { createCareerSystem } from './street-careers.js';
 import { createFuelSystem, PETROL_STATIONS } from './realistic-fuel.js';
@@ -189,8 +192,14 @@ function makeHero(){
  ell(head,0,-.11,.08,.132,.087,.083,hair);ell(head,0,-.055,.145,.096,.065,.018,skin);
  ell(head,0,-.015,.16,.029,.052,.035,skin);
  const eyeWhite=mat('#d9cfc0'),iris=mat('#30261f');
- for(const x of [-.063,.063]){ell(head,x,.035,.139,.034,.014,.012,eyeWhite);ell(head,x,.035,.151,.012,.013,.006,iris);ell(head,x,.068,.135,.041,.009,.012,hair);ell(head,Math.sign(x)*.16,-.005,0,.025,.052,.032,skin)}
- ell(head,0,-.084,.166,.045,.006,.007,mat('#795448'));
+ const heroPupils=[],heroBrows=[];
+ for(const x of [-.063,.063]){
+  ell(head,x,.035,.139,.034,.014,.012,eyeWhite);
+  heroPupils.push(ell(head,x,.035,.151,.012,.013,.006,iris));
+  heroBrows.push(ell(head,x,.068,.135,.041,.009,.012,hair));
+  ell(head,Math.sign(x)*.16,-.005,0,.025,.052,.032,skin);
+ }
+ const heroMouth=ell(head,0,-.084,.166,.045,.006,.007,mat('#795448'));
  const leftArm=limb(-.32,1.43,.32,.085,shirt),rightArm=limb(.32,1.43,.32,.085,shirt);
  for(const arm of [leftArm,rightArm]){
   const forearm=arm.userData.joint;
@@ -212,12 +221,16 @@ function makeHero(){
  ell(head,0,-.083,.173,.055,.010,.010,mat('#74493d'));
  root.userData={rig,leftArm,rightArm,leftLeg,rightLeg,
   leftElbow:leftArm.userData.joint,rightElbow:rightArm.userData.joint,
-  leftKnee:leftLeg.userData.joint,rightKnee:rightLeg.userData.joint,head};
+  leftKnee:leftLeg.userData.joint,rightKnee:rightLeg.userData.joint,head,
+  heroPupils,heroBrows,heroMouth};
  return root;
 }
 const player=makeHero();dressReferenceHeroV47({T,player,renderer});scene.add(player);player.position.set(0,0,12);
+const characterDynamicsV112=createCharacterDynamicsV112({hero:player});
+const footstepFXV112=createFootstepFXV112({T,scene,renderer,mobile:isMobileOptimized});
 const crowd=createEgyptianCrowd(T,scene,(x,z)=>blocked(x,z,.38),{mobileLite:isMobileOptimized});
 const walkers=crowd.people; // Forty unique residents
+const heroPresenceV112=createHeroPresenceV112({hero:player,people:walkers});
 
 const target=new T.Vector3(62,0,-50);let beacon=new T.Mesh(new T.CylinderGeometry(2,2,.12,32),new T.MeshBasicMaterial({color:0xffcd68,transparent:true,opacity:.7}));scene.add(beacon);let pillar=new T.Mesh(new T.CylinderGeometry(.25,.25,13,12),new T.MeshBasicMaterial({color:0xffd57e,transparent:true,opacity:.45}));scene.add(pillar);
 const sound=createStreetAudio();
@@ -1222,8 +1235,15 @@ function frame(t){
   }
   gait+=dt*Math.abs(speed)*2.8;
   animateHeroV31(player,gait,driving?0:Math.min(1,Math.abs(speed)/4.3),{dt,speed:driving?0:speed,grounded:driving||onFoot.grounded,vertical:onFoot.vy});
+  characterDynamicsV112.update({dt,phase:gait,amount:driving?0:Math.min(1,Math.abs(speed)/4.3),
+   speed:driving?0:speed,grounded:driving||onFoot.grounded,vertical:onFoot.vy,driving,
+   rain:cityLife.getState().weather==='مطر'});
+  heroPresenceV112.update({dt,active,paused,driving,speed:driving?0:speed});
+  footstepFXV112.update({dt,player,active,paused,driving,grounded:onFoot.grounded,
+   speed:driving?0:speed,weather:cityLife.getState().weather,heading:player.rotation.y});
   crowdClockV51+=dt;
-  if(!mobileLiteV51.enabled||crowdClockV51>=.08){crowd.update(Math.min(.12,crowdClockV51),t,p,traffic,taxi,driving?vehicleState.speed:0);crowdClockV51=0;}
+  if(!mobileLiteV51.enabled||crowdClockV51>=.08){crowd.update(Math.min(.12,crowdClockV51),t,p,traffic,taxi,
+   driving?vehicleState.speed:0,driving,cityLife.getState().weather);crowdClockV51=0;}
   streetEvents.update(dt,t);
   career.update(dt,t);
   rideDispatch.update(dt);
