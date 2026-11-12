@@ -1,5 +1,6 @@
 import { createPedestrianMotionV20, stepPedestrianMotionV20 } from './pedestrian-physics-v20.js';
 import { createCitizenBehaviorV112 } from './citizen-behavior-v112.js?v=112.1';
+import { citizenHeadingV112, animateCitizenStrideV112 } from './citizen-locomotion-v112.js?v=112.2';
 // Forty distinct Egyptian street residents for the existing mobile 3D game.
 // Shared geometry/materials keep models lightweight; nearby NPCs animate, distant ones sleep.
 export const EGYPTIAN_RESIDENTS = [
@@ -383,7 +384,7 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
     }else p.position.x=nx;
    }
    if(u.rest>0&&u.rest<1e8)u.rest=Math.max(0,u.rest-dt);
-   p.rotation.y=setLerp(p.rotation.y,u.dir>0?Math.PI/2:-Math.PI/2,8,dt);
+   p.rotation.y=citizenHeadingV112(p.rotation.y,u.dir>0?Math.PI/2:-Math.PI/2,dt,8);
    const phase=u.phase+=dt*u.speed*7*u.motion,step=Math.sin(phase),lift=Math.max(0,Math.sin(phase+Math.PI/2));
    u.proxy.position.y=-stumbleAmount*.20+(impactPose?.height||0)-(impactPose?.fall||0)*.16;
    u.proxy.rotation.z=(u.stumbleSide||1)*(stumbleAmount*(style===0?.32:style===1?.18:.08)+
@@ -394,6 +395,8 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
      u.proxyLegs[1].rotation.x=-step*.31*u.motion;
      u.proxyArms[0].rotation.x=-step*.20*u.motion;
      u.proxyArms[1].rotation.x=step*.20*u.motion;
+     animateCitizenStrideV112(p,{dt,phase,near:false,walking,nearCar,frightened,stumbling,
+      raining:weather==='مطر'});
      continue;
    }
    u.legs[0].rotation.x=step*.50*u.motion;
@@ -454,6 +457,8 @@ export function createEgyptianCrowd(T,scene,isBlocked,options={}){
     u.arms[0].rotation.x-=fall*.72;
     u.arms[1].rotation.x-=fall*.48;
    }
+   animateCitizenStrideV112(p,{dt,phase,near:true,walking,nearCar,frightened,stumbling,
+    raining:weather==='مطر'});
    citizenBehaviorV112.update(p,{dt,time:t,focus:f,driving:isPlayerDriving,
     distanceSq:distSq,visible:p.visible,faceNear,walking,frightened,stumbling,
     raining:weather==='مطر',nearCar});
