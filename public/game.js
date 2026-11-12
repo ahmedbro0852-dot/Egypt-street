@@ -36,13 +36,13 @@ import { createCityLife } from './city-life-v5.js';
 import { createWorldSave, GAME_KEYS_V55 } from './game-save-v55.js';
 import { nearestRideV151, rideKindV151 } from './vehicle-entry-v151.js?v=151.0';
 import { createVehicleEntryCinemaV153 } from './vehicle-entry-cinema-v153.js?v=153.0';
-import { createSeatedDriverV154 } from './driver-avatar-v154.js?v=154.0';
+import { createSeatedDriverV154 } from './driver-avatar-v154.js?v=155.0';
 import { createAutoDriver } from './auto-drive-v6.js';
 import { createGpsV6 } from './gps-v6.js';
 import { createGarageV8 } from './garage-v8.js';
 import { createDrivingRealismV9 } from './driving-realism-v9.js';
 import { createTaxiDispatchV15 } from './taxi-dispatch-v15.js';
-import { createCockpitV15 } from './cockpit-v15.js';
+import { createCockpitV15 } from './cockpit-v15.js?v=155.0';
 import { installStreetDetailsV15 } from './street-details-v15.js';
 import { createRealisticRoads } from './roads-realism-v17.js?v=54.0';
 import { createCollisionPhysicsV18 } from './collision-physics-v18.js';
@@ -78,7 +78,7 @@ const cairo = installCairo(T,scene,box,sign,solids,{detailedTrees:!!renderer.isW
 const realisticRoads=createRealisticRoads({T,scene,mobileLite:isMobileOptimized,highEndMobile:mobileMsaaV54});
 const streetDetails=installStreetDetailsV15({T,scene,box,sign,blocked});
 const mobileStaticV52=installMobileStaticBatchingV52({T,scene,renderer,mobileLite:isMobileOptimized});
-const cockpit=createCockpitV15({T,scene,camera});
+const cockpit=createCockpitV15({T,scene,camera,lowEnd:isMobileOptimized&&((Number(navigator.deviceMemory)||4)<=3)});
 function car(color){
  const g=new T.Group(),wheels=[];
  const paint=new T.MeshStandardMaterial({color,metalness:.65,roughness:.29});
@@ -1301,7 +1301,7 @@ function frame(t){
  seatedDriverV154.update({vehicle:activeVehicle,driving:active&&driving,interior,
   steer:vehicleState.steer,speed:vehicleState.speed,
   braking:brakePedal||parkingBrake||Boolean(keys.shift),
-  turn: v9Live.left?-1:v9Live.right?1:0});
+  turn: v9Live.turn==='left'?-1:v9Live.turn==='right'?1:0,dt});
  const desiredFov=interior?68:(driving?62:58)+(driving&&!mobileV40.getSettings().steady?Math.min(6,Math.abs(speed)*.16):0);
  const nextFov=camera.fov+(desiredFov-camera.fov)*(1-Math.exp(-dt*2.5));
  if(Math.abs(nextFov-camera.fov)>.018){camera.fov=nextFov;camera.updateProjectionMatrix();}
@@ -1314,7 +1314,7 @@ function frame(t){
    camera.position.lerp(seat,1-Math.exp(-dt*12));
    const lookAngle=vehicleAngle+cockpitLook;
    camera.lookAt(p.x+Math.sin(lookAngle)*12,1.62+taxi.position.y,p.z+Math.cos(lookAngle)*12);
-   cockpit.update(vehicleState.steer,vehicleState.speed,currentRaceVehicleId()==='motorbike');
+   cockpit.update(vehicleState.steer,vehicleState.speed,currentRaceVehicleId()==='motorbike',{left:v9Live.left,right:v9Live.right});
  }else{
    // Smooth chase camera or walking orbit; wall avoidance stays intact.
    if(driving&&t>cameraFreeUntil)cameraYaw=blendHeading(cameraYaw,vehicleState.yaw,1.8,dt);
