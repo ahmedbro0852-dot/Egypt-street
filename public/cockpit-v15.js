@@ -28,6 +28,31 @@ export function createCockpitV15({T,scene,camera}){
   spoke.rotation.z=i*Math.PI*2/3;
  }
  mesh(new T.CylinderGeometry(.065,.065,.042,10),trim,0,0,.024,steering).rotation.x=Math.PI/2;
+ // V154: visible first-person forearms and hands follow the steering wheel.
+ // One shared lightweight limb geometry; no animation files or extra draw loop.
+ const skin=new T.MeshLambertMaterial({color:0xb98262});
+ const sleeve=new T.MeshLambertMaterial({color:0x344853});
+ const armGeometry=new T.CylinderGeometry(.048,.065,1,7);
+ const handGeometry=new T.SphereGeometry(.071,10,7);
+ const armAxis=new T.Vector3(0,1,0),armDelta=new T.Vector3();
+ const cockpitArms=[];
+ for(const side of [-1,1]){
+  const upper=mesh(armGeometry,sleeve,0,0,0);
+  const forearm=mesh(armGeometry,skin,0,0,0);
+  const hand=mesh(handGeometry,skin,0,0,0);
+  hand.scale.set(.95,.75,.75);
+  cockpitArms.push({side,upper,forearm,hand});
+ }
+ function poseCockpitLimb(segment,x1,y1,z1,x2,y2,z2){
+  armDelta.set(x2-x1,y2-y1,z2-z1);
+  const length=armDelta.length();
+  segment.position.set((x1+x2)*.5,(y1+y2)*.5,(z1+z2)*.5);
+  segment.scale.y=length;
+  if(length>.0001){
+   armDelta.multiplyScalar(1/length);
+   segment.quaternion.setFromUnitVectors(armAxis,armDelta);
+  }
+ }
  // Glanceable gauges, mirrors and frame in the lower screen area.
  const speedNeedle=mesh(new T.BoxGeometry(.018,.11,.018),golden,.08,-.51,-.62);
  mesh(new T.BoxGeometry(.29,.03,.05),glass,.08,-.55,-.64);
@@ -44,8 +69,24 @@ export function createCockpitV15({T,scene,camera}){
  function setVisible(v){root.visible=!!v}
  function update(steer=0,speed=0,bike=false){
   steering.rotation.z=-Math.max(-1,Math.min(1,steer/.55))*.66;
+  // Hand destinations rotate around the rim, with elbows bending naturally.
+  const spin=steering.rotation.z,cs=Math.cos(spin),sn=Math.sin(spin);
+  for(const arm of cockpitArms){
+   const side=arm.side;
+   const localX=side*.195,localY=side*.045;
+   const handX=steering.position.x+localX*cs-localY*sn;
+   const handY=steering.position.y+localX*sn+localY*cs;
+   const handZ=steering.position.z+.055;
+   const shoulderX=side<0?-.73:.24;
+   const shoulderY=-.99,shoulderZ=-.10;
+   const elbowX=shoulderX*.52+handX*.48;
+   const elbowY=-.72+Math.abs(steer)*.014,elbowZ=-.34;
+   poseCockpitLimb(arm.upper,shoulderX,shoulderY,shoulderZ,elbowX,elbowY,elbowZ);
+   poseCockpitLimb(arm.forearm,elbowX,elbowY,elbowZ,handX,handY,handZ);
+   arm.hand.position.set(handX,handY,handZ);
+  }
   speedNeedle.rotation.z=-Math.max(-.2,Math.min(1.1,Math.abs(speed)/40));
   root.scale.set(bike?.81:1,bike?.85:1,1);
  }
- return {setVisible,update,getState:()=>({visible:root.visible,parts:parts.length,steering:steering.rotation.z})};
+ return {setVisible,update,getState:()=>({visible:root.visible,parts:parts.length,steering:steering.rotation.z,driverHands:cockpitArms.length})};
 }
