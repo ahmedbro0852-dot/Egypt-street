@@ -23,6 +23,7 @@ import { createDrivingEffectsV56 } from './driving-effects-v56.js';
 import { createRoadFeedbackV60 } from './road-feedback-v60.js?v=60.0';
 import { installCitySculptV60 } from './city-sculpt-v60.js?v=60.2';
 import { installMobilePalmsV60 } from './mobile-palms-v60.js?v=60.2';
+import { installVehicleDetailsV111 } from './vehicle-details-v111.js?v=111.0';
 import { installCinematicGraphicsV60 } from './cinematic-graphics-v60.js?v=60.1';
 import { installMobileInstrumentsV56 } from './mobile-instruments-v56.js';
 import * as T from './three.js';
@@ -1209,6 +1210,8 @@ function frame(t){
  roadFeedbackV60.update({dt,vehicle:activeVehicle,active,paused,driving,speed,
   skid:driving?vehicleState.skid:0,weather:cityLife.getState().weather,
   motorbike:garage.getVehicle().id==='motorbike'});
+ vehicleDetailsV111.update({dt,vehicle:activeVehicle,active,paused,driving,
+  rain:cityLife.getState().weather==='مطر',engineOn:v56Engine});
  const v56Fuel=fuelSystem.getState();
  mobileInstrumentsV56.update(t,{speed,rpm:v9Live.rpm,gear:driving?v9Live.gear:'N',
   fuel:v56Fuel.fuel,capacity:v56Fuel.capacity,braking:v56Brake});
@@ -1229,6 +1232,7 @@ const v30=createV30({getPlayer:()=>driving?taxi.position:player.position,getDriv
 const cityQuestsV50=createCityQuestsV50({getPosition:()=>driving?taxi.position:player.position,getDriving:()=>driving,getSpeed:()=>vehicleState.speed,getActive:()=>active,getPaused:()=>paused,getInRace:()=>raceModeV32,fresh:freshStartV55,onReward:(amount,q)=>{cash+=amount;$('money').textContent='ج.م '+Math.round(cash);saveWallet();saveWorld(true);toast('🎉 تحدي '+q.id+' اكتمل! +'+amount+' جنيه')}});
 const visualPolishV31=createVisualPolishV31({T,scene,renderer,player});
 const drivingFXV56=createDrivingEffectsV56({T,scene,renderer,mobile:isMobileOptimized});
+const vehicleDetailsV111=installVehicleDetailsV111({T,renderer,mobile:isMobileOptimized});
 const roadFeedbackV60=createRoadFeedbackV60({T,scene,renderer,mobile:isMobileOptimized});
 const mobileV40=createMobileExperienceV40({getActive:()=>active,getPaused:()=>paused,setPaused:value=>{paused=value;$('pause').textContent=paused?'▶':'Ⅱ'},resetInput:()=>{keys={};pedal=0;brakePedal=false;sprint=false;reverseKeyHeld=false;reversePressed=false;driftHeldV34=false;jumpRequested=false;drag=null;resetPad()},notify:toast});
 const desktopWorldV43=installDesktopWorldV43({T,scene,renderer,sun,getVehicle:()=>activeVehicle,getState:()=>({driving,illumination:cityLife.illumination(),weather:cityLife.getState().weather,yaw:vehicleState.yaw,speed:vehicleState.speed,skid:vehicleState.skid}),notify:toast});
