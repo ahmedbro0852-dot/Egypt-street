@@ -6,7 +6,7 @@ export function driverPoseV154({steer=0,speed=0,braking=false,turn=0}={}){
  const wheel=clamp(safe(steer)/.55,-1,1);
  const pace=clamp(Math.abs(safe(speed))/28,0,1);
  return {
-  wheelAngle:-wheel*.72,
+  wheelAngle:wheel===0?0:-wheel*.72,
   headYaw:clamp(-wheel*.22+safe(turn)*.11,-.37,.37),
   headRoll:clamp(-wheel*.065,-.08,.08),
   upperBodyPitch:braking?.065:-.025*pace,
