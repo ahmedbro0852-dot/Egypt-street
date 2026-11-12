@@ -99,3 +99,11 @@ V45 is a **visual improvement, not photorealism**. Its effects require desktop W
 - New regression tests: `node --test tests/character-life-v112.test.mjs tests/v112-motion.test.mjs tests/v111-entry-smoke.test.mjs`.
 - HTML now requests `game.js?v=112.1`, and the offline cache includes `citizen-behavior-v112.js` and `hero-presence-v112.js`. V61 racing and V111 city visuals are preserved within the feature branch.
 - **Limitations:** these are handcrafted low-poly procedural character improvements, not photorealistic scanned characters or motion-captured skeletal animations. Preview gameplay and measured mobile FPS must still be verified.
+
+#### V112 natural locomotion polish — latest character pass
+- Fixed a **real issue in the hero gaze module**: escaped newline characters inside a comment had disabled the actual head-look compensation statements. Nearby resident eye contact now genuinely changes head yaw and returns smoothly without cumulative rotation.
+- All 3D residents use **shortest-arc heading transitions** at direction changes. Near pedestrians now have blended step weight, subtle knees/foot rollout and stop/start posture; far LOD gets a minimal sway rather than full rig work.
+- Walking enhancements are **strictly subordinate to collisions**, frightened reactions, falls and mission interactions. No new geometry, animation loop, network data or character textures.
+- Adds `tests/citizen-locomotion-v112.test.mjs` for heading seam, walk blend and collision precedence; strengthens hero gaze regression test to fail if the head is not actually turning.
+- HTML imports `game.js?v=112.2` and PWA cache `egypt-streets-static-v112-living-3` includes the locomotion module; no saved-game changes.
+- As this branch was created from the V111 work, review/rebase against newer mainline releases is required **before** any production merge. Preview/device browser validation is still outstanding.
