@@ -35,7 +35,8 @@ import { createFuelSystem, PETROL_STATIONS } from './realistic-fuel.js';
 import { createCityLife } from './city-life-v5.js';
 import { createWorldSave, GAME_KEYS_V55 } from './game-save-v55.js';
 import { nearestRideV151, rideKindV151 } from './vehicle-entry-v151.js?v=151.0';
-import { createVehicleEntryCinemaV153 } from './vehicle-entry-cinema-v153.js?v=153.0';
+import { createVehicleEntryCinemaV153, rideSideV153 } from './vehicle-entry-cinema-v153.js?v=153.0';
+import { createRideCameraV156 } from './ride-camera-v156.js?v=156.0';
 import { createSeatedDriverV154 } from './driver-avatar-v154.js?v=155.0';
 import { createAutoDriver } from './auto-drive-v6.js';
 import { createGpsV6 } from './gps-v6.js';
@@ -366,6 +367,9 @@ const parkedStreetVehicles=[];
 let borrowedVehicle=null,parkedTaxi=null,parkedOwnedVehicle=null,lastRideHintV151=-Infinity;
 const rideCinemaV153=createVehicleEntryCinemaV153({T,hero:player,
  lowEnd:isMobileOptimized&&(Number(navigator.deviceMemory)||4)<=2});
+const rideCameraV156=createRideCameraV156({T,camera,
+ lowEnd:isMobileOptimized&&(Number(navigator.deviceMemory)||4)<=3,
+ reducedMotion:!!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches});
 const seatedDriverV154=createSeatedDriverV154({T,
  lowEnd:isMobileOptimized&&((Number(navigator.deviceMemory)||4)<=3||
  (Number(navigator.hardwareConcurrency)||4)<=4)});
@@ -826,6 +830,9 @@ function enter(){
   $('controlsHint').textContent='↕↔ العصاية للمشي • اسحب للكاميرا';
   $('modeLabel').textContent='وضع المشي';$('enter').textContent='اركب';$('run').textContent='جري';
   const out={x:safe[0],z:safe[1]};
+  rideCameraV156.start(activeVehicle,{
+   mode:'exit',side:rideSideV153({position:out},activeVehicle)
+  });
   const doorSound=activeVehicle.userData?.wheels?.length!==2;
   if(doorSound)sound.door(true);
   $('enter').disabled=true;$('enter').textContent='🚪 جارٍ النزول';
@@ -840,7 +847,9 @@ function enter(){
  }else{
   const candidate=nearbyRideV151();
   if(!candidate){toast('🚗 قرب من أي عربية في الشارع واضغط اركب — مش لازم الصفرا!');return}
+  const entrySide=rideSideV153(player,candidate);
   chooseRideV151(candidate);
+  rideCameraV156.start(activeVehicle,{mode:'enter',side:entrySide});
   onFoot.vx=onFoot.vz=onFoot.vy=0;onFoot.y=0;onFoot.grounded=true;
   jumpRequested=false;resetPad();keys={};
   const finishEntry=()=>{
@@ -1331,6 +1340,9 @@ function frame(t){
    const lookAhead=driving?Math.min(2.6,Math.abs(speed)*.13):.4;
    camera.lookAt(p.x+Math.sin(angle)*lookAhead,driving?1.42:1.35,p.z+Math.cos(angle)*lookAhead);
  }
+ // V156: blend a subtle side-door camera shot over the normal orbit, then
+ // return cleanly to the default chase/cockpit view after the animation.
+ if(active&&!paused)rideCameraV156.update(dt);
  const speedKmhV60=Math.round(Math.abs(speed)*3.6);
  if(speedLabelV60!==speedKmhV60){speedLabelV60=speedKmhV60;$('speed').innerHTML=speedKmhV60+'<small>كم / س</small>';}
  // Keep driving instrumentation responsive while avoiding repeated DOM layout on touch devices.
@@ -1351,7 +1363,12 @@ function frame(t){
  if(!mobileLiteV51.enabled||t-lastMapV51>=250){if(!mobileLiteV51.enabled||$('map').getClientRects().length)minimap(p);lastMapV51=t;}
  if(active&&Math.round(t/1200)%2===0)$('toast').dataset.district=cairo.district(p.x,p.z);
  if(active&&!paused){
-  if(activeVehicle!==taxi&&!driving){activeVehicle.position.copy(taxi.position);activeVehicle.rotation.y=taxi.rotation.y;}
+  // Parked borrowed cars keep their last world position when the player walks
+  // away. Only garage-owned models still follow the original taxi anchor.
+  if(activeVehicle!==taxi&&!driving&&!borrowedVehicle&&
+     !rideCinemaV153.isActive()&&Object.values(garageModels).includes(activeVehicle)){
+   activeVehicle.position.copy(taxi.position);activeVehicle.rotation.y=taxi.rotation.y;
+  }
   if(!driving)updateCrashBodyVisual(activeVehicle,fuelSystem.getState().condition);
   if(!driving&&!rideCinemaV153.isActive()&&t-lastRideHintV151>=260){
    lastRideHintV151=t;
