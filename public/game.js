@@ -36,6 +36,7 @@ import { createCityLife } from './city-life-v5.js';
 import { createWorldSave, GAME_KEYS_V55 } from './game-save-v55.js';
 import { nearestRideV151, rideKindV151 } from './vehicle-entry-v151.js?v=151.0';
 import { createVehicleEntryCinemaV153 } from './vehicle-entry-cinema-v153.js?v=153.0';
+import { createSeatedDriverV154 } from './driver-avatar-v154.js?v=154.0';
 import { createAutoDriver } from './auto-drive-v6.js';
 import { createGpsV6 } from './gps-v6.js';
 import { createGarageV8 } from './garage-v8.js';
@@ -85,6 +86,7 @@ function car(color){
  const rubber=new T.MeshStandardMaterial({color:'#17191b',roughness:.95});
  const chrome=new T.MeshStandardMaterial({color:'#bfc5ca',metalness:.92,roughness:.23});
  const black=new T.MeshStandardMaterial({color:'#24282b',roughness:.65});
+ g.userData.driverGlassV154=glass;
  function part(geo,m,x=0,y=0,z=0,parent=g){const o=new T.Mesh(geo,m);o.position.set(x,y,z);parent.add(o);return o}
  function cub(x,y,z,w,h,d,m,parent=g){return part(new T.BoxGeometry(w,h,d),m,x,y,z,parent)}
  function shell(rings,m){const v=[],idx=[];for(const [z,width,low,high] of rings){for(const [x,y] of [[-width*.87,low],[-width,low+.09],[-width,high-.08],[-width*.84,high],[width*.84,high],[width,high-.08],[width,low+.09],[width*.87,low]])v.push(x,y,z)}for(let r=0;r<rings.length-1;r++)for(let j=0;j<8;j++){let a=r*8+j,b=r*8+(j+1)%8,c=b+8,d=a+8;idx.push(a,d,b,b,d,c)}for(let j=1;j<7;j++){idx.push(0,j+1,j);let n=(rings.length-1)*8;idx.push(n,n+j,n+j+1)}let geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(v,3));geo.setIndex(idx);geo.computeVertexNormals();return part(geo,m)}
@@ -364,6 +366,9 @@ const parkedStreetVehicles=[];
 let borrowedVehicle=null,parkedTaxi=null,parkedOwnedVehicle=null,lastRideHintV151=-Infinity;
 const rideCinemaV153=createVehicleEntryCinemaV153({T,hero:player,
  lowEnd:isMobileOptimized&&(Number(navigator.deviceMemory)||4)<=2});
+const seatedDriverV154=createSeatedDriverV154({T,
+ lowEnd:isMobileOptimized&&((Number(navigator.deviceMemory)||4)<=3||
+ (Number(navigator.hardwareConcurrency)||4)<=4)});
 function ensureParkedTaxiV151(){
  if(!parkedTaxi){
   parkedTaxi=car('#d7a52f');parkedTaxi.userData.streetRideKind='taxi';
@@ -1291,6 +1296,12 @@ function frame(t){
  else document.body.classList.remove('cockpitActive');
  if(driving)activeVehicle.visible=!interior;
  else activeVehicle.visible=true;
+ // One reusable seated 3D avatar follows the real active vehicle (not the taxi anchor).
+ // Exterior avatar disappears in first-person; cockpit hands are rendered separately.
+ seatedDriverV154.update({vehicle:activeVehicle,driving:active&&driving,interior,
+  steer:vehicleState.steer,speed:vehicleState.speed,
+  braking:brakePedal||parkingBrake||Boolean(keys.shift),
+  turn: v9Live.left?-1:v9Live.right?1:0});
  const desiredFov=interior?68:(driving?62:58)+(driving&&!mobileV40.getSettings().steady?Math.min(6,Math.abs(speed)*.16):0);
  const nextFov=camera.fov+(desiredFov-camera.fov)*(1-Math.exp(-dt*2.5));
  if(Math.abs(nextFov-camera.fov)>.018){camera.fov=nextFov;camera.updateProjectionMatrix();}
