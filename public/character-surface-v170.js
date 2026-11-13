@@ -15,12 +15,13 @@ export function finishCharacter(model){
   if(materials.has(material))continue;materials.add(material);
   const name=material.name||'';
   if(/original top|original bottom/.test(name)){
+   material.color.set(/original top/.test(name)?'#69704a':'#292c2d');
    material.bumpMap=weave;material.bumpScale=.0012;material.roughness=.94;
    // Physical cloth sheen adds grazing-angle fibers without making fabric metallic.
    const physical=new T.MeshPhysicalMaterial();T.MeshStandardMaterial.prototype.copy.call(physical,material);physical.sheen=.35;physical.sheenRoughness=.9;physical.sheenColor.set('#7d8790');
    if(Array.isArray(mesh.material))mesh.material=mesh.material.map(m=>m===material?physical:m);else mesh.material=physical;
   }else if(/\.body$/.test(name)){material.roughness=.62;material.envMapIntensity=.45}
   else if(/short01|hair roots/.test(name)){material.roughness=.87;material.envMapIntensity=.35}
-  else if(/shoes01/.test(name)){material.roughness=.68}
+  else if(/shoes01/.test(name)){material.color.set('#262521');material.roughness=.68}
  }});
 }

@@ -1,9 +1,11 @@
+import {applyTaxiDesign3} from './taxi-design-v179.js';
 // Detailed licensed car, shared asset download; gameplay keeps its existing physics anchor.
 import * as T from './three.js';
 import { GLTFLoader } from './GLTFLoader.js';
 const URL='https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/8f492390ddc7a2ae221a1369ef560589cf8c70fb/Models/CarConcept/glTF-Binary/CarConcept.glb';
 let source;
 export function prepareDetailedCar(root,color,{enabled=true,onReady=()=>{}}={}){
+ if(color==='#d7a52f'){applyTaxiDesign3(root);return;}
  if(!enabled||root.userData.detailedRequested)return;
  root.userData.detailedRequested=true;
  source ||= new GLTFLoader().loadAsync(URL);

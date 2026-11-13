@@ -22,7 +22,7 @@ export function createKenneyCarVisualsV157({enabled=true,maxCars=7,loader=null}=
  const assetLoader=loader||new GLTFLoader();
  let lastError='',readyCount=0;
  function attach(vehicle,kind='sedan'){
-  if(!enabled||!vehicle?.userData?.chassis||requested.has(vehicle)||
+  if(!enabled||!vehicle?.userData?.chassis||vehicle.userData.design3Taxi||requested.has(vehicle)||
    cars.size>=limit||vehicle.userData.detailedRequested||vehicle.userData.detailedModel)return false;
   const type=KENNEY_CAR_URLS_V157[kind]?kind:'sedan';
   requested.add(vehicle);cars.add(vehicle);
