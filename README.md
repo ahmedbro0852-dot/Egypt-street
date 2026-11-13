@@ -77,3 +77,9 @@ V45 is a **visual improvement, not photorealism**. Its effects require desktop W
 Masonry now has locally generated worn plaster textures on mobile while retaining static batching. Touch devices gain a bounded architectural pass (18 facades, three floors) with window sills, balconies and air conditioners. Pavement benches and bollards use three instanced batches. A fourth batch provides soft, pooled contact shadows under moving vehicles and residents (32 slots on mobile, 64 on desktop). No remote downloads, new shadow maps or postprocessing passes are introduced. Gameplay, street vehicle access, races and local progress remain intact.
 
 Validation: `node --test tests/*.test.mjs`. Desktop/mobile browser visual and real-device frame-time checks remain pending; the local Chromium process cannot start in this execution environment. This is a city-detail upgrade, not a replacement with photorealistic scanned assets.
+
+### V164 — living rooftops
+
+Adds rooftop laundry with pinned, wind-deformed fabric and a flock of circling birds with animated wings. Geometry and materials are shared across three instanced batches; mobile is capped at eight rooftops and eight birds, desktop at sixteen rooftops and eighteen birds. Motion freezes while paused or inactive and follows the OS reduced-motion preference. The software renderer skips these decorative effects. Offline assets and entry-point version are refreshed.
+
+Validation: 80 Node regression tests pass, including finite instance matrices, pause/reduced-motion behavior, mobile limits and disposal. Browser launch failed in this environment; visual quality and real-device frame timing remain unverified.

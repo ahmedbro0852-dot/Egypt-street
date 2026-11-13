@@ -1,3 +1,4 @@
+import { installLivingRooftopsV164 } from './living-rooftops-v164.js?v=164.0';
 import { mergeGeometries } from './BufferGeometryUtils.js';
 import { installGroundedCityV160 } from './grounded-city-v160.js?v=160.0';
 import { installStreetDesignV162 } from './ui-skin-v162.js?v=162.0';
@@ -85,6 +86,7 @@ const cairo = installCairo(T,scene,box,sign,solids,{detailedTrees:!!renderer.isW
 const realisticRoads=createRealisticRoads({T,scene,mobileLite:isMobileOptimized,highEndMobile:mobileMsaaV54});
 const streetDetails=installStreetDetailsV15({T,scene,box,sign,blocked});
 const groundedCityV160=installGroundedCityV160({T,scene,renderer,mobile:isMobileOptimized,getActors:()=>[activeVehicle,...traffic,...parkedStreetVehicles, {object:player,pedestrian:true},...walkers.map(p=>({object:p.mesh||p.group||p,pedestrian:true}))]});
+const livingRooftopsV164=installLivingRooftopsV164({T,scene,renderer,mobile:isMobileOptimized});
 const mobileStaticV52=installMobileStaticBatchingV52({T,scene,renderer,mobileLite:isMobileOptimized});
 const cockpit=createCockpitV15({T,scene,camera,lowEnd:isMobileOptimized&&((Number(navigator.deviceMemory)||4)<=3)});
 // V162: clean visual shell preserves all existing gameplay controls.
@@ -1480,6 +1482,7 @@ function frame(t){
  skid:driving?vehicleState.skid:0,braking:v56Brake,interior,
  weather:cityLife.getState().weather,daylight:cityLife.illumination()});
  groundedCityV160.update();
+ livingRooftopsV164.update(dt,{active,paused});
  // MIT cannon-es physics: kinematic player + real gravity-driven movable props;
  // physics import is asynchronous and never blocks control or mission startup.
  worldPhysicsV161.update(dt,{active,paused,driving,position:taxi.position,
