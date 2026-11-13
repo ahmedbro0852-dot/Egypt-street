@@ -1,5 +1,6 @@
 import * as T from './three.js';
-import {createStreetCharacter} from './street-character-v166.js';
+import {createStreetCharacter} from './street-character-v166.js?v=167.0';
+import {stepCharacterMotion} from './character-motion-v167.js';
 import {mergeGeometries} from './BufferGeometryUtils.js';
 const canvas=document.getElementById('scene'),mobile=matchMedia('(pointer:coarse)').matches;
 let renderer;
@@ -60,24 +61,23 @@ for(const mesh of [...scene.children]){if(!mesh.isMesh)continue;mesh.updateMatri
 for(const batch of batches.values()){const geometry=mergeGeometries(batch.geometries);for(const g of batch.geometries)g.dispose();const mesh=new T.Mesh(geometry,batch.material);mesh.castShadow=batch.shadow;mesh.receiveShadow=true;scene.add(mesh)}
 const character=createStreetCharacter({scene,onStatus:message=>document.getElementById('characterStatus').textContent=message});
 const actor=new T.Vector3(1,0,13),lookAt=new T.Vector3(),cameraGoal=new T.Vector3();
-let frontView=false;document.getElementById('characterView').onclick=()=>{frontView=!frontView;document.getElementById('characterView').setAttribute('aria-pressed',String(frontView))};
+const motion={x:1,z:13,vx:0,vz:0};
+let savedYaw=0,frontView=false;document.getElementById('characterView').onclick=()=>{frontView=!frontView;if(frontView){savedYaw=yaw;yaw=0}else{yaw=savedYaw}document.getElementById('characterView').setAttribute('aria-pressed',String(frontView));document.getElementById('characterView').textContent=frontView?'الرجوع للمشي':'فحص الشخصية';motion.vx=motion.vz=0};
 const keys=new Set();let yaw=0,pitch=0,pointer=null,lastX=0,lastY=0;
-addEventListener('keydown',e=>{if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','ShiftLeft','ShiftRight','KeyR'].includes(e.code)){e.preventDefault();keys.add(e.code)}});addEventListener('keyup',e=>keys.delete(e.code));addEventListener('blur',()=>{keys.clear();pointer=null});
+addEventListener('keydown',e=>{if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','ShiftLeft','ShiftRight','KeyR'].includes(e.code)){e.preventDefault();keys.add(e.code)}});addEventListener('keyup',e=>keys.delete(e.code));addEventListener('blur',()=>{keys.clear();motion.vx=motion.vz=0;pointer=null});
+addEventListener('visibilitychange',()=>{if(document.hidden){keys.clear();motion.vx=motion.vz=0;pointer=null}});
 for(const button of document.querySelectorAll('[data-move]')){const key='Key'+button.dataset.move.toUpperCase();button.addEventListener('pointerdown',e=>{button.setPointerCapture(e.pointerId);keys.add(key)});for(const event of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(event,()=>keys.delete(key));}
 canvas.addEventListener('pointerdown',e=>{pointer=e.pointerId;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(e.pointerId!==pointer)return;yaw-=(e.clientX-lastX)*.003;pitch=T.MathUtils.clamp(pitch-(e.clientY-lastY)*.003,-1.1,1.1);lastX=e.clientX;lastY=e.clientY});for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,()=>pointer=null);
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}addEventListener('resize',resize);resize();
 let last=0;function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.04);last=now;if(document.hidden)return;
  let f=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown'));
  let s=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
- const norm=Math.max(1,Math.hypot(f,s)),pace=keys.has('KeyR')||keys.has('ShiftLeft')||keys.has('ShiftRight')?4.3:2;
- f=f/norm*dt*pace;s=s/norm*dt*pace;
- const oldX=actor.x,oldZ=actor.z;
- actor.x=T.MathUtils.clamp(actor.x-Math.sin(yaw)*f+Math.cos(yaw)*s,-4.05,4.05);
- actor.z=T.MathUtils.clamp(actor.z-Math.cos(yaw)*f-Math.sin(yaw)*s,-24,23);
- const dx=actor.x-oldX,dz=actor.z-oldZ,actualSpeed=dt>0?Math.hypot(dx,dz)/dt:0;
- character.root.position.copy(actor);character.update(dt,{speed:actualSpeed,direction:Math.atan2(dx,dz)});
- const angle=yaw+(frontView?Math.PI:0),distance=3.5*Math.cos(pitch*.6);
- cameraGoal.set(T.MathUtils.clamp(actor.x+Math.sin(angle)*distance,-6.6,6.6),2.05+Math.sin(-pitch)*1.7,T.MathUtils.clamp(actor.z+Math.cos(angle)*distance,-26.4,26));
- camera.position.lerp(cameraGoal,1-Math.exp(-9*dt));lookAt.set(actor.x,1.24,actor.z);camera.lookAt(lookAt);renderer.render(scene,camera);
+ const movement=stepCharacterMotion(motion,{forward:frontView?0:f,strafe:frontView?0:s,yaw,running:keys.has('KeyR')||keys.has('ShiftLeft')||keys.has('ShiftRight'),dt});
+ actor.set(motion.x,0,motion.z);
+ character.root.position.copy(actor);character.update(dt,movement);
+ const angle=frontView?character.root.rotation.y+yaw: yaw;
+ const distance=frontView?2.15:3.5*Math.cos(pitch*.6);
+ cameraGoal.set(T.MathUtils.clamp(actor.x+Math.sin(angle)*distance,-6.6,6.6),frontView?1.5+Math.sin(-pitch)*.6:2.05+Math.sin(-pitch)*1.7,T.MathUtils.clamp(actor.z+Math.cos(angle)*distance,-26.4,26));
+ camera.position.lerp(cameraGoal,1-Math.exp(-9*dt));lookAt.set(actor.x,frontView?1.13:1.24,actor.z);camera.lookAt(lookAt);renderer.render(scene,camera);
 }
 document.getElementById('loading').hidden=true;requestAnimationFrame(frame);

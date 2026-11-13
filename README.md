@@ -93,3 +93,7 @@ Validation: JavaScript syntax checks and all 80 existing regression tests pass. 
 ### V166 — visible rigged character
 
 The street study now follows a visible human model in third person. It loads Three.js r180's Soldier demonstration asset and blends embedded Idle/Walk/Run clips from actual displacement, so pressing into a street boundary returns to idle. Shift or the hold-to-run touch button enables running. Camera rotation, a front-view toggle, grounded height normalization and cast shadows are included. This is an externally hosted field-clothing placeholder, not a custom civilian character or photorealistic face. Network failure is shown in the status text. Visual/GPU verification remains pending; syntax and 81 Node tests pass.
+
+### V167 — character handling refinement
+
+Adds acceleration and braking with frame-rate-independent velocity smoothing, animation playback rate tied to measured movement speed, normalized diagonal movement, and boundary feedback that prevents walking animation while blocked. The close inspection view pauses locomotion and permits orbiting the character; returning restores the walking camera yaw. Focus loss and backgrounding clear motion input. The existing external character mesh and outfit are unchanged. Validation: 84 Node tests pass; visual/device QA remains pending.
