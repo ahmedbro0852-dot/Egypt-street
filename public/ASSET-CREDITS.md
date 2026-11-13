@@ -14,3 +14,10 @@ Camera, footprints and car-front SVG icons from Lucide Icons, Copyright (c) 2026
 
 ## Mobile quest shortcut icon (V55)
 `list-checks.svg` from Lucide Icons (Copyright 2026 Lucide Icons and Contributors, ISC license). Source: https://github.com/lucide-icons/lucide/blob/main/icons/list-checks.svg. Full third-party license retained in `ui/LICENSE-lucide.txt`.
+
+## V166 character study
+
+The small street loads the rigged **Soldier / Vanguard** demonstration model and its embedded Idle, Walk and Run clips from the official Three.js r180 example asset:
+https://github.com/mrdoob/three.js/blob/r180/examples/models/gltf/Soldier.glb
+The source example is https://github.com/mrdoob/three.js/blob/r180/examples/webgl_animation_skinning_blending.html .
+This is an externally hosted demonstration character, not a newly authored civilian mesh. Its outfit is field clothing. The binary is not bundled in this repository; loading requires network access. No assertion is made that the Three.js code license grants unrestricted redistribution rights to third-party model assets.
