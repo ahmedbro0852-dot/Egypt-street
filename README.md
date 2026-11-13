@@ -83,3 +83,9 @@ Validation: `node --test tests/*.test.mjs`. Desktop/mobile browser visual and re
 Adds rooftop laundry with pinned, wind-deformed fabric and a flock of circling birds with animated wings. Geometry and materials are shared across three instanced batches; mobile is capped at eight rooftops and eight birds, desktop at sixteen rooftops and eighteen birds. Motion freezes while paused or inactive and follows the OS reduced-motion preference. The software renderer skips these decorative effects. Offline assets and entry-point version are refreshed.
 
 Validation: 80 Node regression tests pass, including finite instance matrices, pause/reduced-motion behavior, mobile limits and disposal. Browser launch failed in this environment; visual quality and real-device frame timing remain unverified.
+
+### V165 — focused street material study
+
+The production root now opens a compact first-person street study at `realism.html`; the previous driving game remains at `index.html`. This new scene prioritizes a bounded walking space, PBR surface response with procedural bump textures, real sun shadows, environment reflections, recessed windows, balconies, shutters and facade equipment. Static architecture is merged by material and shadow behavior. Touch movement supports simultaneous look drag and directional buttons; keyboard movement is normalized and the street bounds prevent walking through facades. This is an initial procedural material study, not a photogrammetry or photorealism claim. No driving or missions are implemented in this study yet.
+
+Validation: JavaScript syntax checks and all 80 existing regression tests pass. These existing tests cover the previous game, not the new visual scene. Browser/GPU visual verification and phone performance remain pending.
