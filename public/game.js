@@ -1,3 +1,4 @@
+import {constrainWorldCamera,updateTravelLook} from './world-camera-v171.js';
 import {createStreetCharacter} from './street-character-v166.js?v=170.0';
 import { installLivingRooftopsV164 } from './living-rooftops-v164.js?v=164.0';
 import { mergeGeometries } from './BufferGeometryUtils.js';
@@ -1150,6 +1151,8 @@ function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWi
 let saveClockV55=0,lastMapV51=-10000,lastStreetV51=-10000,lastLandscapeV51=-10000,crowdClockV51=0;
 // Reuse camera vectors: avoid per-frame allocations on mobile browsers.
 const seatV60=new T.Vector3(),chaseV60=new T.Vector3();
+const worldCameraAnchorV171=new T.Vector3();
+let travelLookV171=0;
 let speedLabelV60=-1,lastDashV60=-1000;
 window.addEventListener?.('pagehide',()=>saveWorld(true));
 document.addEventListener('visibilitychange',()=>{
@@ -1423,15 +1426,14 @@ function frame(t){
    if(driving&&t>cameraFreeUntil)cameraYaw=blendHeading(cameraYaw,vehicleState.yaw,1.8,dt);
    const angle=cameraYaw;
    let distance=driving?(cameraNear?6.5:10.8)+Math.min(2.0,Math.abs(speed)*.08):(cameraNear?3.2:4.8);
-   for(let i=1;i<=10;i++){
-    const f=i/10, cx=p.x-Math.sin(angle)*distance*f,cz=p.z-Math.cos(angle)*distance*f;
-    if(blocked(cx,cz,.16)){distance=Math.max(2.35,distance*((i-1)/10));break;}
-   }
    const baseH=driving?4.2:2.35;
    const height=baseH+Math.sin(cameraPitch)*distance+(driving?Math.min(1.0,Math.abs(speed)*.03):0);
    const chase=chaseV60.set(p.x-Math.sin(angle)*distance,height,p.z-Math.cos(angle)*distance);
+   worldCameraAnchorV171.set(p.x,driving?1.42:1.35,p.z);
+   constrainWorldCamera(worldCameraAnchorV171,chase,solids);
    camera.position.lerp(chase,1-Math.exp(-dt*(driving?5.3:7.0)));
-   const lookAhead=driving?Math.min(2.6,Math.abs(speed)*.13):.4;
+   travelLookV171=updateTravelLook(travelLookV171,driving?speed:0,dt);
+   const lookAhead=driving?travelLookV171:.4;
    camera.lookAt(p.x+Math.sin(angle)*lookAhead,driving?1.42:1.35,p.z+Math.cos(angle)*lookAhead);
  }
  // V156: blend a subtle side-door camera shot over the normal orbit, then
@@ -1499,6 +1501,11 @@ function frame(t){
  // physics import is asynchronous and never blocks control or mission startup.
  worldPhysicsV161.update(dt,{active,paused,driving,position:taxi.position,
   speed:vehicleState.speed,yaw:vehicleState.yaw});
+ // Recheck after follow smoothing and boarding/cinematic camera offsets.
+ if(!interior){
+  worldCameraAnchorV171.set(p.x,driving?1.42:1.35,p.z);
+  constrainWorldCamera(worldCameraAnchorV171,camera.position,solids);
+ }
  renderer.render(scene,camera);
  royalHudV49?.recordFrame?.(t);
 }
