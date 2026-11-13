@@ -1,3 +1,4 @@
+import {createNileBridges} from './nile-bridges-v174.js';
 import { createDetailedPalmV48 } from './palm-landscape-v48.js';
 // Extra Cairo environment for the existing Three.js game.
 // Procedural geometry & texture atlases: deliberately light on mobile downloads.
@@ -66,12 +67,7 @@ river.rotation.x=-Math.PI/2;river.position.set(131,.055,0);river.userData.skipFa
 for(let k=0;k<30;k++){box(108+random()*46,.074,-175+random()*350,1.3+random()*2,.008,.14,'#6da8b1')}
 box(94,.025,0,11,.13,345,'#555d60');box(101,.15,0,3,.22,346,'#d0c5ac');
 box(161,.15,0,3,.22,346,'#d0c5ac');box(170,.02,0,11,.13,345,'#555d60');
-for(const z of [-60,0,60]){
- box(132,.22,z,91,.36,11.5,'#8b8580');
- for(const dz of [-5.5,5.5])box(132,.60,z+dz,91,.60,.3,'#d4c9b5');
- for(const x of [113,133,154])box(x,-2.35,z,3.8,5.2,3.8,'#a9a096');
- // Bridge lane paint is supplied by the merged road layer.
-}
+createNileBridges({T,scene,solids});
 const wood=material('#7e7059'),green=material('#608365'),metal=material('#606969');
 function tree(x,z){
  if(options.detailedTrees){createDetailedPalmV48(scene,x,z,6.5+Math.abs(z%7)*.19);return;}

@@ -9,7 +9,7 @@ function makeTexture(T,kind,anisotropy=2){
  let seed=kind==='asphalt'?5903:8971;
  const rand=()=>{seed=seed*16807%2147483647;return seed/2147483647};
  const pavement=kind==='pavement';
- q.fillStyle=pavement?'#b8ab93':'#626767';
+ q.fillStyle=pavement?'#b8ab93':'#4e5456';
  q.fillRect(0,0,512,512);
  const grains=pavement?4900:11500;
  for(let i=0;i<grains;i++){
@@ -116,14 +116,14 @@ export function createRealisticRoads({T,scene,enableWet=true,mobileLite=false,hi
   // Main road surface. Crossings are trimmed on horizontal stretches, avoiding
   // overlapping coplanar triangles and the resulting flickering.
   const crossings=along?horizontalCross:verticalCross;
-  const surfaceIntervals=along?[[road.min,road.max]]:
+  const surfaceIntervals=along||road.kind==='bridge'?[[road.min,road.max]]:
     segments(road.min,road.max,vertical.filter(v=>v.min<=road.value&&v.max>=road.value).map(v=>v.value),5.5);
   for(const [a,b] of surfaceIntervals){
    if(along)quad(surfaces,road.value-half,a,road.value+half,b,y);
    else quad(surfaces,a,road.value-half,b,road.value+half,y);
   }
   // Continuous, non-colliding concrete pavements and painted kerbs.
-  const safe=segments(road.min,road.max,crossings,9.0);
+  const safe=road.kind==='bridge'?[[101,163]]:segments(road.min,road.max,crossings,9.0);
   for(const [a,b] of safe){
    for(const side of [-1,1]){
     const outer=road.value+side*(half+.17);
@@ -144,9 +144,29 @@ export function createRealisticRoads({T,scene,enableWet=true,mobileLite=false,hi
     }
    }
   }
+  if(road.kind==='bridge'){
+   // Continuous no-overtaking lines over the river; leave both junctions clear.
+   for(const offset of [-.16,.16])quad(center,101,road.value+offset-.045,163,road.value+offset+.045,y+.022);
+   for(const x of [109,151]){quad(repairs,x-.035,road.value-5.45,x+.035,road.value+5.45,y+.012)}
+  }
+  // Direction arrows stay inside their lane and outside crossings.
+  for(const [a,b] of safe){if(b-a<16)continue;
+   const k=(a+b)/2;
+   for(const side of [-1,1]){
+    const x=along?road.value+side*2.65:k,z=along?k:road.value+side*2.65;
+    const direction=along?side:-side;
+    const point=(lateral,longitudinal)=>along?[x+lateral,z+direction*longitudinal]:[x+direction*longitudinal,z+lateral];
+    const shape=[[-.14,-1.45],[.14,-1.45],[.14,.3],[.65,.3],[0,1.25],[-.65,.3],[-.14,.3]];
+    const points=shape.map(p=>point(...p));
+    // Fan about an interior point keeps the concave arrow shaft filled correctly.
+    const origin=point(0,.1);
+    for(let i=0;i<points.length;i++)for(const p of [origin,points[i],points[(i+1)%points.length]]){zebra.p.push(p[0],y+.025,p[1]);zebra.uv.push(0,0)}
+    zebra.count++;
+   }
+  }
   // Faded dashed centerline with road-conscious intersection gaps.
   for(let k=road.min+6;k<road.max-2;k+=10){
-   if(crossings.some(j=>Math.abs(j-k)<10))continue;
+   if(road.kind==='bridge'||crossings.some(j=>Math.abs(j-k)<10))continue;
    if(along)quad(center,road.value-.08,k,road.value+.08,k+3.7,y+.022);
    else quad(center,k,road.value-.08,k+3.7,road.value+.08,y+.022);
   }
