@@ -1,1 +1,1 @@
-{"version": 2, "framework": null, "buildCommand": "", "outputDirectory": "public", "rewrites": [{"source": "/", "destination": "/realism.html"}]}
+{"version": 2, "framework": null, "buildCommand": "", "outputDirectory": "public", "rewrites": [{"source": "/", "destination": "/index.html"}]}

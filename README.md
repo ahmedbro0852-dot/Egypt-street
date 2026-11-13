@@ -86,7 +86,7 @@ Validation: 80 Node regression tests pass, including finite instance matrices, p
 
 ### V165 — focused street material study
 
-The production root now opens a compact first-person street study at `realism.html`; the previous driving game remains at `index.html`. This new scene prioritizes a bounded walking space, PBR surface response with procedural bump textures, real sun shadows, environment reflections, recessed windows, balconies, shutters and facade equipment. Static architecture is merged by material and shadow behavior. Touch movement supports simultaneous look drag and directional buttons; keyboard movement is normalized and the street bounds prevent walking through facades. This is an initial procedural material study, not a photogrammetry or photorealism claim. No driving or missions are implemented in this study yet.
+V165 introduced a compact first-person street study at `realism.html`. As of V171 the production root opens the full game at `index.html`. This new scene prioritizes a bounded walking space, PBR surface response with procedural bump textures, real sun shadows, environment reflections, recessed windows, balconies, shutters and facade equipment. Static architecture is merged by material and shadow behavior. Touch movement supports simultaneous look drag and directional buttons; keyboard movement is normalized and the street bounds prevent walking through facades. This is an initial procedural material study, not a photogrammetry or photorealism claim. No driving or missions are implemented in this study yet.
 
 Validation: JavaScript syntax checks and all 80 existing regression tests pass. These existing tests cover the previous game, not the new visual scene. Browser/GPU visual verification and phone performance remain pending.
 
@@ -105,3 +105,11 @@ Adds two-pass camera occlusion checks against static architecture, including aft
 ### V169 — civilian appearance replaces the soldier
 
 The character mesh itself is replaced with a locally hosted CC0 Sam/MakeHuman human: exposed face, short dark hair, charcoal long-sleeved top, blue trousers and dark shoes. The civilian rig has authored Idle and Walk clips; Run uses a faster walk variant. Source textures and geometry are reduced selectively to retain the face and garment silhouette. The previous third-person controls and inspection view remain. The exported optimized GLB is rendered in Blender for visual QA, and its structure/animation targets/size are tested. Browser WebGL and device frame-rate QA remain unavailable.
+
+### V171 — open world entry and continuous camera collision
+
+The production root opens the complete Cairo game again: walking, civilian character, vehicles, traffic, jobs and races. The character inspection study stays available at `realism.html`. Both GitHub Pages and Vercel now use the same game entry.
+
+Camera obstruction uses continuous intersections against the existing city collision footprints, replacing ten sampled points and the minimum distance that could push the camera through nearby walls. The sweep runs before follow smoothing and again after cinematic boarding offsets. Directional look-ahead now smoothly follows signed speed, including reverse. The footprint sweep treats buildings as vertical columns; rooftop camera travel is outside its scope. No new render passes, lights or external assets are added.
+
+Validation: `node --test tests/*.test.mjs`, including thin-wall, near-wall, diagonal, reversed-order and reverse-driving camera regressions. Browser WebGL appearance and phone frame timing still need device verification. This improves camera behavior and restores the open world entry; the procedural art is not GTA-level photorealism.
