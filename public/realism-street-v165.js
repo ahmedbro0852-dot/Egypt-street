@@ -1,5 +1,5 @@
 import * as T from './three.js';
-import {createStreetCharacter} from './street-character-v166.js?v=169.0';
+import {createStreetCharacter} from './street-character-v166.js?v=170.0';
 import {createCharacterCamera,createFootContactShadow} from './character-camera-v168.js';
 import {stepCharacterMotion} from './character-motion-v167.js';
 import {mergeGeometries} from './BufferGeometryUtils.js';
@@ -69,7 +69,10 @@ document.getElementById("retryCharacter").onclick=()=>location.reload();
 const zoomControl=document.getElementById("cameraZoom");
 const actor=new T.Vector3(1,0,13),lookAt=new T.Vector3(),cameraGoal=new T.Vector3();
 const motion={x:1,z:13,vx:0,vz:0};
-let savedYaw=0,frontView=false;document.getElementById('characterView').onclick=()=>{frontView=!frontView;if(frontView){savedYaw=yaw;yaw=0}else{yaw=savedYaw}document.getElementById('characterView').setAttribute('aria-pressed',String(frontView));document.getElementById('characterView').textContent=frontView?'الرجوع للمشي':'فحص الشخصية';motion.vx=motion.vz=0};
+let savedYaw=0,frontView=true,portrait=false;
+const portraitButton=document.getElementById('portraitView');
+portraitButton.onclick=()=>{portrait=!portrait;if(!frontView)document.getElementById('characterView').click();portraitButton.setAttribute('aria-pressed',String(portrait));portraitButton.textContent=portrait?'الجسم بالكامل':'تفاصيل الوجه'};
+document.getElementById('characterView').setAttribute('aria-pressed','true');document.getElementById('characterView').textContent='ابدأ المشي';document.getElementById('characterView').onclick=()=>{frontView=!frontView;if(frontView){savedYaw=yaw;yaw=0}else{yaw=savedYaw}document.getElementById('characterView').setAttribute('aria-pressed',String(frontView));document.getElementById('characterView').textContent=frontView?'ابدأ المشي':'فحص الشخصية';portraitButton.hidden=!frontView;motion.vx=motion.vz=0};
 const keys=new Set();let yaw=0,pitch=0,pointer=null,lastX=0,lastY=0;
 addEventListener('keydown',e=>{if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','ShiftLeft','ShiftRight','KeyR'].includes(e.code)){e.preventDefault();keys.add(e.code)}});addEventListener('keyup',e=>keys.delete(e.code));addEventListener('blur',()=>{keys.clear();motion.vx=motion.vz=0;pointer=null});
 addEventListener('visibilitychange',()=>{if(document.hidden){keys.clear();motion.vx=motion.vz=0;pointer=null}});
@@ -81,11 +84,11 @@ let last=0;function frame(now){requestAnimationFrame(frame);const dt=Math.min((n
  let s=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
  const movement=stepCharacterMotion(motion,{forward:frontView?0:f,strafe:frontView?0:s,yaw,running:keys.has('KeyR')||keys.has('ShiftLeft')||keys.has('ShiftRight'),dt});
  actor.set(motion.x,0,motion.z);
- character.root.position.copy(actor);character.update(dt,movement);
+ character.root.position.copy(actor);character.update(dt,{...movement,lookYaw:frontView?character.root.rotation.y:yaw+Math.PI});
  const angle=frontView?character.root.rotation.y+yaw: yaw;
  const zoom=Number(zoomControl.value);
- const distance=(frontView?zoom*.66:zoom)*Math.cos(pitch*.6);
- cameraGoal.set(T.MathUtils.clamp(actor.x+Math.sin(angle)*distance,-6.6,6.6),frontView?1.5+Math.sin(-pitch)*.6:2.05+Math.sin(-pitch)*1.7,T.MathUtils.clamp(actor.z+Math.cos(angle)*distance,-26.4,26));
- lookAt.set(actor.x,frontView?1.3:1.24,actor.z);cameraRig.update(dt,lookAt,cameraGoal);footShadow.update(actor,character.root.rotation.y,characterReady);renderer.render(scene,camera);
+ const distance=(frontView?(portrait?.82:zoom*.86):zoom)*Math.cos(pitch*.6);
+ cameraGoal.set(T.MathUtils.clamp(actor.x+Math.sin(angle)*distance,-6.6,6.6),frontView?(portrait?1.66:1.18)+Math.sin(-pitch)*.6:2.05+Math.sin(-pitch)*1.7,T.MathUtils.clamp(actor.z+Math.cos(angle)*distance,-26.4,26));
+ lookAt.set(actor.x,frontView?(portrait?1.64:.98):1.24,actor.z);cameraRig.update(dt,lookAt,cameraGoal);footShadow.update(actor,character.root.rotation.y,characterReady);renderer.render(scene,camera);
 }
 document.getElementById('loading').hidden=true;requestAnimationFrame(frame);

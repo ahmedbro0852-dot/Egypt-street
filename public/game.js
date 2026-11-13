@@ -1,3 +1,4 @@
+import {createStreetCharacter} from './street-character-v166.js?v=170.0';
 import { installLivingRooftopsV164 } from './living-rooftops-v164.js?v=164.0';
 import { mergeGeometries } from './BufferGeometryUtils.js';
 import { installGroundedCityV160 } from './grounded-city-v160.js?v=160.0';
@@ -280,6 +281,12 @@ const player=makeHero();dressReferenceHeroV47({T,player,renderer});scene.add(pla
 const characterMixerV161=createHeroMixerV161({T,hero:player,
  enabled:!!renderer.isWebGLRenderer&&(!isMobileOptimized||
   (Number(navigator.deviceMemory)||4)>=4)});
+// Replace only the visual body; the established player transform still owns
+// collisions, jumping, quests and vehicle visibility.
+const civilianHeroV170=createStreetCharacter({scene:player});
+const fallbackHeroPartsV170=player.children.filter(child=>child!==civilianHeroV170.root);
+let civilianReadyV170=false;
+civilianHeroV170.ready.then(ready=>{civilianReadyV170=ready;if(ready)for(const child of fallbackHeroPartsV170)child.visible=false;});
 const crowd=createEgyptianCrowd(T,scene,(x,z)=>blocked(x,z,.38),{mobileLite:isMobileOptimized});
 const walkers=crowd.people; // Forty unique residents
 
@@ -1357,6 +1364,10 @@ function frame(t){
   // The door/cockpit sequence and airborne jump still own their own poses.
   characterMixerV161.update(dt,{speed,grounded:onFoot.grounded,
    driving,boarding:rideCinemaV153.isActive(),paused});
+  if(civilianReadyV170)civilianHeroV170.update(dt,{
+   speed:driving||rideCinemaV153.isActive()?0:speed,rotate:false,
+   direction:0,lookYaw:0,grounded:onFoot.grounded,vertical:onFoot.vy
+  });
   rideCinemaV153.update(dt);
   crowdClockV51+=dt;
   if(!mobileLiteV51.enabled||crowdClockV51>=.08){crowd.update(Math.min(.12,crowdClockV51),t,p,traffic,taxi,driving?vehicleState.speed:0);crowdClockV51=0;}

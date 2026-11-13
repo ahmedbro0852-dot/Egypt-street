@@ -64,7 +64,7 @@ test('all important controls and missions remain in document',async()=>{
   else assert.ok(s.includes('id="'+id+'"'),id+' must remain in markup');
  assert.ok(s.includes('street-design-v162.css?v=162.2'));
  assert.ok(s.indexOf('street-design-v162.css')>s.indexOf('royal-hud-v49.css'),'new art direction loads last');
- assert.match(s,/game\.js\?v=164\.0/);
+ assert.match(s,/game\.js\?v=170\.0/);
 });
 test('V162 theme supports thumb targets and fast fallback on weak phones',async()=>{
  const css=await readFile(new URL('../public/street-design-v162.css',import.meta.url),'utf8');
@@ -85,5 +85,5 @@ test('PWA pre-cache contains the new design and interaction module',async()=>{
  const sw=await readFile(new URL('../public/sw-v50.js',import.meta.url),'utf8');
  assert.match(sw,/street-design-v162\.css/);
  assert.match(sw,/ui-skin-v162\.js/);
- assert.match(sw,/egypt-streets-static-v164-living-rooftops/);
+ assert.match(sw,/egypt-streets-static-v170-civilian/);
 });
