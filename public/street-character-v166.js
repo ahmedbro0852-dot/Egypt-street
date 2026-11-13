@@ -1,5 +1,6 @@
 import * as T from './three.js';
 import {GLTFLoader} from './GLTFLoader.js';
+import {stepBodyDynamics} from './character-body-v171.js';
 import {finishCharacter} from './character-surface-v170.js';
 export const CHARACTER_URL='./models/civilian-v169.glb';
 export function characterWeights(speed){speed=Number.isFinite(speed)?speed:0;const walk=T.MathUtils.clamp(Math.abs(speed)/1.8,0,1),run=T.MathUtils.clamp((Math.abs(speed)-2.5)/1.8,0,1);return {idle:1-walk,walk:walk*(1-run),run:walk*run}}
@@ -7,6 +8,7 @@ export function createStreetCharacter({scene,onStatus=()=>{}}){
  const root=new T.Group();root.name='Street protagonist';scene.add(root);
  let model=null,mixer=null,actions=null,previousYaw=0,disposed=false;
  let head=null,neck=null,clock=0,headYaw=0;
+ const body={pitch:0,roll:0,speed:0,yaw:0};
  onStatus('جاري تحميل الشخصية…');
  const ready=new GLTFLoader().loadAsync(CHARACTER_URL).then(gltf=>{
   if(disposed)return false;
@@ -27,8 +29,8 @@ export function createStreetCharacter({scene,onStatus=()=>{}}){
   headYaw=T.MathUtils.damp(headYaw,T.MathUtils.clamp(relative,-.42,.42),5,step);
   if(head){head.rotateY(headYaw*.65);head.rotateX(Math.sin(clock*1.35)*.009)}
   if(neck)neck.rotateY(headYaw*.35);
-  if(!grounded){model.rotation.x=.08;model.position.y=Math.max(0,model.position.y);}
-  else model.rotation.x=T.MathUtils.damp(model.rotation.x,0,10,step);
+  stepBodyDynamics(body,{speed,yaw:root.rotation.y,grounded,dt:step});
+  model.rotation.x=body.pitch;model.rotation.z=body.roll;
 
  },dispose(){disposed=true;if(mixer){mixer.stopAllAction();mixer.uncacheRoot(model)}root.traverse(o=>{if(o.isMesh){o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material]){for(const v of Object.values(m))if(v?.isTexture)v.dispose();m.dispose()}}});scene.remove(root)}};
 }
