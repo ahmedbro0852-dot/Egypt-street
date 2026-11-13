@@ -1,4 +1,5 @@
 import * as T from './three.js';
+import {fitCharacter} from './character-size-v175.js';
 import {GLTFLoader} from './GLTFLoader.js';
 import {stepBodyDynamics} from './character-body-v171.js';
 import {finishCharacter} from './character-surface-v170.js';
@@ -12,12 +13,10 @@ export function createStreetCharacter({scene,onStatus=()=>{}}){
  onStatus('جاري تحميل الشخصية…');
  const ready=new GLTFLoader().loadAsync(CHARACTER_URL).then(gltf=>{
   if(disposed)return false;
-  model=gltf.scene;const bounds=new T.Box3().setFromObject(model),height=bounds.max.y-bounds.min.y;
-  if(!Number.isFinite(height)||height<.01)throw new Error('Invalid character dimensions');
-  model.scale.setScalar(1.78/height);bounds.setFromObject(model);model.position.y-=bounds.min.y;
+  model=gltf.scene;const fitted=fitCharacter(model);
   model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;for(const material of Array.isArray(o.material)?o.material:[o.material]){material.envMapIntensity=.55;if(material.roughness!==undefined)material.roughness=Math.max(.48,material.roughness)}}});
   finishCharacter(model);head=model.getObjectByName('head');neck=model.getObjectByName('neck_01');
-  root.add(model);mixer=new T.AnimationMixer(model);actions={};
+  root.add(fitted);mixer=new T.AnimationMixer(model);actions={};
   for(const name of ['Idle','Walk','Run']){const clip=gltf.animations.find(c=>c.name===name);if(!clip)throw new Error('Missing animation '+name);actions[name.toLowerCase()]=mixer.clipAction(clip).setEffectiveWeight(name==='Idle'?1:0).play()}
   onStatus('الشخصية جاهزة • اسحب لتدوير الكاميرا');return true;
  }).catch(()=>{if(!disposed)onStatus('تعذر تحميل الشخصية • اضغط إعادة التحميل');return false});
