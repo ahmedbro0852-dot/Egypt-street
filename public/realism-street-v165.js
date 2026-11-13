@@ -1,5 +1,6 @@
 import * as T from './three.js';
 import {createStreetCharacter} from './street-character-v166.js?v=167.0';
+import {createCharacterCamera,createFootContactShadow} from './character-camera-v168.js';
 import {stepCharacterMotion} from './character-motion-v167.js';
 import {mergeGeometries} from './BufferGeometryUtils.js';
 const canvas=document.getElementById('scene'),mobile=matchMedia('(pointer:coarse)').matches;
@@ -59,7 +60,13 @@ for(const mesh of [...scene.children]){if(!mesh.isMesh)continue;mesh.updateMatri
  batches.get(key).geometries.push(mesh.geometry.clone().applyMatrix4(mesh.matrix));scene.remove(mesh);
 }
 for(const batch of batches.values()){const geometry=mergeGeometries(batch.geometries);for(const g of batch.geometries)g.dispose();const mesh=new T.Mesh(geometry,batch.material);mesh.castShadow=batch.shadow;mesh.receiveShadow=true;scene.add(mesh)}
+scene.updateMatrixWorld(true);
+const cameraRig=createCharacterCamera({camera,occluders:scene.children.filter(o=>o.isMesh&&o.castShadow)}),footShadow=createFootContactShadow({scene});
+let characterReady=false;
 const character=createStreetCharacter({scene,onStatus:message=>document.getElementById('characterStatus').textContent=message});
+character.ready.then(ready=>{characterReady=ready;document.getElementById("retryCharacter").hidden=ready});
+document.getElementById("retryCharacter").onclick=()=>location.reload();
+const zoomControl=document.getElementById("cameraZoom");
 const actor=new T.Vector3(1,0,13),lookAt=new T.Vector3(),cameraGoal=new T.Vector3();
 const motion={x:1,z:13,vx:0,vz:0};
 let savedYaw=0,frontView=false;document.getElementById('characterView').onclick=()=>{frontView=!frontView;if(frontView){savedYaw=yaw;yaw=0}else{yaw=savedYaw}document.getElementById('characterView').setAttribute('aria-pressed',String(frontView));document.getElementById('characterView').textContent=frontView?'الرجوع للمشي':'فحص الشخصية';motion.vx=motion.vz=0};
@@ -76,8 +83,9 @@ let last=0;function frame(now){requestAnimationFrame(frame);const dt=Math.min((n
  actor.set(motion.x,0,motion.z);
  character.root.position.copy(actor);character.update(dt,movement);
  const angle=frontView?character.root.rotation.y+yaw: yaw;
- const distance=frontView?2.15:3.5*Math.cos(pitch*.6);
+ const zoom=Number(zoomControl.value);
+ const distance=(frontView?zoom*.66:zoom)*Math.cos(pitch*.6);
  cameraGoal.set(T.MathUtils.clamp(actor.x+Math.sin(angle)*distance,-6.6,6.6),frontView?1.5+Math.sin(-pitch)*.6:2.05+Math.sin(-pitch)*1.7,T.MathUtils.clamp(actor.z+Math.cos(angle)*distance,-26.4,26));
- camera.position.lerp(cameraGoal,1-Math.exp(-9*dt));lookAt.set(actor.x,frontView?1.13:1.24,actor.z);camera.lookAt(lookAt);renderer.render(scene,camera);
+ lookAt.set(actor.x,frontView?1.3:1.24,actor.z);cameraRig.update(dt,lookAt,cameraGoal);footShadow.update(actor,character.root.rotation.y,characterReady);renderer.render(scene,camera);
 }
 document.getElementById('loading').hidden=true;requestAnimationFrame(frame);

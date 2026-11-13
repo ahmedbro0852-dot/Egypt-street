@@ -97,3 +97,7 @@ The street study now follows a visible human model in third person. It loads Thr
 ### V167 — character handling refinement
 
 Adds acceleration and braking with frame-rate-independent velocity smoothing, animation playback rate tied to measured movement speed, normalized diagonal movement, and boundary feedback that prevents walking animation while blocked. The close inspection view pauses locomotion and permits orbiting the character; returning restores the walking camera yaw. Focus loss and backgrounding clear motion input. The existing external character mesh and outfit are unchanged. Validation: 84 Node tests pass; visual/device QA remains pending.
+
+### V168 — grounded character and camera safety
+
+Adds two-pass camera occlusion checks against static architecture, including after follow smoothing, plus an adjustable viewing distance and a closer inspection target. A local radial contact shadow anchors the character's feet independently of the sun shadow map. Reduced-motion preferences disable camera easing. Failed external character loads reveal a reload button. Validation: 86 Node tests pass, including an actual raycast against a wall with the camera initially behind it. The live page was inspected in the cloud browser, which reports WebGL unavailable; GPU appearance and phone performance remain unverified.
