@@ -283,7 +283,8 @@ const characterMixerV161=createHeroMixerV161({T,hero:player,
   (Number(navigator.deviceMemory)||4)>=4)});
 // Replace only the visual body; the established player transform still owns
 // collisions, jumping, quests and vehicle visibility.
-const civilianHeroV170=createStreetCharacter({scene:player});
+const civilianHeroV170=renderer.isWebGLRenderer?createStreetCharacter({scene:player}):
+ {root:null,ready:Promise.resolve(false),update(){}};
 const fallbackHeroPartsV170=player.children.filter(child=>child!==civilianHeroV170.root);
 let civilianReadyV170=false;
 civilianHeroV170.ready.then(ready=>{civilianReadyV170=ready;if(ready)for(const child of fallbackHeroPartsV170)child.visible=false;});
