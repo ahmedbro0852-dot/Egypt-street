@@ -1,5 +1,5 @@
 import * as T from './three.js';
-import {createStreetCharacter} from './street-character-v166.js?v=167.0';
+import {createStreetCharacter} from './street-character-v166.js?v=169.0';
 import {createCharacterCamera,createFootContactShadow} from './character-camera-v168.js';
 import {stepCharacterMotion} from './character-motion-v167.js';
 import {mergeGeometries} from './BufferGeometryUtils.js';

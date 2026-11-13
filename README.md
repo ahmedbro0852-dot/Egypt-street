@@ -101,3 +101,7 @@ Adds acceleration and braking with frame-rate-independent velocity smoothing, an
 ### V168 — grounded character and camera safety
 
 Adds two-pass camera occlusion checks against static architecture, including after follow smoothing, plus an adjustable viewing distance and a closer inspection target. A local radial contact shadow anchors the character's feet independently of the sun shadow map. Reduced-motion preferences disable camera easing. Failed external character loads reveal a reload button. Validation: 86 Node tests pass, including an actual raycast against a wall with the camera initially behind it. The live page was inspected in the cloud browser, which reports WebGL unavailable; GPU appearance and phone performance remain unverified.
+
+### V169 — civilian appearance replaces the soldier
+
+The character mesh itself is replaced with a locally hosted CC0 Sam/MakeHuman human: exposed face, short dark hair, charcoal long-sleeved top, blue trousers and dark shoes. The civilian rig has authored Idle and Walk clips; Run uses a faster walk variant. Source textures and geometry are reduced selectively to retain the face and garment silhouette. The previous third-person controls and inspection view remain. The exported optimized GLB is rendered in Blender for visual QA, and its structure/animation targets/size are tested. Browser WebGL and device frame-rate QA remain unavailable.

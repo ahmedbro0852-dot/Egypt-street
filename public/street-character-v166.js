@@ -1,6 +1,6 @@
 import * as T from './three.js';
 import {GLTFLoader} from './GLTFLoader.js';
-export const CHARACTER_URL='https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/models/gltf/Soldier.glb';
+export const CHARACTER_URL='./models/civilian-v169.glb';
 export function characterWeights(speed){speed=Number.isFinite(speed)?speed:0;const walk=T.MathUtils.clamp(Math.abs(speed)/1.8,0,1),run=T.MathUtils.clamp((Math.abs(speed)-2.5)/1.8,0,1);return {idle:1-walk,walk:walk*(1-run),run:walk*run}}
 export function createStreetCharacter({scene,onStatus=()=>{}}){
  const root=new T.Group();root.name='Street protagonist';scene.add(root);
@@ -15,7 +15,7 @@ export function createStreetCharacter({scene,onStatus=()=>{}}){
   root.add(model);mixer=new T.AnimationMixer(model);actions={};
   for(const name of ['Idle','Walk','Run']){const clip=gltf.animations.find(c=>c.name===name);if(!clip)throw new Error('Missing animation '+name);actions[name.toLowerCase()]=mixer.clipAction(clip).setEffectiveWeight(name==='Idle'?1:0).play()}
   onStatus('الشخصية جاهزة • اسحب لتدوير الكاميرا');return true;
- }).catch(()=>{if(!disposed)onStatus('تعذر تحميل الشخصية • أعد المحاولة مع اتصال بالإنترنت');return false});
+ }).catch(()=>{if(!disposed)onStatus('تعذر تحميل الشخصية • اضغط إعادة التحميل');return false});
  return {root,ready,update(dt,{speed=0,direction=0}={}){
   const step=T.MathUtils.clamp(dt,0,.05);if(Math.abs(speed)>.05){previousYaw+=Math.atan2(Math.sin(direction-previousYaw),Math.cos(direction-previousYaw))*(1-Math.exp(-12*step));root.rotation.y=previousYaw}
   if(!actions)return;actions.walk.setEffectiveTimeScale(T.MathUtils.clamp(Math.abs(speed)/2,.2,1.35));actions.run.setEffectiveTimeScale(T.MathUtils.clamp(Math.abs(speed)/4.3,.5,1.25));const weights=characterWeights(speed);for(const key of ['idle','walk','run']){const a=actions[key];a.setEffectiveWeight(T.MathUtils.lerp(a.getEffectiveWeight(),weights[key],1-Math.exp(-10*step)))}mixer.update(step);
