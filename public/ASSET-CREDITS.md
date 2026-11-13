@@ -22,9 +22,9 @@ https://github.com/mrdoob/three.js/blob/r180/examples/models/gltf/Soldier.glb
 The source example is https://github.com/mrdoob/three.js/blob/r180/examples/webgl_animation_skinning_blending.html .
 This is an externally hosted demonstration character, not a newly authored civilian mesh. Its outfit is field clothing. The binary is not bundled in this repository; loading requires network access. No assertion is made that the Three.js code license grants unrestricted redistribution rights to third-party model assets.
 
-## V169 civilian replacement (archived alternative)
+## V169 civilian replacement (current street character)
 
-V169 introduced a locally hosted civilian mesh adapted from Innerscene's **Sam**, based on MakeHuman/MPFB body, skin, hair and clothes assets, dedicated under **CC0 1.0**. The original V166 Soldier model was restored at the user’s request; the civilian asset remains an unused alternative.
+The street now uses a locally hosted civilian mesh adapted from Innerscene's **Sam**, based on MakeHuman/MPFB body, skin, hair and clothes assets, dedicated under **CC0 1.0**. It replaces the V166 Soldier model entirely in the small street.
 
 - Walk source and license: https://www.innerscene.com/tools/library/3d-parts/relaxed-walk-sam-3d-person-animated-732f1206
 - Idle source and license: https://www.innerscene.com/tools/library/3d-parts/idle-standing-sam-3d-person-animated-1f9f1217

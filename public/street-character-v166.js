@@ -1,19 +1,23 @@
 import * as T from './three.js';
-import {fitCharacter} from './character-size-v173.js';
 import {GLTFLoader} from './GLTFLoader.js';
-export const CHARACTER_URL='https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/models/gltf/Soldier.glb';
+import {stepBodyDynamics} from './character-body-v171.js';
+import {finishCharacter} from './character-surface-v170.js';
+export const CHARACTER_URL='./models/civilian-v169.glb';
 export function characterWeights(speed){speed=Number.isFinite(speed)?speed:0;const walk=T.MathUtils.clamp(Math.abs(speed)/1.8,0,1),run=T.MathUtils.clamp((Math.abs(speed)-2.5)/1.8,0,1);return {idle:1-walk,walk:walk*(1-run),run:walk*run}}
 export function createStreetCharacter({scene,onStatus=()=>{}}){
  const root=new T.Group();root.name='Street protagonist';scene.add(root);
  let model=null,mixer=null,actions=null,previousYaw=0,disposed=false;
  let head=null,neck=null,clock=0,headYaw=0;
+ const body={pitch:0,roll:0,speed:0,yaw:0};
  onStatus('جاري تحميل الشخصية…');
  const ready=new GLTFLoader().loadAsync(CHARACTER_URL).then(gltf=>{
   if(disposed)return false;
-  model=gltf.scene;const fitted=fitCharacter(model);
+  model=gltf.scene;const bounds=new T.Box3().setFromObject(model),height=bounds.max.y-bounds.min.y;
+  if(!Number.isFinite(height)||height<.01)throw new Error('Invalid character dimensions');
+  model.scale.setScalar(1.78/height);bounds.setFromObject(model);model.position.y-=bounds.min.y;
   model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;for(const material of Array.isArray(o.material)?o.material:[o.material]){material.envMapIntensity=.55;if(material.roughness!==undefined)material.roughness=Math.max(.48,material.roughness)}}});
-  head=model.getObjectByName('head');neck=model.getObjectByName('neck_01');
-  root.add(fitted);mixer=new T.AnimationMixer(model);actions={};
+  finishCharacter(model);head=model.getObjectByName('head');neck=model.getObjectByName('neck_01');
+  root.add(model);mixer=new T.AnimationMixer(model);actions={};
   for(const name of ['Idle','Walk','Run']){const clip=gltf.animations.find(c=>c.name===name);if(!clip)throw new Error('Missing animation '+name);actions[name.toLowerCase()]=mixer.clipAction(clip).setEffectiveWeight(name==='Idle'?1:0).play()}
   onStatus('الشخصية جاهزة • اسحب لتدوير الكاميرا');return true;
  }).catch(()=>{if(!disposed)onStatus('تعذر تحميل الشخصية • اضغط إعادة التحميل');return false});
@@ -25,8 +29,8 @@ export function createStreetCharacter({scene,onStatus=()=>{}}){
   headYaw=T.MathUtils.damp(headYaw,T.MathUtils.clamp(relative,-.42,.42),5,step);
   if(head){head.rotateY(headYaw*.65);head.rotateX(Math.sin(clock*1.35)*.009)}
   if(neck)neck.rotateY(headYaw*.35);
-  if(!grounded){model.rotation.x=.08;model.position.y=Math.max(0,model.position.y);}
-  else model.rotation.x=T.MathUtils.damp(model.rotation.x,0,10,step);
+  stepBodyDynamics(body,{speed,yaw:root.rotation.y,grounded,dt:step});
+  model.rotation.x=body.pitch;model.rotation.z=body.roll;
 
  },dispose(){disposed=true;if(mixer){mixer.stopAllAction();mixer.uncacheRoot(model)}root.traverse(o=>{if(o.isMesh){o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material]){for(const v of Object.values(m))if(v?.isTexture)v.dispose();m.dispose()}}});scene.remove(root)}};
 }

@@ -7,4 +7,5 @@ test('civilian asset has local skin, real face/hair, clothing and usable locomot
  for(const a of g.animations)for(const c of a.channels){assert.ok(c.target.node<g.nodes.length);const sampler=a.samplers[c.sampler];assert.ok(g.accessors[sampler.input].count>1);assert.ok(g.accessors[sampler.output].count>1)}
  const triangles=g.meshes.flatMap(m=>m.primitives).reduce((s,p)=>s+g.accessors[p.indices].count/3,0);assert.ok(triangles<65000);assert.ok(b.length<4e6);
  const binaryStart=28+n;for(const view of g.bufferViews)assert.ok(binaryStart+(view.byteOffset||0)+view.byteLength<=b.length);
+ const source=await readFile(new URL('../public/street-character-v166.js',import.meta.url),'utf8');assert.match(source,/\.\/models\/civilian-v169\.glb/);assert.ok(!source.includes('Soldier.glb'));
 });
