@@ -85,5 +85,5 @@ test('PWA pre-cache contains the new design and interaction module',async()=>{
  const sw=await readFile(new URL('../public/sw-v50.js',import.meta.url),'utf8');
  assert.match(sw,/street-design-v162\.css/);
  assert.match(sw,/ui-skin-v162\.js/);
- assert.match(sw,/egypt-streets-static-v171-body/);
+ assert.match(sw,/egypt-streets-static-v170-civilian/);
 });
