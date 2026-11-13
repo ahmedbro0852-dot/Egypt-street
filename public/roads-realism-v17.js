@@ -31,6 +31,11 @@ function makeTexture(T,kind,anisotropy=2){
    q.fillRect(rand()*512,rand()*512,6+rand()*45,1+rand()*5);
   }
  }else{
+  // Broad low-contrast aggregate variation breaks up the tiled flat colour.
+  for(let i=0;i<90;i++){
+   q.fillStyle=i%2?'rgba(176,163,143,.028)':'rgba(13,19,22,.035)';
+   q.beginPath();q.ellipse(rand()*512,rand()*512,8+rand()*54,4+rand()*26,rand()*Math.PI,0,Math.PI*2);q.fill();
+  }
   // Longitudinal tar repairs, aggregate and fine irregular cracks.
   for(let i=0;i<16;i++){
    const x=rand()*512,y=rand()*512;
@@ -51,6 +56,17 @@ function makeTexture(T,kind,anisotropy=2){
  texture.colorSpace=T.SRGBColorSpace||undefined;
  texture.anisotropy=anisotropy;texture.needsUpdate=true;
  return texture;
+}
+function makePaintTexture(T){
+ const c=document.createElement('canvas');c.width=c.height=256;
+ const q=c.getContext('2d');q.fillStyle='#fff';q.fillRect(0,0,256,256);
+ let seed=177;const rand=()=>{seed=seed*16807%2147483647;return seed/2147483647};
+ for(let i=0;i<1400;i++)q.clearRect(rand()*256,rand()*256,.4+rand()*1.8,.5+rand()*2.5);
+ const texture=new T.CanvasTexture(c);texture.wrapS=texture.wrapT=T.RepeatWrapping;texture.colorSpace=T.SRGBColorSpace;return texture;
+}
+function curbFace(batch,x1,z1,x2,z2,bottom,top){
+ const points=[[x1,bottom,z1],[x1,top,z1],[x2,top,z2],[x2,bottom,z2]];
+ for(const i of [0,1,2,0,2,3]){batch.p.push(...points[i]);batch.uv.push(i===0||i===1?0:1,i===1||i===2?1:0)}batch.count++;
 }
 function sheet(){
  return {p:[],uv:[],count:0};
@@ -93,9 +109,9 @@ function segments(min,max,breaks,margin=9){
 export function createRealisticRoads({T,scene,enableWet=true,mobileLite=false,highEndMobile=false}={}){
  const surfaces=sheet(),pavements=sheet(),curbStone=sheet(),
    edge=sheet(),center=sheet(),zebra=sheet(),warning=sheet(),repairs=sheet(),
-   puddles=sheet(),reflectors=sheet();
+   puddles=sheet(),reflectors=sheet(),wheelWear=sheet(),drains=sheet();
  const anisotropy=highEndMobile?4:2;
- const asphalt=makeTexture(T,'asphalt',anisotropy),sidewalk=makeTexture(T,'pavement',anisotropy);
+ const asphalt=makeTexture(T,'asphalt',anisotropy),sidewalk=makeTexture(T,'pavement',anisotropy),paintTexture=makePaintTexture(T);
  const roads=[],speedBumps=[],patches=[],puddlePoints=[];
  const vertical=[
   ...MAIN.map(x=>({axis:'z',value:x,min:-85,max:85,width:11,height:.065,kind:'inner'})),
@@ -132,19 +148,39 @@ export function createRealisticRoads({T,scene,enableWet=true,mobileLite=false,hi
     const outer=road.value+side*(half+.17);
     const centre=road.value+side*(half+.90);
     if(along){
-     quad(pavements,centre-.55,a,centre+.55,b,y+.018);
-     quad(curbStone,outer-.18,a,outer+.18,b,y+.061);
+     quad(pavements,centre-.55,a,centre+.55,b,y+.13);
+     quad(curbStone,outer-.18,a,outer+.18,b,y+.15);
      quad(edge,road.value+side*(half-.35)-.05,a,road.value+side*(half-.35)+.05,b,y+.020);
     }else{
-     quad(pavements,a,centre-.55,b,centre+.55,y+.018);
-     quad(curbStone,a,outer-.18,b,outer+.18,y+.061);
+     quad(pavements,a,centre-.55,b,centre+.55,y+.13);
+     quad(curbStone,a,outer-.18,b,outer+.18,y+.15);
      quad(edge,a,road.value+side*(half-.35)-.05,b,road.value+side*(half-.35)+.05,y+.020);
+    }
+    if(along)curbFace(curbStone,outer-side*.18,a,outer-side*.18,b,y,y+.15);
+    else curbFace(curbStone,a,outer-side*.18,b,outer-side*.18,y,y+.15);
+    // Recessed drain bars follow the gutter; they add no physical obstacles.
+    if(road.kind!=='bridge')for(let k=Math.ceil((a+3)/28)*28;k<b-1;k+=28){
+     const gutter=road.value+side*(half-.20);
+     for(let j=0;j<7;j++){
+      const u=k+j*.09;
+      if(along)quad(drains,gutter-.16,u,gutter+.16,u+.045,y+.009);
+      else quad(drains,u,gutter-.16,u+.045,gutter+.16,y+.009);
+     }
     }
     // Faded reflective marker slabs along pavement edges, every 30 metres.
     for(let k=Math.ceil(a/30)*30;k<b-1;k+=30){
-     if(along)quad(reflectors,outer-.13,k,outer+.13,k+.95,y+.064);
-     else quad(reflectors,k,outer-.13,k+.95,outer+.13,y+.064);
+     if(along)quad(reflectors,outer-.13,k,outer+.13,k+.95,y+.153);
+     else quad(reflectors,k,outer-.13,k+.95,outer+.13,y+.153);
     }
+   }
+  }
+  // Soft lane polishing and dust at the edge, away from intersections.
+  for(const [a,b] of safe)for(const side of [-1,1]){
+   const lane=road.value+side*2.65;
+   for(const wheel of [-.72,.72]){
+    const transverse=lane+wheel;
+    if(along)quad(wheelWear,transverse-.17,a,transverse+.17,b,y+.004);
+    else quad(wheelWear,a,transverse-.17,b,transverse+.17,y+.004);
    }
   }
   if(road.kind==='bridge'){
@@ -224,8 +260,8 @@ export function createRealisticRoads({T,scene,enableWet=true,mobileLite=false,hi
   new T.MeshPhysicalMaterial({map:asphalt,bumpMap:asphalt,bumpScale:.014,color:0xf9f8f4,roughness:.95,metalness:0,clearcoat:0,clearcoatRoughness:.12,side:T.DoubleSide});
  const kerbMat=new T.MeshLambertMaterial({color:0xb9aa8c,side:T.DoubleSide});
  const pathMat=new T.MeshLambertMaterial({map:sidewalk,color:0xe6d5b2,side:T.DoubleSide});
- const paint=(color,alpha=1)=>new T.MeshBasicMaterial({
-  color,transparent:alpha<1,opacity:alpha,depthWrite:alpha>=1,side:T.DoubleSide
+ const paint=(color,alpha=1)=>new T.MeshLambertMaterial({
+  color,map:paintTexture,transparent:true,opacity:alpha,alphaTest:.15,depthWrite:false,side:T.DoubleSide
  });
  const all=[
   build(T,scene,surfaces,asphaltMat),build(T,scene,pavements,pathMat),
@@ -234,7 +270,9 @@ export function createRealisticRoads({T,scene,enableWet=true,mobileLite=false,hi
   build(T,scene,zebra,paint(0xf3eee0,.89)),
   build(T,scene,warning,paint(0xf9c75e,.94)),
   build(T,scene,repairs,paint(0x33383a,.92)),
-  build(T,scene,reflectors,paint(0xf8d18a,.95))
+  build(T,scene,reflectors,paint(0xf8d18a,.95)),
+  build(T,scene,wheelWear,new T.MeshLambertMaterial({color:0x20272b,transparent:true,opacity:.075,depthWrite:false,side:T.DoubleSide})),
+  build(T,scene,drains,new T.MeshLambertMaterial({color:0x333b3b,side:T.DoubleSide}))
  ].filter(Boolean);
  // Puddle surfaces are only visible during rain, with a low-cost shared material.
  const pondCanvas=document.createElement('canvas');pondCanvas.width=pondCanvas.height=128;
@@ -285,11 +323,12 @@ export function createRealisticRoads({T,scene,enableWet=true,mobileLite=false,hi
  update();
  return {update,surfaceAt,stats:()=>({
   roadSegments:roads.length,roadMeshes:all.length,
-  batchCount:surfaces.count+pavements.count+curbStone.count+edge.count+center.count+zebra.count+warning.count+repairs.count+puddles.count+reflectors.count,
+  batchCount:surfaces.count+pavements.count+curbStone.count+edge.count+center.count+zebra.count+warning.count+repairs.count+puddles.count+reflectors.count+wheelWear.count+drains.count,
   crossings:9,speedBumps:speedBumps.length,roadPatches:patches.length,puddles:puddlePoints.length
  }),dispose(){
+  const materials=new Set(all.map(m=>m.material));
   for(const m of all){m.geometry?.dispose?.();scene.remove(m)}
-  [asphalt,sidewalk,pondTexture].forEach(t=>t.dispose?.());
-  [asphaltMat,kerbMat,pathMat,pondMat].forEach(m=>m.dispose?.());
+  [asphalt,sidewalk,pondTexture,paintTexture].forEach(t=>t.dispose?.());
+  for(const m of materials)m.dispose?.();
  }};
 }
