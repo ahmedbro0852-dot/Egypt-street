@@ -22,6 +22,8 @@ export function finishCharacter(model){
    if(Array.isArray(mesh.material))mesh.material=mesh.material.map(m=>m===material?physical:m);else mesh.material=physical;
   }else if(/\.body$/.test(name)){material.roughness=.62;material.envMapIntensity=.45}
   else if(/short01|hair roots/.test(name)){material.roughness=.87;material.envMapIntensity=.35}
+  else if(/low-poly/.test(name)){material.roughness=.28;material.envMapIntensity=.65}
+  else if(/teeth_base/.test(name)){material.roughness=.42}
   else if(/shoes01/.test(name)){material.color.set('#262521');material.roughness=.68}
  }});
 }

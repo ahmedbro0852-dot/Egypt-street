@@ -3,7 +3,7 @@
 const KEY='egypt-streets-garage-v8';
 const LIMIT=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const VEHICLES_V8=[
- {id:'taxi',name:'تاكسي القاهرة',icon:'🚕',price:0,top:41,engine:1,brake:1,grip:1,steer:1,
+ {id:'taxi',name:'تاكسي القاهرة',icon:'🚕',price:0,top:50,engine:1.1,brake:1.16,grip:1.06,steer:1,
   description:'عربيتك الأساسية، عملية وثابتة في شوارع وسط البلد.'},
  {id:'sedan',name:'سيدان عائلية',icon:'🚙',price:550,top:37,engine:.96,brake:1.09,grip:1.07,steer:1.07,
   description:'أهدى في السواقة وفرامل أقوى وثبات أحسن.'},

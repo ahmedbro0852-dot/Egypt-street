@@ -2,8 +2,8 @@
 // All units are metres, seconds and kilograms. Deterministic gameplay simulation.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const VEHICLE_DYNAMICS_V19={
- taxi:{mass:1310,wheelbase:2.70,frontShare:.55,inertiaScale:1.03,engineForce:7350,brakeForce:9800,spring:66,rollSpring:54,
-  suspensionTravel:.115,tyreStiffness:1.00,dragScale:1,brakeThermal:1},
+ taxi:{mass:1310,wheelbase:2.70,frontShare:.55,inertiaScale:1.03,engineForce:8600,brakeForce:11200,spring:72,rollSpring:65,
+  suspensionTravel:.105,tyreStiffness:1.08,dragScale:.94,brakeThermal:1.08},
  sedan:{mass:1590,wheelbase:2.93,frontShare:.57,inertiaScale:1.17,engineForce:8300,brakeForce:10900,spring:59,rollSpring:48,
   suspensionTravel:.14,tyreStiffness:.96,dragScale:1.13,brakeThermal:.95},
  sport:{mass:1125,wheelbase:2.60,frontShare:.51,inertiaScale:.91,engineForce:8900,brakeForce:10500,spring:83,rollSpring:79,
