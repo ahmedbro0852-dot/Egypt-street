@@ -1,3 +1,4 @@
+import {bridgeRiseAt,bridgeSurfaceHeightAt} from './nile-bridges-v174.js';
 // Egypt Streets — realistic Egyptian road surfaces, lane rules, curbs and wet asphalt.
 // Draw-call efficient procedural batching: no downloaded textures, no external resources.
 const MAIN=[-60,-30,0,30,60],OTHER_X=[-139,-95,84,94,170],OTHER_Z=[-133,-93,93,133];
@@ -60,7 +61,7 @@ function quad(batch,x1,z1,x2,z2,y,uvScale=1/8,local=false){
  const order=[0,1,2,0,2,3];
  for(const n of order){
   const p=pts[n];
-  batch.p.push(p[0],y,p[1]);
+  batch.p.push(p[0],typeof y==='function'?y(p[0],p[1]):y,p[1]);
   batch.uv.push(local?(n===1||n===2?0:1):p[0]*uvScale,local?(n===1||n===0?1:0):p[1]*uvScale);
  }
  batch.count++;
@@ -120,7 +121,9 @@ export function createRealisticRoads({T,scene,enableWet=true,mobileLite=false,hi
     segments(road.min,road.max,vertical.filter(v=>v.min<=road.value&&v.max>=road.value).map(v=>v.value),5.5);
   for(const [a,b] of surfaceIntervals){
    if(along)quad(surfaces,road.value-half,a,road.value+half,b,y);
-   else quad(surfaces,a,road.value-half,b,road.value+half,y);
+   else if(road.kind==='bridge'){
+    for(let x=a;x<b;x++)quad(surfaces,x,road.value-half,Math.min(b,x+1),road.value+half,bridgeSurfaceHeightAt);
+   }else quad(surfaces,a,road.value-half,b,road.value+half,y);
   }
   // Continuous, non-colliding concrete pavements and painted kerbs.
   const safe=road.kind==='bridge'?[[101,163]]:segments(road.min,road.max,crossings,9.0);
@@ -277,7 +280,7 @@ export function createRealisticRoads({T,scene,enableWet=true,mobileLite=false,hi
   }
   if(patches.some(p=>Math.abs(x-p.x)<1.9&&Math.abs(z-p.z)<2.6))grip=Math.min(grip,.93);
   return {grip,bump,onRoad:!!lane,wet:lastWet,
-    roadType:lane?.kind||'unpaved',height:lane?.kind==='bridge'?.36:0};
+    roadType:lane?.kind||'unpaved',height:lane?.kind==='bridge'?.36*bridgeRiseAt(x):0};
  }
  update();
  return {update,surfaceAt,stats:()=>({

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from '../public/three.js';
-import {createNileBridges,NILE_BRIDGE_CENTERS} from '../public/nile-bridges-v174.js';
+import {createNileBridges,NILE_BRIDGE_CENTERS,bridgeSurfaceHeightAt,bridgeRiseAt} from '../public/nile-bridges-v174.js';
 import {createRealisticRoads} from '../public/roads-realism-v17.js';
 test('three bridge structures share four batches and keep the driving corridor free',()=>{
  const scene=new T.Scene(),solids=[];
@@ -26,9 +26,20 @@ test('bridge asphalt stays continuous over both Corniche crossings and the river
   for(const z of NILE_BRIDGE_CENTERS)for(const x of [88,94,100,110,132,160,170,176]){
    ray.set(new T.Vector3(x,3,z),new T.Vector3(0,-1,0));
    const hit=ray.intersectObject(asphalt)[0];assert.ok(hit,`missing asphalt at ${x},${z}`);
-   assert.ok(Math.abs(hit.point.y-.405)<1e-5);
+   assert.ok(Math.abs(hit.point.y-bridgeSurfaceHeightAt(x))<1e-5);
    assert.equal(roads.surfaceAt(x,z).roadType,'bridge');
   }
   roads.dispose();
  }finally{globalThis.document=old}
+});
+
+test('both bridge approaches meet street level smoothly without a driving step',()=>{
+ assert.equal(bridgeRiseAt(87),0);assert.equal(bridgeRiseAt(177),0);
+ assert.equal(bridgeRiseAt(101),1);assert.equal(bridgeRiseAt(163),1);
+ for(let x=87;x<177;x+=.1){
+  assert.ok(Math.abs(bridgeSurfaceHeightAt(x+.1)-bridgeSurfaceHeightAt(x))<.004);
+  assert.ok(bridgeRiseAt(x)>=0&&bridgeRiseAt(x)<=1);
+ }
+ assert.ok(Math.abs(bridgeSurfaceHeightAt(87)-.096)<1e-8);
+ assert.ok(Math.abs(bridgeSurfaceHeightAt(177)-.076)<1e-8);
 });

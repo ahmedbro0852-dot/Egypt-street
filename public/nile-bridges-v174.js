@@ -1,10 +1,24 @@
 // Three Nile crossings, four shared instanced batches, no downloaded assets.
 export const NILE_BRIDGE_CENTERS=[-60,0,60];
+export function bridgeRiseAt(x){
+ const t=Math.max(0,Math.min(1,(x-87)/14,(177-x)/14));
+ return t*t*(3-2*t);
+}
+export function bridgeSurfaceHeightAt(x){
+ const base=x<132?.096:.076;
+ return base+(.405-base)*bridgeRiseAt(x);
+}
 export function createNileBridges({T,scene,solids}){
  const concrete=[],steel=[],paving=[],lights=[];
  const piece=(batch,x,y,z,w,h,d,angle=0)=>batch.push({x,y,z,w,h,d,angle});
  for(const z of NILE_BRIDGE_CENTERS){
-  piece(concrete,132,.20,z,91,.40,14.6);
+  piece(concrete,132,.20,z,62,.40,14.6);
+  // Short sloped deck segments follow the same profile as asphalt and physics.
+  for(const [start,end] of [[87,101],[163,177]])for(let x=start;x<end;x++){
+   const a=bridgeSurfaceHeightAt(x)-.005,b=bridgeSurfaceHeightAt(x+1)-.005;
+   const angle=Math.atan2(b-a,1);
+   piece(concrete,x+.5+.2*Math.sin(angle),(a+b)/2-.2*Math.cos(angle),z,Math.hypot(1,b-a),.4,14.6,angle);
+  }
   for(const side of [-1,1]){
    const edge=z+side*6.95;
    piece(paving,132,.48,z+side*6.25,91,.14,1.05);
