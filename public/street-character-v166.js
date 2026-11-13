@@ -1,7 +1,6 @@
 import * as T from './three.js';
 import {GLTFLoader} from './GLTFLoader.js';
-import {finishCharacter} from './character-surface-v170.js';
-export const CHARACTER_URL='./models/civilian-v169.glb';
+export const CHARACTER_URL='https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/models/gltf/Soldier.glb';
 export function characterWeights(speed){speed=Number.isFinite(speed)?speed:0;const walk=T.MathUtils.clamp(Math.abs(speed)/1.8,0,1),run=T.MathUtils.clamp((Math.abs(speed)-2.5)/1.8,0,1);return {idle:1-walk,walk:walk*(1-run),run:walk*run}}
 export function createStreetCharacter({scene,onStatus=()=>{}}){
  const root=new T.Group();root.name='Street protagonist';scene.add(root);
@@ -14,7 +13,7 @@ export function createStreetCharacter({scene,onStatus=()=>{}}){
   if(!Number.isFinite(height)||height<.01)throw new Error('Invalid character dimensions');
   model.scale.setScalar(1.78/height);bounds.setFromObject(model);model.position.y-=bounds.min.y;
   model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;for(const material of Array.isArray(o.material)?o.material:[o.material]){material.envMapIntensity=.55;if(material.roughness!==undefined)material.roughness=Math.max(.48,material.roughness)}}});
-  finishCharacter(model);head=model.getObjectByName('head');neck=model.getObjectByName('neck_01');
+  head=model.getObjectByName('head');neck=model.getObjectByName('neck_01');
   root.add(model);mixer=new T.AnimationMixer(model);actions={};
   for(const name of ['Idle','Walk','Run']){const clip=gltf.animations.find(c=>c.name===name);if(!clip)throw new Error('Missing animation '+name);actions[name.toLowerCase()]=mixer.clipAction(clip).setEffectiveWeight(name==='Idle'?1:0).play()}
   onStatus('الشخصية جاهزة • اسحب لتدوير الكاميرا');return true;
