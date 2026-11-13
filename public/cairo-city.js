@@ -1,3 +1,4 @@
+import {installStreetDetailV178} from './street-detail-v178.js';
 import {createNileBridges} from './nile-bridges-v174.js';
 import { createDetailedPalmV48 } from './palm-landscape-v48.js';
 // Extra Cairo environment for the existing Three.js game.
@@ -68,6 +69,7 @@ for(let k=0;k<30;k++){box(108+random()*46,.074,-175+random()*350,1.3+random()*2,
 box(94,.025,0,11,.13,345,'#555d60');box(101,.15,0,3,.22,346,'#d0c5ac');
 box(161,.15,0,3,.22,346,'#d0c5ac');box(170,.02,0,11,.13,345,'#555d60');
 createNileBridges({T,scene,solids});
+installStreetDetailV178({T,scene,solids});
 const wood=material('#7e7059'),green=material('#608365'),metal=material('#606969');
 function tree(x,z){
  if(options.detailedTrees){createDetailedPalmV48(scene,x,z,6.5+Math.abs(z%7)*.19);return;}
